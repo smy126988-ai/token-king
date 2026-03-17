@@ -434,9 +434,9 @@ final class ClaudeProvider: ProviderProtocol {
     }
 
     private func authErrorMessage(for account: ClaudeAuthAccount, error: Error) -> String {
-        if isRateLimitError(error) {
-            return "Rate limited"
-        }
+        if isRateLimitError(error) { return "Rate limited" }
+        if let p = error as? ProviderError, case .authenticationFailed(let m) = p,
+           m.lowercased().contains("token expired") { return "Token expired" }
         return "Authentication failed"
     }
 
