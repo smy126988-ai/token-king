@@ -483,7 +483,7 @@ final class CodexProvider: ProviderProtocol {
             }
 
             let response = try decoder.decode(CodexResponse.self, from: data)
-            return buildStandardPayload(response: response, account: account)
+            return try buildStandardPayload(response: response, account: account)
         } catch {
             logger.error("Failed to decode Codex API response: \(error.localizedDescription)")
             if let jsonString = String(data: data, encoding: .utf8) {
@@ -609,10 +609,16 @@ final class CodexProvider: ProviderProtocol {
             && sparkSecondaryHoursMatch
     }
 
-    private func buildStandardPayload(response codexResponse: CodexResponse, account: OpenAIAuthAccount) -> DecodedUsagePayload {
-        let baseWindows = codexResponse.rate_limit.resolvedWindows(excludingSpark: true)
-        let primaryWindow = baseWindows?.shortWindow ?? codexResponse.rate_limit.primaryWindow ?? RateLimitWindow(used_percent: 0, limit_window_seconds: nil, reset_after_seconds: nil, reset_at: nil)
-        let secondaryWindow = baseWindows?.longWindow
+    private func buildStandardPayload(response codexResponse: CodexResponse, account: OpenAIAuthAccount) throws -> DecodedUsagePayload {
+        guard let baseWindows = codexResponse.rate_limit.resolvedWindows(excludingSpark: true) else {
+            let accountLabel = account.email ?? account.accountId ?? "unknown account"
+            let message = "Missing rate-limit window for \(accountLabel) from \(account.authSource)"
+            logger.error("\(message)")
+            throw ProviderError.decodingError(message)
+        }
+
+        let primaryWindow = baseWindows.shortWindow
+        let secondaryWindow = baseWindows.longWindow
         let additionalSparkLimit = codexResponse.additional_rate_limits?.first { limit in
             let name = limit.limit_name ?? ""
             return name.range(of: "spark", options: .caseInsensitive) != nil
@@ -691,9 +697,9 @@ final class CodexProvider: ProviderProtocol {
             """
             Codex usage fetched (\(authUsageSummary)): \
             email=\(account.email ?? "unknown"), \
-            base_short=\(primaryUsedPercent)%(\(baseWindows?.shortKey ?? "primary_window")), \
-            base_long=\(secondarySummary)(\(baseWindows?.longKey ?? "none")), \
-            base_source=\(baseWindows?.source ?? "fallback"), \
+            base_short=\(primaryUsedPercent)%(\(baseWindows.shortKey)), \
+            base_long=\(secondarySummary)(\(baseWindows.longKey ?? "none")), \
+            base_source=\(baseWindows.source), \
             spark_primary=\(sparkSummary), \
             spark_secondary=\(sparkWeeklySummary), \
             spark_source=\(sparkSource), \

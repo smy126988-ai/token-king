@@ -1858,8 +1858,27 @@ final class StatusBarController: NSObject {
                 insertIndex += 1
             } else if let result {
                 if let accounts = result.accounts, !accounts.isEmpty {
+                    let codexServiceDisplayName = identifier == .codex
+                        ? TokenManager.shared.getCodexEndpointConfiguration().externalServiceDisplayName
+                        : nil
+                    let shouldConsolidateCodexServiceAccounts = identifier == .codex
+                        && codexServiceDisplayName != nil
+                        && accounts.count > 1
+                    let displayAccounts: [ProviderAccountResult]
+                    if shouldConsolidateCodexServiceAccounts,
+                       let mostUsedAccount = accounts.max(by: { lhs, rhs in
+                           if lhs.usage.usagePercentage != rhs.usage.usagePercentage {
+                               return lhs.usage.usagePercentage < rhs.usage.usagePercentage
+                           }
+                           return lhs.accountIndex > rhs.accountIndex
+                       }) {
+                        displayAccounts = [mostUsedAccount]
+                    } else {
+                        displayAccounts = accounts
+                    }
+
                     let authLabels = Set(
-                        accounts.map { account in
+                        displayAccounts.map { account in
                             authSourceLabel(for: account.details?.authSource, provider: identifier) ?? "Unknown"
                         }
                     )
@@ -1883,44 +1902,52 @@ final class StatusBarController: NSObject {
                     } else {
                         codexEmailByAccountId = [:]
                     }
-                    for account in accounts {
+                    for account in displayAccounts {
                         hasQuota = true
-                        var displayName = accounts.count > 1 ? "\(baseName) #\(account.accountIndex + 1)" : baseName
+                        var displayName = displayAccounts.count > 1 ? "\(baseName) #\(account.accountIndex + 1)" : baseName
 
                         let detailsEmail = account.details?.email?
                             .trimmingCharacters(in: .whitespacesAndNewlines)
-                        let accountEmail: String?
-                        if identifier == .claude,
+                        let accountDisplayLabel: String?
+                        if identifier == .codex,
+                           let codexServiceDisplayName,
+                           !codexServiceDisplayName.isEmpty {
+                            if shouldConsolidateCodexServiceAccounts {
+                                accountDisplayLabel = "\(codexServiceDisplayName), \(accounts.count) accounts"
+                            } else {
+                                accountDisplayLabel = codexServiceDisplayName
+                            }
+                        } else if identifier == .claude,
                            let detailsEmail,
                            !detailsEmail.isEmpty {
-                            accountEmail = detailsEmail
+                            accountDisplayLabel = detailsEmail
                         } else if identifier == .codex,
                                   let detailsEmail,
                                   !detailsEmail.isEmpty {
-                            accountEmail = detailsEmail
+                            accountDisplayLabel = detailsEmail
                         } else if identifier == .codex,
                                   let accountId = account.accountId?
                             .trimmingCharacters(in: .whitespacesAndNewlines),
                                   !accountId.isEmpty,
                                   let mappedEmail = codexEmailByAccountId[accountId],
                                   !mappedEmail.isEmpty {
-                            accountEmail = mappedEmail
+                            accountDisplayLabel = mappedEmail
                         } else if identifier == .codex,
                                   let fallbackEmail = codexEmailByAccountId.values.first,
-                                  accounts.count == 1 {
+                                  displayAccounts.count == 1 {
                             // Single-account fallback for legacy cached results that may miss accountId.
-                            accountEmail = fallbackEmail
+                            accountDisplayLabel = fallbackEmail
                         } else {
-                            accountEmail = nil
+                            accountDisplayLabel = nil
                         }
 
-                        if let accountEmail {
-                            if accounts.count > 1 {
-                                displayName += " (\(accountEmail))"
+                        if let accountDisplayLabel {
+                            if displayAccounts.count > 1 {
+                                displayName += " (\(accountDisplayLabel))"
                             } else {
-                                displayName = "\(baseName) (\(accountEmail))"
+                                displayName = "\(baseName) (\(accountDisplayLabel))"
                             }
-                        } else if accounts.count > 1, showAuthLabel {
+                        } else if displayAccounts.count > 1, showAuthLabel {
                             let sourceLabel = authSourceLabel(for: account.details?.authSource, provider: identifier) ?? "Unknown"
                             displayName += " (\(sourceLabel))"
                         }
