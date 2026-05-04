@@ -473,6 +473,75 @@ final class TokenManagerTests: XCTestCase {
         XCTAssertNil(account.externalUsageAccountId)
     }
 
+    func testDedupeOpenAIAccountsPrefersCodexNativeAuthOverCodexLBForSameEmail() throws {
+        let codexLBAccount = OpenAIAuthAccount(
+            accessToken: "codex-lb-token",
+            accountId: "chatgpt-account-id_codex-lb-row",
+            externalUsageAccountId: "chatgpt-account-id",
+            email: "user@example.com",
+            authSource: "/tmp/.codex-lb/store.db",
+            sourceLabels: ["Codex LB"],
+            source: .codexLB,
+            credentialType: .oauthBearer
+        )
+        let codexNativeAccount = OpenAIAuthAccount(
+            accessToken: "codex-native-token",
+            accountId: "chatgpt-account-id",
+            externalUsageAccountId: nil,
+            email: "user@example.com",
+            authSource: "/tmp/.codex/auth.json",
+            sourceLabels: ["Codex"],
+            source: .codexAuth,
+            credentialType: .oauthBearer
+        )
+
+        let accounts = TokenManager.shared.dedupeOpenAIAccounts([codexLBAccount, codexNativeAccount])
+        let account = try XCTUnwrap(accounts.first)
+
+        XCTAssertEqual(accounts.count, 1)
+        XCTAssertEqual(account.accessToken, "codex-native-token")
+        XCTAssertEqual(account.accountId, "chatgpt-account-id")
+        XCTAssertEqual(account.externalUsageAccountId, "chatgpt-account-id")
+        XCTAssertEqual(account.email, "user@example.com")
+        XCTAssertEqual(account.authSource, "/tmp/.codex/auth.json")
+        XCTAssertEqual(account.sourceLabels, ["Codex", "Codex LB"])
+        XCTAssertEqual(account.source, .codexAuth)
+    }
+
+    func testDedupeOpenAIAccountsPrefersCodexNativeAuthOverOpenCodeMultiAuthForSameEmail() throws {
+        let multiAuthAccount = OpenAIAuthAccount(
+            accessToken: "multi-auth-token",
+            accountId: "chatgpt-account-id",
+            externalUsageAccountId: nil,
+            email: "user@example.com",
+            authSource: "/tmp/.opencode/projects/example/openai-codex-accounts.json",
+            sourceLabels: ["OpenCode Multi Auth"],
+            source: .openCodeMultiAuth,
+            credentialType: .oauthBearer
+        )
+        let codexNativeAccount = OpenAIAuthAccount(
+            accessToken: "codex-native-token",
+            accountId: "chatgpt-account-id",
+            externalUsageAccountId: nil,
+            email: "user@example.com",
+            authSource: "/tmp/.codex/auth.json",
+            sourceLabels: ["Codex"],
+            source: .codexAuth,
+            credentialType: .oauthBearer
+        )
+
+        let accounts = TokenManager.shared.dedupeOpenAIAccounts([multiAuthAccount, codexNativeAccount])
+        let account = try XCTUnwrap(accounts.first)
+
+        XCTAssertEqual(accounts.count, 1)
+        XCTAssertEqual(account.accessToken, "codex-native-token")
+        XCTAssertEqual(account.accountId, "chatgpt-account-id")
+        XCTAssertEqual(account.email, "user@example.com")
+        XCTAssertEqual(account.authSource, "/tmp/.codex/auth.json")
+        XCTAssertEqual(account.sourceLabels, ["Codex", "OpenCode Multi Auth"])
+        XCTAssertEqual(account.source, .codexAuth)
+    }
+
     // MARK: - opencode.jsonc Precedence Tests
 
     func testOpenCodeConfigFilePathsReturnsJSONCBeforeJSONForEachLocation() {
