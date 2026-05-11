@@ -2017,8 +2017,17 @@ final class TokenManager: @unchecked Sendable {
             )
         }
 
+        // Token freshness fallback: if primary's token is expired but fallback has a fresher
+        // valid token (e.g. anthropic-auth caches a new token that multi-auth missed), swap to
+        // the fallback token + refresh chain. Without this, dedupe picks the high-priority
+        // source even when its token is dead, and that account silently disappears after 401.
+        let now = Date()
+        let primaryExpired = primary.expiresAt.map { $0 <= now } ?? false
+        let fallbackValid = (fallback.expiresAt.map { $0 > now } ?? false) && !fallback.accessToken.isEmpty
+        let useFallbackToken = primaryExpired && fallbackValid
+
         return OpenAIAuthAccount(
-            accessToken: primary.accessToken,
+            accessToken: useFallbackToken ? fallback.accessToken : primary.accessToken,
             accountId: (primaryAccountId?.isEmpty == false) ? primaryAccountId : fallbackAccountId,
             externalUsageAccountId: normalizedNonEmpty(primary.externalUsageAccountId) ?? normalizedNonEmpty(fallback.externalUsageAccountId),
             email: (primaryEmail?.isEmpty == false) ? primaryEmail : fallbackEmail,
@@ -2026,9 +2035,13 @@ final class TokenManager: @unchecked Sendable {
             sourceLabels: mergedSourceLabels,
             source: primary.source,
             credentialType: primary.credentialType,
-            refreshToken: normalizedNonEmpty(primary.refreshToken) ?? normalizedNonEmpty(fallback.refreshToken),
-            expiresAt: primary.expiresAt ?? fallback.expiresAt,
-            idToken: normalizedNonEmpty(primary.idToken) ?? normalizedNonEmpty(fallback.idToken),
+            refreshToken: useFallbackToken
+                ? (normalizedNonEmpty(fallback.refreshToken) ?? normalizedNonEmpty(primary.refreshToken))
+                : (normalizedNonEmpty(primary.refreshToken) ?? normalizedNonEmpty(fallback.refreshToken)),
+            expiresAt: useFallbackToken ? fallback.expiresAt : (primary.expiresAt ?? fallback.expiresAt),
+            idToken: useFallbackToken
+                ? (normalizedNonEmpty(fallback.idToken) ?? normalizedNonEmpty(primary.idToken))
+                : (normalizedNonEmpty(primary.idToken) ?? normalizedNonEmpty(fallback.idToken)),
             cachedCodexUsage: primary.cachedCodexUsage ?? fallback.cachedCodexUsage
         )
     }
@@ -2521,10 +2534,21 @@ final class TokenManager: @unchecked Sendable {
                     continue
                 }
 
-                let accountId = normalizedNonEmpty(findDirectStringValue(
+                // Prefer JWT chatgpt_account_id over file's accountId/id field, because plugin
+                // stores its own internal id (e.g. "e13fb177-...") that does NOT match the
+                // ChatGPT-Account-Id header OpenAI expects, breaking dedupe with other sources.
+                let accessTokenStr = normalizedNonEmpty(findDirectStringValue(
+                    in: accountDict,
+                    matching: ["access", "accesstoken"]
+                ))
+                let jwtAccountId = normalizedNonEmpty(
+                    decodeOpenAIAccessTokenPayload(accessTokenStr)?.auth?.chatGPTAccountId
+                )
+                let storedAccountId = normalizedNonEmpty(findDirectStringValue(
                     in: accountDict,
                     matching: ["accountid", "chatgptaccountid"]
                 )) ?? normalizedNonEmpty(findDirectStringValue(in: accountDict, matching: ["id"]))
+                let accountId = jwtAccountId ?? storedAccountId
                 let email = normalizedNonEmpty(findDirectStringValue(
                     in: accountDict,
                     matching: ["email", "useremail", "login", "username"]
@@ -2533,9 +2557,22 @@ final class TokenManager: @unchecked Sendable {
                     continue
                 }
 
+                let refreshToken = normalizedNonEmpty(findDirectStringValue(
+                    in: accountDict,
+                    matching: ["refresh", "refreshtoken"]
+                ))
+                let idToken = normalizedNonEmpty(findDirectStringValue(
+                    in: accountDict,
+                    matching: ["idtoken"]
+                ))
+                let expiresAt = dateFromEpoch(findDirectInt64Value(
+                    in: accountDict,
+                    matching: ["expires", "expiresat"]
+                ))
+
                 pathAccounts.append(
                     OpenAIAuthAccount(
-                        accessToken: "",
+                        accessToken: accessTokenStr ?? "",
                         accountId: accountId,
                         externalUsageAccountId: nil,
                         email: email,
@@ -2543,6 +2580,9 @@ final class TokenManager: @unchecked Sendable {
                         sourceLabels: [openAISourceLabel(for: .openCodeAnthropicAuthCodexCache)],
                         source: .openCodeAnthropicAuthCodexCache,
                         credentialType: .oauthBearer,
+                        refreshToken: refreshToken,
+                        expiresAt: expiresAt,
+                        idToken: idToken,
                         cachedCodexUsage: cachedUsage
                     )
                 )

@@ -308,11 +308,14 @@ extension StatusBarController {
 
             var baseUsageRows: [(label: String, usage: Double, resetDate: Date?, windowHours: Int?)] = []
             if let primary = details.dailyUsage {
-                // BUGFIX: Codex primary window is 5 hours, not 24
-                baseUsageRows.append((label: "5h", usage: primary, resetDate: details.primaryReset, windowHours: 5))
+                let hours = details.codexPrimaryWindowHours ?? 5
+                let label = details.codexPrimaryWindowLabel ?? CodexProvider.windowLabel(forHours: hours)
+                baseUsageRows.append((label: label, usage: primary, resetDate: details.primaryReset, windowHours: hours))
             }
             if let secondary = details.secondaryUsage {
-                baseUsageRows.append((label: "Weekly", usage: secondary, resetDate: details.secondaryReset, windowHours: 168))
+                let hours = details.codexSecondaryWindowHours ?? 168
+                let label = details.codexSecondaryWindowLabel ?? CodexProvider.windowLabel(forHours: hours)
+                baseUsageRows.append((label: label, usage: secondary, resetDate: details.secondaryReset, windowHours: hours))
             }
 
             for (index, row) in baseUsageRows.enumerated() {
@@ -330,10 +333,14 @@ extension StatusBarController {
 
             var sparkUsageRows: [(label: String, usage: Double, resetDate: Date?, windowHours: Int?)] = []
             if let sparkPrimary = details.sparkUsage {
-                sparkUsageRows.append((label: "5h (\(sparkLabel))", usage: sparkPrimary, resetDate: details.sparkReset, windowHours: 5))
+                let primaryHours = details.sparkPrimaryWindowHours ?? 5
+                let primaryLabel = details.sparkPrimaryWindowLabel ?? CodexProvider.windowLabel(forHours: primaryHours)
+                sparkUsageRows.append((label: "\(primaryLabel) (\(sparkLabel))", usage: sparkPrimary, resetDate: details.sparkReset, windowHours: primaryHours))
             }
             if let sparkSecondary = details.sparkSecondaryUsage {
-                sparkUsageRows.append((label: "Weekly (\(sparkLabel))", usage: sparkSecondary, resetDate: details.sparkSecondaryReset, windowHours: 168))
+                let secondaryHours = details.sparkSecondaryWindowHours ?? 168
+                let secondaryLabel = details.sparkSecondaryWindowLabel ?? CodexProvider.windowLabel(forHours: secondaryHours)
+                sparkUsageRows.append((label: "\(secondaryLabel) (\(sparkLabel))", usage: sparkSecondary, resetDate: details.sparkSecondaryReset, windowHours: secondaryHours))
             }
             if !sparkUsageRows.isEmpty, !baseUsageRows.isEmpty {
                 submenu.addItem(NSMenuItem.separator())

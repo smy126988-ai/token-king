@@ -915,6 +915,17 @@ final class StatusBarController: NSObject {
         return details.dailyUsage
     }
 
+    private func priorityForWindowHours(
+        _ hours: Int?,
+        fallback: UsageDisplayWindowPriority
+    ) -> UsageDisplayWindowPriority {
+        guard let hours, hours > 0 else { return fallback }
+        if hours >= 24 * 28 { return .monthly }
+        if hours >= 24 * 7 { return .weekly }
+        if hours >= 24 { return .daily }
+        return .hourly
+    }
+
     private func chutesMonthlyPercentFromDetails(_ details: DetailedUsage?) -> Double? {
         guard let details else { return nil }
 
@@ -958,10 +969,22 @@ final class StatusBarController: NSObject {
             add(details?.sevenDayUsage, priority: .weekly)
             add(details?.fiveHourUsage, priority: .hourly)
         case .codex:
-            add(details?.secondaryUsage, priority: .weekly)
-            add(details?.sparkSecondaryUsage, priority: .weekly)
-            add(dailyPercentFromDetails(details), priority: .daily)
-            add(details?.sparkUsage, priority: .hourly)
+            add(
+                details?.secondaryUsage,
+                priority: priorityForWindowHours(details?.codexSecondaryWindowHours, fallback: .weekly)
+            )
+            add(
+                details?.sparkSecondaryUsage,
+                priority: priorityForWindowHours(details?.sparkSecondaryWindowHours, fallback: .weekly)
+            )
+            add(
+                dailyPercentFromDetails(details),
+                priority: priorityForWindowHours(details?.codexPrimaryWindowHours, fallback: .daily)
+            )
+            add(
+                details?.sparkUsage,
+                priority: priorityForWindowHours(details?.sparkPrimaryWindowHours, fallback: .hourly)
+            )
         case .cursor:
             add(details?.cursorAutoUsage, priority: .monthly)
             add(details?.cursorApiUsage, priority: .monthly)

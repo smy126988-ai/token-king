@@ -461,15 +461,15 @@ final class CodexProviderTests: XCTestCase {
 
         XCTAssertEqual(payload.details.codexPrimaryWindowLabel, "6h")
         XCTAssertEqual(payload.details.codexPrimaryWindowHours, 6)
-        XCTAssertEqual(payload.details.codexSecondaryWindowLabel, "14d")
+        XCTAssertEqual(payload.details.codexSecondaryWindowLabel, "336h")
         XCTAssertEqual(payload.details.codexSecondaryWindowHours, 336)
         XCTAssertEqual(payload.details.sparkPrimaryWindowLabel, "12h")
         XCTAssertEqual(payload.details.sparkPrimaryWindowHours, 12)
-        XCTAssertEqual(payload.details.sparkSecondaryWindowLabel, "28d")
+        XCTAssertEqual(payload.details.sparkSecondaryWindowLabel, "672h")
         XCTAssertEqual(payload.details.sparkSecondaryWindowHours, 672)
     }
 
-    func testDecodeUsagePayloadKeepsThirtyDayWindowAsThirtyDays() throws {
+    func testDecodeUsagePayloadLabelsThirtyDayWindowAsMonthly() throws {
         let json = """
         {
           "plan_type": "plus",
@@ -509,11 +509,11 @@ final class CodexProviderTests: XCTestCase {
             endpointConfiguration: configuration
         )
 
-        XCTAssertEqual(payload.details.codexSecondaryWindowLabel, "30d")
+        XCTAssertEqual(payload.details.codexSecondaryWindowLabel, "Monthly")
         XCTAssertEqual(payload.details.codexSecondaryWindowHours, 720)
     }
 
-    func testDecodeUsagePayloadKeepsTwentyNineDayWindowAsTwentyNineDays() throws {
+    func testDecodeUsagePayloadLabelsTwentyNineDayWindowInHours() throws {
         let json = """
         {
           "plan_type": "plus",
@@ -553,7 +553,7 @@ final class CodexProviderTests: XCTestCase {
             endpointConfiguration: configuration
         )
 
-        XCTAssertEqual(payload.details.codexSecondaryWindowLabel, "29d")
+        XCTAssertEqual(payload.details.codexSecondaryWindowLabel, "696h")
         XCTAssertEqual(payload.details.codexSecondaryWindowHours, 696)
     }
 

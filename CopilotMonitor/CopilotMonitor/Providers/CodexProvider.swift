@@ -431,8 +431,11 @@ final class CodexProvider: ProviderProtocol {
     }
 
     private func fetchUsageForAccount(_ account: OpenAIAuthAccount) async throws -> CodexAccountCandidate {
-        if let cachedUsage = account.cachedCodexUsage {
-            return buildCachedUsageCandidate(account: account, cachedUsage: cachedUsage)
+        // Always fetch fresh; never trust plugin caches (they go stale when OpenAI changes windows).
+        // Cache-only sources (e.g. opencode-anthropic-auth) carry an empty token and must throw
+        // so the dedupe pipeline keeps only sources that can actually fetch.
+        guard !account.accessToken.isEmpty else {
+            throw ProviderError.authenticationFailed("Cache-only Codex source has no access token (\(account.authSource))")
         }
 
         var account = account
@@ -735,15 +738,15 @@ final class CodexProvider: ProviderProtocol {
             ?? additionalSparkWindows.flatMap { resolveResetDate(now: now, window: $0.shortWindow) }
         let sparkSecondaryResetDate = inlineSparkSecondary.flatMap { resolveResetDate(now: now, window: $0.1) }
             ?? (inlineSparkPrimary == nil ? additionalSparkWindows?.longWindow.flatMap { resolveResetDate(now: now, window: $0) } : nil)
-        let primaryWindowMetadata = codexWindowMetadata(for: primaryWindow, fallbackLabel: "5h")
-        let secondaryWindowMetadata = secondaryWindow.flatMap { codexWindowMetadata(for: $0, fallbackLabel: "Weekly") }
+        let primaryWindowMetadata = codexWindowMetadata(for: primaryWindow, fallbackHours: 5)
+        let secondaryWindowMetadata = secondaryWindow.flatMap { codexWindowMetadata(for: $0, fallbackHours: 168) }
         let sparkPrimaryWindowMetadata = sparkUsedPercent != nil
-            ? (inlineSparkPrimary.map { codexWindowMetadata(for: $0.1, fallbackLabel: "5h") }
-                ?? additionalSparkWindows.map { codexWindowMetadata(for: $0.shortWindow, fallbackLabel: "5h") })
+            ? (inlineSparkPrimary.map { codexWindowMetadata(for: $0.1, fallbackHours: 5) }
+                ?? additionalSparkWindows.map { codexWindowMetadata(for: $0.shortWindow, fallbackHours: 5) })
             : nil
         let sparkSecondaryWindowMetadata = sparkSecondaryUsedPercent != nil
-            ? (inlineSparkSecondary.map { codexWindowMetadata(for: $0.1, fallbackLabel: "Weekly") }
-                ?? additionalSparkWindows?.longWindow.map { codexWindowMetadata(for: $0, fallbackLabel: "Weekly") })
+            ? (inlineSparkSecondary.map { codexWindowMetadata(for: $0.1, fallbackHours: 168) }
+                ?? additionalSparkWindows?.longWindow.map { codexWindowMetadata(for: $0, fallbackHours: 168) })
             : nil
 
         let remaining = max(0, Int(100 - primaryUsedPercent))
@@ -921,36 +924,25 @@ final class CodexProvider: ProviderProtocol {
         )
     }
 
+    /// Single source of truth for window-hours → display label.
+    /// Default is "Nh"; only Weekly (168h) and Monthly (720h or 730h) are named exceptions.
+    static func windowLabel(forHours hours: Int) -> String {
+        guard hours > 0 else { return "Usage" }
+        if hours == 168 { return "Weekly" }
+        if hours == 720 || hours == 730 { return "Monthly" }
+        return "\(hours)h"
+    }
+
     private func formatCodexWindowLabel(_ rawLabel: String?) -> String {
-        let normalized = rawLabel?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased() ?? ""
-        guard !normalized.isEmpty else { return "Usage" }
-
-        if normalized == "weekly" || normalized == "7d" || normalized == "7day" || normalized == "7days" {
-            return "Weekly"
-        }
-        if normalized == "monthly" {
-            return "Monthly"
-        }
-        if normalized == "daily" || normalized == "1d" || normalized == "1day" || normalized == "1days" || normalized == "24h" {
-            return "Daily"
-        }
-
         if let hours = normalizedWindowHours(from: rawLabel), hours > 0 {
-            if hours % 24 == 0 {
-                let days = hours / 24
-                if days == 7 { return "Weekly" }
-                if days == 1 { return "Daily" }
-                return "\(days)d"
-            }
-            return "\(hours)h"
+            return Self.windowLabel(forHours: hours)
         }
-
-        return rawLabel?
+        let trimmed = rawLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else { return "Usage" }
+        return trimmed
             .replacingOccurrences(of: "_", with: " ")
             .replacingOccurrences(of: "-", with: " ")
-            .capitalized ?? "Usage"
+            .capitalized
     }
 
     private func normalizedWindowHours(from rawLabel: String?) -> Int? {
@@ -983,32 +975,14 @@ final class CodexProvider: ProviderProtocol {
         return max(1, Int(round(Double(windowMs) / 3_600_000.0)))
     }
 
-    private func codexWindowMetadata(for window: RateLimitWindow, fallbackLabel: String) -> (label: String, hours: Int?) {
-        if let seconds = window.limit_window_seconds,
-           seconds > 0 {
-            let rawLabel = compactWindowLabel(from: seconds)
-            return (
-                label: formatCodexWindowLabel(rawLabel),
-                hours: normalizedWindowHours(from: rawLabel)
-            )
+    private func codexWindowMetadata(for window: RateLimitWindow, fallbackHours: Int) -> (label: String, hours: Int?) {
+        let hours: Int
+        if let seconds = window.limit_window_seconds, seconds > 0 {
+            hours = max(1, Int(round(Double(seconds) / 3600.0)))
+        } else {
+            hours = fallbackHours
         }
-
-        return (
-            label: formatCodexWindowLabel(fallbackLabel),
-            hours: normalizedWindowHours(from: fallbackLabel)
-        )
-    }
-
-    private func compactWindowLabel(from seconds: Int) -> String {
-        guard seconds > 0 else { return "Usage" }
-        if seconds % 604_800 == 0 {
-            return "\(seconds / 604_800)w"
-        }
-        if seconds % 86_400 == 0 {
-            return "\(seconds / 86_400)d"
-        }
-        let roundedHours = max(1, Int(round(Double(seconds) / 3600.0)))
-        return "\(roundedHours)h"
+        return (label: Self.windowLabel(forHours: hours), hours: hours)
     }
 
     private func normalizeSparkWindowLabel(_ rawLabel: String?) -> String? {
