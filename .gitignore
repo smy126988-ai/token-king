@@ -21,6 +21,7 @@ DerivedData/
 *.xcuserstate
 
 # Sisyphus
+.omo
 .sisyphus
 !.sisyphus/.gitignore
 
