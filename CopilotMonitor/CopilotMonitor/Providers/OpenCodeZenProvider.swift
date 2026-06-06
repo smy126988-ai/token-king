@@ -209,6 +209,11 @@ final class OpenCodeZenProvider: ProviderProtocol {
             throw ProviderError.providerError("OpenCode CLI not found")
         }
 
+        // `opencode stats` occasionally hangs and leaves a background process alive
+        // forever. Reap any that have outlived a sane lifetime before spawning a new
+        // one so these zombies do not pile up across refresh cycles.
+        killStaleOpenCodeStatsProcesses()
+
         return try await withCheckedThrowingContinuation { continuation in
             let process = Process()
             process.executableURL = binaryPath
@@ -256,6 +261,61 @@ final class OpenCodeZenProvider: ProviderProtocol {
             } catch {
                 continuation.resume(throwing: ProviderError.networkError("Failed to execute CLI: \(error.localizedDescription)"))
             }
+        }
+    }
+
+    /// Kills stale `opencode stats` processes that have run for over an hour.
+    ///
+    /// A healthy stats invocation finishes in seconds. When the CLI hangs it keeps a
+    /// process alive in the background indefinitely, and these accumulate across our
+    /// periodic refreshes. We reap anything past the threshold before starting a fresh
+    /// run so the hung processes do not leak resources.
+    private func killStaleOpenCodeStatsProcesses() {
+        // 1 hour. Legitimate runs finish in seconds, so anything older is hung.
+        let staleThresholdSeconds = 3600
+
+        let listing = Process()
+        listing.executableURL = URL(fileURLWithPath: "/bin/ps")
+        // etimes = elapsed running time in seconds; command = full argv string.
+        listing.arguments = ["-axo", "pid=,etimes=,command="]
+
+        let pipe = Pipe()
+        listing.standardOutput = pipe
+        listing.standardError = FileHandle.nullDevice
+
+        do {
+            try listing.run()
+            listing.waitUntilExit()
+        } catch {
+            debugLog("Stale cleanup: failed to list processes: \(error.localizedDescription)")
+            return
+        }
+
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        guard let output = String(data: data, encoding: .utf8) else { return }
+
+        let selfPid = ProcessInfo.processInfo.processIdentifier
+
+        for line in output.components(separatedBy: .newlines) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { continue }
+
+            // Split into: pid, etimes, command (command keeps its own spaces).
+            let parts = trimmed.split(separator: " ", maxSplits: 2, omittingEmptySubsequences: true)
+            guard parts.count == 3,
+                  let pid = Int32(parts[0]),
+                  let etimes = Int(parts[1]) else { continue }
+
+            let command = String(parts[2])
+
+            guard command.contains("opencode"), command.contains(" stats") else { continue }
+            guard etimes >= staleThresholdSeconds else { continue }
+            guard pid != selfPid else { continue }
+
+            // Hung processes ignore SIGTERM, so SIGKILL guarantees the reap.
+            kill(pid, SIGKILL)
+            logger.info("OpenCodeZen: Killed stale 'opencode stats' process pid=\(pid) (running \(etimes)s)")
+            debugLog("Killed stale 'opencode stats' pid=\(pid) etimes=\(etimes)s")
         }
     }
 
