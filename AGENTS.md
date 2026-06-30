@@ -1,3 +1,17 @@
+# ⚠️ FORK NOTICE — Token King (Personal Customized Build)
+
+This is a **personal customized fork** of `opgginc/opencode-bar`, maintained for
+learning purposes. The rules below from upstream are **OVERRIDDEN** in this fork:
+
+- **UI Language**: Chinese is ALLOWED (upstream required English-only). See Phase 3 i18n.
+- **Currency**: RMB + exchange-rate conversion is ALLOWED (upstream was USD-only). See Phase 2.
+- **Branding**: This fork is "Token King" (bundle id `com.tokenking.app`), NOT "OpenCode Bar".
+
+Upstream's original rules follow below and still apply EXCEPT where overridden above.
+Design spec: `docs/superpowers/specs/2026-06-30-token-king-fork设计.md`
+
+---
+
 ## Important Restriction
 - All of comments in code base, commit message, PR content and title should be written in English.
   - If you find any Korean text, please translate it to English.
