@@ -2888,6 +2888,15 @@ final class StatusBarController: NSObject {
     /// Builds one or more menu rows for a search provider. Providers that expose
     /// multiple accounts (e.g. Tavily with several API keys) render one row per
     /// account; single-account providers (e.g. Brave) render a single row.
+    /// Builds the menu row title for one account of a multi-account search provider.
+    /// Uses the account name when available; falls back to a 1-based index otherwise.
+    nonisolated static func searchEngineAccountTitle(base: String, accountId: String?, accountIndex: Int) -> String {
+        if let accountId, !accountId.isEmpty {
+            return "\(base) (\(accountId))"
+        }
+        return "\(base) (#\(accountIndex + 1))"
+    }
+
     private func createSearchEngineRows(identifier: ProviderIdentifier, title: String) -> [NSMenuItem] {
         let result = providerResults[identifier]
         let errorMessage = lastProviderErrors[identifier]
@@ -2898,7 +2907,7 @@ final class StatusBarController: NSObject {
            let accounts = result.accounts,
            accounts.count > 1 {
             return accounts.map { account in
-                let accountTitle = "\(title) (\(account.accountId ?? "#\(account.accountIndex + 1)"))"
+                let accountTitle = Self.searchEngineAccountTitle(base: title, accountId: account.accountId, accountIndex: account.accountIndex)
                 let rowItem = createNativeQuotaMenuItem(
                     name: accountTitle,
                     usedPercent: account.usage.usagePercentage,
