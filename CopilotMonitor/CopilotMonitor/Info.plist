@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
-	<string>OpenCode Bar</string>
+	<string>Token King</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.copilotmonitor.CopilotMonitor</string>
+	<string>com.tokenking.app</string>
 	<key>CFBundleName</key>
 	<string>OpencodeBar</string>
 	<key>CFBundlePackageType</key>

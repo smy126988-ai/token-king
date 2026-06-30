@@ -878,7 +878,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.copilotmonitor.CopilotMonitor;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tokenking.app;
 				PRODUCT_NAME = "OpenCode Bar";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -906,7 +906,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.copilotmonitor.CopilotMonitor;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tokenking.app;
 				PRODUCT_NAME = "OpenCode Bar";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -953,7 +953,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.copilotmonitor.CopilotMonitorTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tokenking.app.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -972,7 +972,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.copilotmonitor.CopilotMonitorTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tokenking.app.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
