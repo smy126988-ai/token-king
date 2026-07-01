@@ -1688,7 +1688,7 @@ final class StatusBarController: NSObject {
           let subscriptionTotal = SubscriptionSettingsManager.shared.getTotalMonthlySubscriptionCost()
           
           let payAsYouGoHeader = NSMenuItem()
-          payAsYouGoHeader.view = createHeaderView(title: "Pay-as-you-go: \(CurrencyFormatter.shared.format(usd: payAsYouGoTotal))")
+          payAsYouGoHeader.view = createHeaderView(title: "按量付费：\(CurrencyFormatter.shared.format(usd: payAsYouGoTotal))")
           payAsYouGoHeader.tag = 999
           menu.insertItem(payAsYouGoHeader, at: insertIndex)
           insertIndex += 1
@@ -1742,7 +1742,7 @@ final class StatusBarController: NSObject {
                     insertIndex += 1
                 } else if loadingProviders.contains(identifier) {
                     hasPayAsYouGo = true
-                    let item = NSMenuItem(title: "\(identifier.displayName) (Loading...)", action: nil, keyEquivalent: "")
+                    let item = NSMenuItem(title: "\(identifier.displayName)（加载中…）", action: nil, keyEquivalent: "")
                     item.image = iconForProvider(identifier)
                     item.isEnabled = false
                     item.tag = 999
@@ -1758,7 +1758,7 @@ final class StatusBarController: NSObject {
                    let overageCost = details.copilotOverageCost {
                     hasPayAsYouGo = true
                     let addOnItem = NSMenuItem(
-                        title: "Copilot Add-on (\(CurrencyFormatter.shared.format(usd: overageCost)))",
+                        title: "Copilot 加购包（\(CurrencyFormatter.shared.format(usd: overageCost))）",
                         action: nil, keyEquivalent: ""
                     )
                     addOnItem.image = iconForProvider(.copilot)
@@ -1783,7 +1783,7 @@ final class StatusBarController: NSObject {
                     if let email = details.email {
                         let emailItem = NSMenuItem()
                         emailItem.view = createDisabledLabelView(
-                            text: "Account: \(email)",
+                            text: "账号：\(email)",
                             icon: NSImage(systemSymbolName: "person.circle", accessibilityDescription: "User Account"),
                             multiline: false
                         )
@@ -1793,7 +1793,7 @@ final class StatusBarController: NSObject {
                     if let authSource = details.authSource {
                         let authItem = NSMenuItem()
                         authItem.view = createDisabledLabelView(
-                            text: "Token From: \(authSource)",
+                            text: "令牌来源：\(authSource)",
                             icon: NSImage(systemSymbolName: "key", accessibilityDescription: "Auth Source"),
                             multiline: true
                         )
@@ -1817,7 +1817,7 @@ final class StatusBarController: NSObject {
 
         if !hasPayAsYouGo {
             let noItem = NSMenuItem()
-            noItem.view = createDisabledLabelView(text: "No providers")
+            noItem.view = createDisabledLabelView(text: "无服务商")
             noItem.tag = 999
             menu.insertItem(noItem, at: insertIndex)
             insertIndex += 1
@@ -1932,7 +1932,7 @@ final class StatusBarController: NSObject {
 
                         let resetItem = NSMenuItem()
                         resetItem.view = createDisabledLabelView(
-                            text: "Resets: \(formatter.string(from: resetDate)) UTC",
+                            text: "重置：\(formatter.string(from: resetDate)) UTC",
                             indent: 0,
                             textColor: .secondaryLabelColor
                         )
@@ -1945,14 +1945,14 @@ final class StatusBarController: NSObject {
                     if let planName = copilotUsage.planDisplayName {
                         let planItem = NSMenuItem()
                         planItem.view = createDisabledLabelView(
-                            text: "Plan: \(planName)",
+                            text: "套餐：\(planName)",
                             icon: NSImage(systemSymbolName: "crown", accessibilityDescription: "Plan")
                         )
                         submenu.addItem(planItem)
                     }
 
                     let freeItem = NSMenuItem()
-                    freeItem.view = createDisabledLabelView(text: "Quota Limit: \(limit)")
+                    freeItem.view = createDisabledLabelView(text: "额度上限：\(limit)")
                     submenu.addItem(freeItem)
 
                     submenu.addItem(NSMenuItem.separator())
@@ -1960,7 +1960,7 @@ final class StatusBarController: NSObject {
                     if let email = providerResults[.copilot]?.details?.email {
                         let emailItem = NSMenuItem()
                         emailItem.view = createDisabledLabelView(
-                            text: "Email: \(email)",
+                            text: "邮箱：\(email)",
                             icon: NSImage(systemSymbolName: "person.circle", accessibilityDescription: "User Email"),
                             multiline: false
                         )
@@ -2298,7 +2298,7 @@ final class StatusBarController: NSObject {
                 }
             } else if loadingProviders.contains(identifier) {
                 hasQuota = true
-                let item = NSMenuItem(title: "\(identifier.displayName) (Loading...)", action: nil, keyEquivalent: "")
+                let item = NSMenuItem(title: "\(identifier.displayName)（加载中…）", action: nil, keyEquivalent: "")
                 item.image = iconForProvider(identifier)
                 item.isEnabled = false
                 item.tag = 999
@@ -2418,7 +2418,7 @@ final class StatusBarController: NSObject {
 
         if !hasQuota {
             let noItem = NSMenuItem()
-            noItem.view = createDisabledLabelView(text: "No providers")
+            noItem.view = createDisabledLabelView(text: "无服务商")
             noItem.tag = 999
             menu.insertItem(noItem, at: insertIndex)
             insertIndex += 1
@@ -2872,11 +2872,11 @@ final class StatusBarController: NSObject {
         let submenu = NSMenu()
 
         let statusItem = NSMenuItem()
-        statusItem.view = createDisabledLabelView(text: "Status: \(errorMenuStatus(for: errorMessage).title)")
+        statusItem.view = createDisabledLabelView(text: "状态：\(errorMenuStatus(for: errorMessage).title)")
         submenu.addItem(statusItem)
 
         let errorItem = NSMenuItem()
-        errorItem.view = createDisabledLabelView(text: "Error: \(errorMessage)", multiline: true)
+        errorItem.view = createDisabledLabelView(text: "错误：\(errorMessage)", multiline: true)
         submenu.addItem(errorItem)
 
         if let result,
@@ -2970,7 +2970,7 @@ final class StatusBarController: NSObject {
         let errorMessage = lastProviderErrors[identifier]
 
         if let errorMessage, shouldDisplayErrorStateEvenWithResult(errorMessage) {
-            let rowItem = NSMenuItem(title: "\(title) (Rate limited)", action: nil, keyEquivalent: "")
+            let rowItem = NSMenuItem(title: "\(title)（限流）", action: nil, keyEquivalent: "")
             rowItem.image = tintedImage(iconForProvider(identifier), color: .disabledControlTextColor)
             rowItem.isEnabled = false
             return rowItem
@@ -2983,7 +2983,7 @@ final class StatusBarController: NSObject {
         }
 
         if let errorMessage {
-            let rowItem = NSMenuItem(title: "\(title) (Error)", action: nil, keyEquivalent: "")
+            let rowItem = NSMenuItem(title: "\(title)（错误）", action: nil, keyEquivalent: "")
             let status = errorMenuStatus(for: errorMessage)
             let iconColor: NSColor = status.shouldDisableListItem ? .disabledControlTextColor : .systemOrange
             rowItem.image = tintedImage(iconForProvider(identifier), color: iconColor)
@@ -2995,13 +2995,13 @@ final class StatusBarController: NSObject {
         }
 
         if loadingProviders.contains(identifier) {
-            let rowItem = NSMenuItem(title: "\(title) (Loading...)", action: nil, keyEquivalent: "")
+            let rowItem = NSMenuItem(title: "\(title)（加载中…）", action: nil, keyEquivalent: "")
             rowItem.image = iconForProvider(identifier)
             rowItem.submenu = createSearchEngineDetailSubmenu(identifier: identifier, result: nil, errorMessage: nil, isLoading: true)
             return rowItem
         }
 
-        let rowItem = NSMenuItem(title: "\(title) (No data)", action: nil, keyEquivalent: "")
+        let rowItem = NSMenuItem(title: "\(title)（无数据）", action: nil, keyEquivalent: "")
         rowItem.image = iconForProvider(identifier)
         rowItem.submenu = createSearchEngineDetailSubmenu(identifier: identifier, result: nil, errorMessage: "No data", isLoading: false)
         return rowItem
@@ -3024,7 +3024,7 @@ final class StatusBarController: NSObject {
 
         if let errorMessage {
             let errorItem = NSMenuItem()
-            errorItem.view = createDisabledLabelView(text: "Error: \(errorMessage)", multiline: true)
+            errorItem.view = createDisabledLabelView(text: "错误：\(errorMessage)", multiline: true)
             submenu.addItem(errorItem)
             return submenu
         }
@@ -3033,7 +3033,7 @@ final class StatusBarController: NSObject {
               case .quotaBased(let remaining, let entitlement, _) = result.usage,
               entitlement > 0 else {
             let emptyItem = NSMenuItem()
-            emptyItem.view = createDisabledLabelView(text: "Usage data unavailable")
+            emptyItem.view = createDisabledLabelView(text: "用量数据不可用")
             submenu.addItem(emptyItem)
             return submenu
         }
@@ -3053,7 +3053,7 @@ final class StatusBarController: NSObject {
         submenu.addItem(usedItem)
 
         let remainingItem = NSMenuItem()
-        remainingItem.view = createDisabledLabelView(text: "Remaining: \(remaining)")
+        remainingItem.view = createDisabledLabelView(text: "剩余：\(remaining)")
         submenu.addItem(remainingItem)
 
         if let resetPeriod = result.details?.resetPeriod, !resetPeriod.isEmpty {
@@ -3064,7 +3064,7 @@ final class StatusBarController: NSObject {
 
         if let planType = result.details?.planType, !planType.isEmpty {
             let planItem = NSMenuItem()
-            planItem.view = createDisabledLabelView(text: "Plan: \(planType)")
+            planItem.view = createDisabledLabelView(text: "套餐：\(planType)")
             submenu.addItem(planItem)
         }
 
@@ -3072,7 +3072,7 @@ final class StatusBarController: NSObject {
             submenu.addItem(NSMenuItem.separator())
             let authItem = NSMenuItem()
             authItem.view = createDisabledLabelView(
-                text: "Token From: \(authSource)",
+                text: "令牌来源：\(authSource)",
                 icon: NSImage(systemSymbolName: "key", accessibilityDescription: "Auth Source"),
                 multiline: true
             )
@@ -3087,7 +3087,7 @@ final class StatusBarController: NSObject {
                 formatter.dateFormat = "yyyy-MM-dd HH:mm z"
                 formatter.timeZone = TimeZone.current
                 let syncItem = NSMenuItem()
-                syncItem.view = createDisabledLabelView(text: "Last API Sync: \(formatter.string(from: date))")
+                syncItem.view = createDisabledLabelView(text: "上次 API 同步：\(formatter.string(from: date))")
                 submenu.addItem(syncItem)
             }
 
@@ -3193,10 +3193,10 @@ final class StatusBarController: NSObject {
         var shouldPrompt = true
         while shouldPrompt {
             let alert = NSAlert()
-            alert.messageText = "Custom Subscription Cost"
-            alert.informativeText = "Enter the monthly subscription cost:"
-            alert.addButton(withTitle: "OK")
-            alert.addButton(withTitle: "Cancel")
+            alert.messageText = "自定义订阅费用"
+            alert.informativeText = "请输入每月订阅费用："
+            alert.addButton(withTitle: "确定")
+            alert.addButton(withTitle: "取消")
 
             let inputField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
             if case .custom(let currentCost) = SubscriptionSettingsManager.shared.getPlan(forKey: subscriptionKey) {
@@ -3218,9 +3218,9 @@ final class StatusBarController: NSObject {
                     shouldPrompt = false
                 } else {
                     let errorAlert = NSAlert()
-                    errorAlert.messageText = "Invalid Amount"
-                    errorAlert.informativeText = "Please enter a valid non-negative number."
-                    errorAlert.addButton(withTitle: "OK")
+                    errorAlert.messageText = "金额无效"
+                    errorAlert.informativeText = "请输入有效的非负数。"
+                    errorAlert.addButton(withTitle: "确定")
                     errorAlert.runModal()
                 }
             } else {
@@ -3404,11 +3404,11 @@ final class StatusBarController: NSObject {
         NSApp.activate(ignoringOtherApps: true)
 
         let alert = NSAlert()
-        alert.messageText = "Usage Snapshot Copied"
-        alert.informativeText = "Your usage summary is in the clipboard. Open X to share it now."
+        alert.messageText = "用量快照已复制"
+        alert.informativeText = "用量摘要已在剪贴板。打开 X 即可分享。"
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "Open X")
-        alert.addButton(withTitle: "Close")
+        alert.addButton(withTitle: "打开 X")
+        alert.addButton(withTitle: "关闭")
 
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
@@ -3448,11 +3448,11 @@ final class StatusBarController: NSObject {
         NSApp.activate(ignoringOtherApps: true)
 
         let alert = NSAlert()
-        alert.messageText = "Reset orphaned subscriptions?"
+        alert.messageText = "重置孤立的订阅？"
         alert.informativeText = detailText
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Reset")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: "重置")
+        alert.addButton(withTitle: "取消")
 
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
@@ -3516,8 +3516,8 @@ final class StatusBarController: NSObject {
         errorLogText += "\n"
         
         let alert = NSAlert()
-        alert.messageText = "Provider Errors Detected"
-        alert.informativeText = "Some providers failed to fetch data. You can copy the error log and report this issue on GitHub."
+        alert.messageText = "检测到服务商错误"
+        alert.informativeText = "部分服务商获取数据失败。你可以复制错误日志并在 GitHub 反馈此问题。"
         alert.alertStyle = .warning
         
         let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 450, height: 200))
@@ -3534,9 +3534,9 @@ final class StatusBarController: NSObject {
         scrollView.documentView = textView
         alert.accessoryView = scrollView
         
-        alert.addButton(withTitle: "Copy & Report on GitHub")
-        alert.addButton(withTitle: "Copy Log Only")
-        alert.addButton(withTitle: "Close")
+        alert.addButton(withTitle: "复制并在 GitHub 反馈")
+        alert.addButton(withTitle: "仅复制日志")
+        alert.addButton(withTitle: "关闭")
         
         let response = alert.runModal()
         
@@ -3663,10 +3663,10 @@ final class StatusBarController: NSObject {
     
     private func showCopiedConfirmation() {
         let confirmAlert = NSAlert()
-        confirmAlert.messageText = "Copied!"
-        confirmAlert.informativeText = "Error log has been copied to clipboard."
+        confirmAlert.messageText = "已复制！"
+        confirmAlert.informativeText = "错误日志已复制到剪贴板。"
         confirmAlert.alertStyle = .informational
-        confirmAlert.addButton(withTitle: "OK")
+        confirmAlert.addButton(withTitle: "确定")
         confirmAlert.runModal()
     }
     
@@ -3706,10 +3706,10 @@ final class StatusBarController: NSObject {
         NSApp.activate(ignoringOtherApps: true)
 
         let alert = NSAlert()
-        alert.messageText = "Support OpenCode Bar?"
-        alert.informativeText = "If you find this app useful, would you like to star it on GitHub? It helps others discover this project."
-        alert.addButton(withTitle: "Open GitHub")
-        alert.addButton(withTitle: "No Thanks")
+        alert.messageText = "支持 Token King？"
+        alert.informativeText = "如果觉得这个 app 有用，愿意在 GitHub 给个 star 吗？能帮助更多人发现这个项目。"
+        alert.addButton(withTitle: "打开 GitHub")
+        alert.addButton(withTitle: "不用了")
         alert.alertStyle = .informational
 
         let response = alert.runModal()
@@ -3775,7 +3775,7 @@ final class StatusBarController: NSObject {
             if let error = error {
                 logger.error("CLI installation failed: \(error.description)")
                 debugLog("❌ Installation failed: \(error.description)")
-                showAlert(title: "Installation Failed", message: "Failed to install CLI: \(error.description)")
+                showAlert(title: "安装失败", message: "安装命令行工具失败：\(error.description)")
             } else {
                 logger.info("CLI installed successfully to /usr/local/bin/opencodebar")
                 debugLog("✅ CLI installed successfully")
@@ -3785,7 +3785,7 @@ final class StatusBarController: NSObject {
         } else {
             logger.error("Failed to create AppleScript object")
             debugLog("❌ Failed to create AppleScript object")
-            showAlert(title: "Installation Failed", message: "Failed to create installation script.")
+            showAlert(title: "安装失败", message: "Failed to create installation script.")
         }
     }
 
@@ -3811,7 +3811,7 @@ final class StatusBarController: NSObject {
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = message
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "确定")
         alert.alertStyle = .informational
         
         alert.runModal()
@@ -3978,7 +3978,7 @@ final class StatusBarController: NSObject {
 
         // Create Predicted EOM menu item
         let eomItem = NSMenuItem(
-            title: "Predicted EOM: \(CurrencyFormatter.shared.format(usd: predictedEOM, decimals: 0))",
+            title: "预计月末：\(CurrencyFormatter.shared.format(usd: predictedEOM, decimals: 0))",
             action: nil,
             keyEquivalent: ""
         )
