@@ -1806,7 +1806,7 @@ final class StatusBarController: NSObject {
                     debugLog("updateMultiProviderMenu: Copilot Add-on inserted with cost $\(overageCost)")
                 } else if loadingProviders.contains(.copilot) {
                     hasPayAsYouGo = true
-                    let item = NSMenuItem(title: "Copilot Add-on (Loading...)", action: nil, keyEquivalent: "")
+                    let item = NSMenuItem(title: "Copilot 加购包（加载中…）", action: nil, keyEquivalent: "")
                     item.image = iconForProvider(.copilot)
                     item.isEnabled = false
                     item.tag = 999
@@ -1969,7 +1969,7 @@ final class StatusBarController: NSObject {
 
                     let authItem = NSMenuItem()
                     authItem.view = createDisabledLabelView(
-                        text: "Token From: Browser Cookies (Chrome/Brave/Arc/Edge)",
+                        text: "令牌来源：浏览器 Cookie (Chrome/Brave/Arc/Edge)",
                         icon: NSImage(systemSymbolName: "key", accessibilityDescription: "Auth Source"),
                         multiline: true
                     )
@@ -2384,7 +2384,7 @@ final class StatusBarController: NSObject {
                 }
             } else if loadingProviders.contains(.geminiCLI) {
                 hasQuota = true
-                let item = NSMenuItem(title: "Gemini CLI (Loading...)", action: nil, keyEquivalent: "")
+                let item = NSMenuItem(title: "Gemini CLI（加载中…）", action: nil, keyEquivalent: "")
                 item.image = iconForProvider(.geminiCLI)
                 item.isEnabled = false
                 item.tag = 999
@@ -3392,8 +3392,8 @@ final class StatusBarController: NSObject {
         guard let shareText = buildUsageShareSnapshotText() else {
             debugLog("shareUsageSnapshotClicked: no provider results available")
             showAlert(
-                title: "No Usage Data Yet",
-                message: "Refresh usage data first, then try sharing again."
+                title: "暂无用量数据",
+                message: "请先刷新用量数据，然后再尝试分享。"
             )
             return
         }
@@ -3752,7 +3752,7 @@ final class StatusBarController: NSObject {
         guard FileManager.default.fileExists(atPath: cliPath) else {
             logger.error("CLI binary not found in app bundle at \(cliPath)")
             debugLog("❌ CLI binary not found at expected path in app bundle")
-            showAlert(title: "CLI Not Found", message: "CLI binary not found in app bundle. Please reinstall the app.")
+            showAlert(title: "未找到命令行工具", message: "app 包内未找到命令行工具二进制。请重新安装 app。")
             return
         }
         
@@ -3779,13 +3779,13 @@ final class StatusBarController: NSObject {
             } else {
                 logger.info("CLI installed successfully to /usr/local/bin/opencodebar")
                 debugLog("✅ CLI installed successfully")
-                showAlert(title: "Success", message: "CLI installed to /usr/local/bin/opencodebar\n\nYou can now use 'opencodebar' command in Terminal.")
+                showAlert(title: "安装成功", message: "命令行工具已安装到 /usr/local/bin/opencodebar\n\n现在可以在终端使用 'opencodebar' 命令。")
                 updateCLIInstallState()
             }
         } else {
             logger.error("Failed to create AppleScript object")
             debugLog("❌ Failed to create AppleScript object")
-            showAlert(title: "安装失败", message: "Failed to create installation script.")
+            showAlert(title: "安装失败", message: "创建安装脚本失败。")
         }
     }
 
@@ -4067,7 +4067,7 @@ final class StatusBarController: NSObject {
         submenu.addItem(NSMenuItem.separator())
         let authItem = NSMenuItem()
         authItem.view = createDisabledLabelView(
-            text: "Token From: ~/.local/share/opencode/auth.json",
+            text: "令牌来源：~/.local/share/opencode/auth.json",
             icon: NSImage(systemSymbolName: "key", accessibilityDescription: "Auth Source"),
             multiline: true
         )
@@ -4091,7 +4091,7 @@ final class StatusBarController: NSObject {
             debugLog("updateHistorySubmenu: hasNoData=true, returning early")
             let item = NSMenuItem()
             item.view = createDisabledLabelView(
-                text: "No data",
+                text: "无数据",
                 icon: NSImage(systemSymbolName: "tray", accessibilityDescription: "No data")
             )
             historySubmenu.addItem(item)
@@ -4133,14 +4133,14 @@ final class StatusBarController: NSObject {
             if prediction.confidenceLevel == .low {
                 let confItem = NSMenuItem()
                 confItem.view = createDisabledLabelView(
-                    text: "Low prediction accuracy",
+                    text: "预测准确度低",
                     icon: NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: "Low accuracy")
                 )
                 historySubmenu.addItem(confItem)
             } else if prediction.confidenceLevel == .medium {
                 let confItem = NSMenuItem()
                 confItem.view = createDisabledLabelView(
-                    text: "Medium prediction accuracy",
+                    text: "预测准确度中",
                     icon: NSImage(systemSymbolName: "chart.bar.fill", accessibilityDescription: "Medium accuracy")
                 )
                 historySubmenu.addItem(confItem)
@@ -4157,7 +4157,7 @@ final class StatusBarController: NSObject {
             debugLog("updateHistorySubmenu: data is stale, adding stale item")
             let staleItem = NSMenuItem()
             staleItem.view = createDisabledLabelView(
-                text: "Data is stale",
+                text: "数据已过期",
                 icon: NSImage(systemSymbolName: "clock.badge.exclamationmark", accessibilityDescription: "Data is stale")
             )
             historySubmenu.addItem(staleItem)
