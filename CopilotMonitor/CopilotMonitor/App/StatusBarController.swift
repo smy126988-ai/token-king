@@ -61,15 +61,15 @@ enum UsageFetcherError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noCustomerId:
-            return "Customer ID not found"
+            return "未找到客户 ID"
         case .noUsageData:
-            return "Usage data not found"
+            return "未找到用量数据"
         case .invalidJSResult:
-            return "Invalid JS result"
+            return "JS 结果无效"
         case .parsingFailed(let detail):
-            return "Parsing failed: \(detail)"
+            return "解析失败：\(detail)"
         case .networkError(let error):
-            return "Network error: \(error.localizedDescription)"
+            return "网络错误：\(error.localizedDescription)"
         }
     }
 }
@@ -1767,7 +1767,7 @@ final class StatusBarController: NSObject {
                     let submenu = NSMenu()
                     let overageRequests = details.copilotOverageRequests ?? 0
                     let overageItem = NSMenuItem()
-                    overageItem.view = createDisabledLabelView(text: String(format: "Overage Requests: %.0f", overageRequests))
+                    overageItem.view = createDisabledLabelView(text: String(format: "加购请求数：%.0f", overageRequests))
                     submenu.addItem(overageItem)
 
                     submenu.addItem(NSMenuItem.separator())
@@ -1834,8 +1834,8 @@ final class StatusBarController: NSObject {
 
          let quotaHeader = NSMenuItem()
          let quotaTitle = subscriptionTotal > 0
-             ? "Quota Status: \(CurrencyFormatter.shared.format(usd: subscriptionTotal, decimals: 0))/m"
-             : "Quota Status"
+             ? "额度状态：\(CurrencyFormatter.shared.format(usd: subscriptionTotal, decimals: 0))/m"
+             : "额度状态"
          quotaHeader.view = createHeaderView(title: quotaTitle)
          quotaHeader.tag = 999
          menu.insertItem(quotaHeader, at: insertIndex)
@@ -1873,7 +1873,7 @@ final class StatusBarController: NSObject {
                     if let unavailableLabel {
                         displayName += " (\(unavailableLabel))"
                     }
-                    let isUnavailableRateLimited = unavailableLabel == "Rate limited"
+                    let isUnavailableRateLimited = unavailableLabel == "限流"
                     let usedPercent = account.usage.usagePercentage
                     let quotaItem = createNativeQuotaMenuItem(
                         name: displayName,
@@ -1918,7 +1918,7 @@ final class StatusBarController: NSObject {
 
                     let usagePercent = limit > 0 ? (Double(used) / Double(limit)) * 100 : 0
                     let usedItem = NSMenuItem()
-                    usedItem.view = createDisabledLabelView(text: String(format: "Monthly Usage: %.0f%%", usagePercent))
+                    usedItem.view = createDisabledLabelView(text: String(format: "月度用量：%.0f%%", usagePercent))
                     submenu.addItem(usedItem)
 
                     if let resetDate = copilotUsage.quotaResetDateUTC {
@@ -2119,7 +2119,7 @@ final class StatusBarController: NSObject {
                         if let unavailableLabel {
                             displayName += " (\(unavailableLabel))"
                         }
-                        let isUnavailableRateLimited = unavailableLabel == "Rate limited"
+                        let isUnavailableRateLimited = unavailableLabel == "限流"
 
                         // Keep menu list rows in multi-window format (e.g., 5h, weekly, monthly together).
                         let usedPercents: [Double]
@@ -2713,7 +2713,7 @@ final class StatusBarController: NSObject {
             .trimmingCharacters(in: .whitespacesAndNewlines),
            !authErrorMessage.isEmpty,
            authErrorMessage.lowercased().contains("token expired") {
-            return "Token expired"
+            return "令牌已过期"
         }
 
         if identifier == .claude,
@@ -2721,10 +2721,10 @@ final class StatusBarController: NSObject {
             .trimmingCharacters(in: .whitespacesAndNewlines),
            !authErrorMessage.isEmpty,
            authErrorMessage.lowercased().contains("rate limited") {
-            return "Rate limited"
+            return "限流"
         }
 
-        return "No usage data"
+        return "无用量数据"
     }
 
     // MARK: - Error State Helpers
@@ -2761,13 +2761,13 @@ final class StatusBarController: NSObject {
         var title: String {
             switch self {
             case .rateLimited:
-                return "Rate limited"
+                return "限流"
             case .noCredentials:
-                return "No Credentials"
+                return "无凭证"
             case .noSubscription:
-                return "No Subscription"
+                return "无订阅"
             case .error:
-                return "Error"
+                return "错误"
             }
         }
 
@@ -3003,7 +3003,7 @@ final class StatusBarController: NSObject {
 
         let rowItem = NSMenuItem(title: "\(title)（无数据）", action: nil, keyEquivalent: "")
         rowItem.image = iconForProvider(identifier)
-        rowItem.submenu = createSearchEngineDetailSubmenu(identifier: identifier, result: nil, errorMessage: "No data", isLoading: false)
+        rowItem.submenu = createSearchEngineDetailSubmenu(identifier: identifier, result: nil, errorMessage: "无数据", isLoading: false)
         return rowItem
     }
 
@@ -3049,7 +3049,7 @@ final class StatusBarController: NSObject {
         submenu.addItem(progressItem)
 
         let usedItem = NSMenuItem()
-        usedItem.view = createDisabledLabelView(text: String(format: "Used: %.0f%% used", usagePercent))
+        usedItem.view = createDisabledLabelView(text: String(format: "已用：%.0f%%", usagePercent))
         submenu.addItem(usedItem)
 
         let remainingItem = NSMenuItem()
@@ -3204,7 +3204,7 @@ final class StatusBarController: NSObject {
             } else {
                 inputField.stringValue = ""
             }
-            inputField.placeholderString = "Enter amount in USD"
+            inputField.placeholderString = "输入金额（美元）"
             alert.accessoryView = inputField
 
             NSApp.activate(ignoringOtherApps: true)
@@ -3579,10 +3579,10 @@ final class StatusBarController: NSObject {
         let subscriptionTotal = SubscriptionSettingsManager.shared.getTotalMonthlySubscriptionCost()
 
         var lines = [
-            "My OpenCode Bar usage snapshot",
-            "- Total tracked this month: \(CurrencyFormatter.shared.format(usd: totalTracked))",
-            "- Pay-as-you-go spend: \(CurrencyFormatter.shared.format(usd: payAsYouGoTotal))",
-            "- Quota subscriptions: \(CurrencyFormatter.shared.format(usd: subscriptionTotal))/m"
+            "我的 OpenCode Bar 用量快照",
+            "- 本月累计追踪：\(CurrencyFormatter.shared.format(usd: totalTracked))",
+            "- 按量付费支出：\(CurrencyFormatter.shared.format(usd: payAsYouGoTotal))",
+            "- 额度订阅：\(CurrencyFormatter.shared.format(usd: subscriptionTotal))/m"
         ]
 
         if let topPayAsYouGo = topPayAsYouGoShareLine() {
@@ -3594,7 +3594,7 @@ final class StatusBarController: NSObject {
         }
 
         lines.append("")
-        lines.append("Track your AI provider usage in one menu bar app:")
+        lines.append("在一个菜单栏 app 中追踪你的 AI 服务商用量：")
         lines.append("https://github.com/opgginc/opencode-bar")
 
         return lines.joined(separator: "\n")
@@ -3621,7 +3621,7 @@ final class StatusBarController: NSObject {
             return nil
         }
 
-        return "Top spend: \(top.name) at \(CurrencyFormatter.shared.format(usd: top.cost))"
+        return "支出最高：\(top.name)，\(CurrencyFormatter.shared.format(usd: top.cost))"
     }
 
     private func topQuotaShareLine() -> String? {
@@ -3635,7 +3635,7 @@ final class StatusBarController: NSObject {
             return nil
         }
 
-        return String(format: "Highest quota usage: %@ at %.0f%% used", top.name, top.usagePercent)
+        return String(format: "额度用量最高：%@，已用 %.0f%%", top.name, top.usagePercent)
     }
 
     private func openXShareIntent(with text: String) {
@@ -3793,7 +3793,7 @@ final class StatusBarController: NSObject {
         let installed = FileManager.default.fileExists(atPath: "/usr/local/bin/opencodebar")
         
         if installed {
-            installCLIItem.title = "CLI Installed (opencodebar)"
+            installCLIItem.title = "命令行工具已安装 (opencodebar)"
             installCLIItem.state = .on
             installCLIItem.isEnabled = false
             debugLog("✅ CLI is installed at /usr/local/bin/opencodebar")
@@ -4106,7 +4106,7 @@ final class StatusBarController: NSObject {
             formatter.maximumFractionDigits = 0
 
             debugLog("updateHistorySubmenu: creating monthlyText")
-            let monthlyText = "Predicted EOM: \(formatter.string(from: NSNumber(value: prediction.predictedMonthlyRequests)) ?? "0") requests"
+            let monthlyText = "预计月末：\(formatter.string(from: NSNumber(value: prediction.predictedMonthlyRequests)) ?? "0") 次请求"
             debugLog("updateHistorySubmenu: creating monthlyItem")
             let monthlyItem = NSMenuItem()
             monthlyItem.view = createDisabledLabelView(
@@ -4119,7 +4119,7 @@ final class StatusBarController: NSObject {
             debugLog("updateHistorySubmenu: monthlyItem added")
 
             if prediction.predictedBilledAmount > 0 {
-                let costText = "Predicted Add-on: \(CurrencyFormatter.shared.format(usd: prediction.predictedBilledAmount))"
+                let costText = "预计加购包：\(CurrencyFormatter.shared.format(usd: prediction.predictedBilledAmount))"
                 let costItem = NSMenuItem()
                 costItem.view = createDisabledLabelView(
                     text: costText,
