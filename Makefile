@@ -2,15 +2,26 @@
 # OpenCode Bar - Development Makefile
 # =============================================================================
 
-.PHONY: setup lint lint-swift lint-actions help
+.PHONY: setup lint lint-swift lint-actions release run help
 
 # Default target
 help:
 	@echo "Available commands:"
 	@echo "  make setup        - Configure git hooks (run once after clone)"
+	@echo "  make release      - Build Release, ad-hoc sign, install to /Applications"
+	@echo "  make run          - Build+install (release) then launch the app"
 	@echo "  make lint         - Run all linters"
 	@echo "  make lint-swift   - Run SwiftLint only"
 	@echo "  make lint-actions - Run action-validator only"
+
+# =============================================================================
+# Build & Install (personal fork — ad-hoc signed, installed to /Applications)
+# =============================================================================
+release:
+	@bash scripts/build-and-install.sh
+
+run: release
+	@open "/Applications/Token King.app"
 
 # =============================================================================
 # Setup - Run once after cloning
