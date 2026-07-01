@@ -61,7 +61,7 @@ enum BraveSearchRefreshMode: Int, CaseIterable {
         switch self {
         case .eventOnly: return "仅基于事件"
         case .apiEverySixHours: return "每 6 小时 API 同步"
-        case .hybrid: return "混合（事件 + 6h API）"
+        case .hybrid: return "混合（事件 + 6 小时 API）"
         }
     }
 
