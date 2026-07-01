@@ -519,7 +519,7 @@ final class StatusBarController: NSObject {
         menu.addItem(NSMenuItem.separator())
 
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
-        let versionItem = NSMenuItem(title: "OpenCode Bar v\(version)", action: #selector(openGitHub), keyEquivalent: "")
+        let versionItem = NSMenuItem(title: "Token King v\(version)", action: #selector(openGitHub), keyEquivalent: "")
         versionItem.image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: "Version")
         versionItem.target = self
         menu.addItem(versionItem)
@@ -926,7 +926,7 @@ final class StatusBarController: NSObject {
 
     private func formatCostOrStatusBarBrand(_ cost: Double) -> String {
         if cost <= 0 {
-            return "OC Bar"
+            return "TK"
         }
         return formatCostForStatusBar(cost)
     }
