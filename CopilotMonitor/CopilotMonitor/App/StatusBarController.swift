@@ -3467,7 +3467,7 @@ final class StatusBarController: NSObject {
 
     @objc private func openGitHub() {
         logger.info("Opening GitHub repository")
-        if let url = URL(string: "https://github.com/opgginc/opencode-bar") {
+        if let url = URL(string: "https://github.com/smy126988-ai/token-king") {
             NSWorkspace.shared.open(url)
         }
     }
@@ -3668,7 +3668,7 @@ final class StatusBarController: NSObject {
         let subscriptionTotal = SubscriptionSettingsManager.shared.getTotalMonthlySubscriptionCost()
 
         var lines = [
-            "我的 OpenCode Bar 用量快照",
+            "我的 Token King 用量快照",
             "- 本月累计追踪：\(CurrencyFormatter.shared.format(usd: totalTracked))",
             "- 按量付费支出：\(CurrencyFormatter.shared.format(usd: payAsYouGoTotal))",
             "- 额度订阅：\(CurrencyFormatter.shared.format(usd: subscriptionTotal))/m"
@@ -3684,7 +3684,7 @@ final class StatusBarController: NSObject {
 
         lines.append("")
         lines.append("在一个菜单栏 app 中追踪你的 AI 服务商用量：")
-        lines.append("https://github.com/opgginc/opencode-bar")
+        lines.append("https://github.com/smy126988-ai/token-king")
 
         return lines.joined(separator: "\n")
     }
@@ -3778,7 +3778,7 @@ final class StatusBarController: NSObject {
         let encodedTitle = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         
-        if let url = URL(string: "https://github.com/opgginc/opencode-bar/issues/new?title=\(encodedTitle)&body=\(encodedBody)") {
+        if let url = URL(string: "https://github.com/smy126988-ai/token-king/issues/new?title=\(encodedTitle)&body=\(encodedBody)") {
             NSWorkspace.shared.open(url)
         }
     }
@@ -3806,7 +3806,7 @@ final class StatusBarController: NSObject {
 
         if response == .alertFirstButtonReturn {
             debugLog("GitHub star prompt: opening GitHub page")
-            if let url = URL(string: "https://github.com/opgginc/opencode-bar") {
+            if let url = URL(string: "https://github.com/smy126988-ai/token-king") {
                 NSWorkspace.shared.open(url)
             }
         } else {

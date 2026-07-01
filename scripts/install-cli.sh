@@ -1,17 +1,17 @@
 #!/bin/bash
 set -e
 
-# Install OpenCode Bar CLI to /usr/local/bin
+# Install Token King CLI to /usr/local/bin
 # This script copies the CLI binary from the app bundle to /usr/local/bin
 
-APP_PATH="/Applications/OpenCode Bar.app"
+APP_PATH="/Applications/Token King.app"
 CLI_SOURCE="$APP_PATH/Contents/MacOS/opencodebar-cli"
 CLI_DEST="/usr/local/bin/opencodebar"
 
 # Verify CLI binary exists in app bundle
 if [ ! -f "$CLI_SOURCE" ]; then
     echo "❌ Error: CLI binary not found at $CLI_SOURCE"
-    echo "Make sure OpenCode Bar is installed in /Applications/"
+    echo "Make sure Token King is installed in /Applications/"
     exit 1
 fi
 
