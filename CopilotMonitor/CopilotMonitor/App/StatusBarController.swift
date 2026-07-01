@@ -288,6 +288,7 @@ final class StatusBarController: NSObject {
         debugLog("setupMenu completed")
         setupNotificationObservers()
         debugLog("setupNotificationObservers completed")
+        CurrencyFormatter.shared.refreshRateInBackground()
         startRefreshTimer()
         debugLog("startRefreshTimer completed")
         checkAndPromptGitHubStar()
@@ -479,6 +480,7 @@ final class StatusBarController: NSObject {
         showProviderNameMenuItem = NSMenuItem(title: "Show Provider Icon", action: #selector(toggleShowProviderName(_:)), keyEquivalent: "")
         showProviderNameMenuItem.target = self
         statusBarOptionsMenu.addItem(showProviderNameMenuItem)
+        statusBarOptionsMenu.addItem(buildCurrencyMenu())
 
         statusBarOptionsItem.submenu = statusBarOptionsMenu
         menu.addItem(statusBarOptionsItem)
@@ -696,6 +698,30 @@ final class StatusBarController: NSObject {
                   let identifier = ProviderIdentifier(rawValue: idString) else { continue }
             item.state = isProviderEnabled(identifier) ? .on : .off
         }
+    }
+
+    private func buildCurrencyMenu() -> NSMenuItem {
+        let parent = NSMenuItem(title: "Currency", action: nil, keyEquivalent: "")
+        let submenu = NSMenu()
+        for currency in Currency.allCases {
+            let item = NSMenuItem(title: currency.menuTitle,
+                                  action: #selector(selectCurrency(_:)),
+                                  keyEquivalent: "")
+            item.target = self
+            item.representedObject = currency.rawValue
+            item.state = (CurrencyFormatter.shared.currency == currency) ? .on : .off
+            submenu.addItem(item)
+        }
+        parent.submenu = submenu
+        return parent
+    }
+
+    @objc private func selectCurrency(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let currency = Currency(rawValue: raw) else { return }
+        CurrencyFormatter.shared.currency = currency
+        updateStatusBarText()
+        refreshClicked()
     }
 
     private func restartRefreshTimer() {
