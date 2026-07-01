@@ -116,6 +116,7 @@ final class StatusBarController: NSObject {
     private var providerResults: [ProviderIdentifier: ProviderResult] = [:]
     private var loadingProviders: Set<ProviderIdentifier> = []
     private var enabledProvidersMenu: NSMenu!
+    private var currencyMenu: NSMenu?
     private var lastProviderErrors: [ProviderIdentifier: String] = [:]
     private var viewErrorDetailsItem: NSMenuItem!
     private var orphanedSubscriptionKeys: [String] = []
@@ -713,7 +714,17 @@ final class StatusBarController: NSObject {
             submenu.addItem(item)
         }
         parent.submenu = submenu
+        currencyMenu = submenu
         return parent
+    }
+
+    private func updateCurrencyMenuState() {
+        guard let currencyMenu = currencyMenu else { return }
+        let selected = CurrencyFormatter.shared.currency.rawValue
+        for item in currencyMenu.items {
+            guard let raw = item.representedObject as? String else { continue }
+            item.state = (raw == selected) ? .on : .off
+        }
     }
 
     @objc private func selectCurrency(_ sender: NSMenuItem) {
@@ -722,6 +733,7 @@ final class StatusBarController: NSObject {
         CurrencyFormatter.shared.currency = currency
         updateStatusBarText()
         refreshClicked()
+        updateCurrencyMenuState()
     }
 
     private func restartRefreshTimer() {
