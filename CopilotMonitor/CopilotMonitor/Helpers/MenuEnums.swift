@@ -31,9 +31,9 @@ enum PredictionPeriod: Int, CaseIterable {
 
     var title: String {
         switch self {
-        case .oneWeek: return "7 days"
-        case .twoWeeks: return "14 days"
-        case .threeWeeks: return "21 days"
+        case .oneWeek: return "7 天"
+        case .twoWeeks: return "14 天"
+        case .threeWeeks: return "21 天"
         }
     }
 
@@ -59,9 +59,9 @@ enum BraveSearchRefreshMode: Int, CaseIterable {
 
     var title: String {
         switch self {
-        case .eventOnly: return "Event-based only"
-        case .apiEverySixHours: return "API sync every 6h"
-        case .hybrid: return "Hybrid (event + 6h API)"
+        case .eventOnly: return "仅基于事件"
+        case .apiEverySixHours: return "每 6 小时 API 同步"
+        case .hybrid: return "混合（事件 + 6h API）"
         }
     }
 
@@ -94,9 +94,9 @@ enum MenuBarDisplayMode: Int, CaseIterable {
 
     var title: String {
         switch self {
-        case .totalCost: return "Total Cost"
-        case .iconOnly: return "Icon Only"
-        case .onlyShow: return "Only Show"
+        case .totalCost: return "总花费"
+        case .iconOnly: return "仅图标"
+        case .onlyShow: return "仅显示"
         }
     }
 
@@ -110,9 +110,9 @@ enum OnlyShowMode: Int, CaseIterable {
 
     var title: String {
         switch self {
-        case .pinnedProvider: return "Pinned Provider"
-        case .alertFirst: return "Alert First"
-        case .recentChange: return "Recent Quota Change Only"
+        case .pinnedProvider: return "固定服务商"
+        case .alertFirst: return "告警优先"
+        case .recentChange: return "仅最近额度变化"
         }
     }
 
