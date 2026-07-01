@@ -254,21 +254,31 @@ final class KiroProvider: ProviderProtocol {
         let normalized = text.replacingOccurrences(of: "\u{00A0}", with: " ")
         let planName = parsePlanName(from: normalized)
 
+        // Match the plan-covered credits line, allowing trailing qualifiers like "covered in plan".
         let creditsMatch = firstMatch(
             in: normalized,
-            pattern: #"Credits\s*\(\s*([0-9][0-9,]*(?:\.[0-9]+)?)\s+of\s+([0-9][0-9,]*(?:\.[0-9]+)?)(?:\s+covered\s+in\s+plan)?\s*\)"#
+            pattern: #"Credits\s*\(\s*([0-9][0-9,]*(?:\.[0-9]+)?)\s+of\s+([0-9][0-9,]*(?:\.[0-9]+)?)(?:\s+[^)]*)?\s*\)"#
+        )
+        // Some newer outputs also include a separate "Credits used:" line that reflects
+        // actual consumption including overages. Prefer it over the covered-credits count.
+        let explicitUsedMatch = firstMatch(
+            in: normalized,
+            pattern: #"Credits\s+used:\s*([0-9][0-9,]*(?:\.[0-9]+)?)"#
         )
         let percent = parseProgressPercent(from: normalized)
 
-        let usedCredits = creditsMatch.flatMap { match in
+        let coveredUsedCredits = creditsMatch.flatMap { match in
             match.count > 1 ? parseNumber(match[1]) : nil
         }
         let totalCredits = creditsMatch.flatMap { match in
             match.count > 2 ? parseNumber(match[2]) : nil
         }
+        let explicitUsedCredits = explicitUsedMatch.flatMap { match in
+            match.count > 1 ? parseNumber(match[1]) : nil
+        }
 
         let resolvedTotalCredits = totalCredits ?? planName.flatMap(planCreditTotal)
-        let resolvedUsedCredits = usedCredits ?? percent.flatMap { parsedPercent in
+        let resolvedUsedCredits = explicitUsedCredits ?? coveredUsedCredits ?? percent.flatMap { parsedPercent in
             resolvedTotalCredits.map { ($0 * parsedPercent) / 100.0 }
         }
 

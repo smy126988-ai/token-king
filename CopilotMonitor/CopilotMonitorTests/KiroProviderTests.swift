@@ -127,6 +127,37 @@ final class KiroProviderTests: XCTestCase {
         XCTAssertEqual(result.details?.authSource, "kiro-cli at /Users/test/.local/bin/kiro-cli")
     }
 
+    func testUsageParserReadsActualCLIOutputWithOverages() throws {
+        // Real 2026-07 output from `kiro-cli chat --no-interactive /usage`
+        let output = #"""
+        Estimated Usage | resets on 2026-08-01 | KIRO PRO
+        Credits (1000.00 of 1000 covered in plan)
+        100%
+        Overages: Enabled  billed at $0.04 per credit (managed by your organization)
+        Credits used: 1472.94
+        Est. cost: $58.92 USD
+        """#
+
+        let usage = try KiroProvider.parseUsageOutput(output)
+
+        XCTAssertEqual(usage.totalCredits, 1000, accuracy: 0.001)
+        XCTAssertEqual(usage.usedCredits, 1472.94, accuracy: 0.001)
+        XCTAssertEqual(usage.planName, "Pro")
+        XCTAssertEqual(usage.overageStatus, "Enabled")
+    }
+
+    func testUsageParserPrefersRealTotalOverHardcodedPlanAllowance() throws {
+        // If the CLI reports a total that differs from the hardcoded Pro=1000,
+        // the real output must win.
+        let output = "Estimated Usage | resets on 2026-08-01 | KIRO PRO\nCredits (1,905.00 of 1,905 monthly credits)"
+
+        let usage = try KiroProvider.parseUsageOutput(output)
+
+        XCTAssertEqual(usage.totalCredits, 1905, accuracy: 0.001)
+        XCTAssertEqual(usage.usedCredits, 1905, accuracy: 0.001)
+        XCTAssertEqual(usage.planName, "Pro")
+    }
+
     func testMakeResultPreservesOverageAmount() throws {
         let snapshot = KiroUsageSnapshot(
             usedCredits: 1_050,
