@@ -98,7 +98,6 @@ final class MiniMaxProviderTests: XCTestCase {
         """
 
         MockURLProtocol.requestHandler = { request in
-            XCTAssertEqual(request.url?.absoluteString, "https://api.minimax.io/v1/api/openplatform/coding_plan/remains")
             XCTAssertTrue((request.value(forHTTPHeaderField: "Authorization") ?? "").hasPrefix("Bearer "))
 
             let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
@@ -256,5 +255,107 @@ final class MiniMaxProviderTests: XCTestCase {
 
         XCTAssertEqual(result.details?.fiveHourUsage ?? -1, (31.0 / 4500.0) * 100.0, accuracy: 0.0001)
         XCTAssertEqual(result.details?.sevenDayUsage ?? -1, (341.0 / 45000.0) * 100.0, accuracy: 0.0001)
+    }
+
+    func testFetchFallsBackToGlobalEndpointWhenChinaReturnsRegionMismatch() async throws {
+        guard TokenManager.shared.getMiniMaxCodingPlanAPIKey() != nil else {
+            throw XCTSkip("MiniMax Coding Plan API key not available; skipping fetch test.")
+        }
+
+        let session = makeSession()
+        let provider = MiniMaxProvider(tokenManager: .shared, session: session)
+        let successJSON = """
+        {
+          "model_remains": [
+            {
+              "start_time": 1774587600000,
+              "end_time": 1774605600000,
+              "remains_time": 1715317,
+              "current_interval_total_count": 1500,
+              "current_interval_usage_count": 750,
+              "model_name": "MiniMax-M*",
+              "current_weekly_total_count": 15000,
+              "current_weekly_usage_count": 6000,
+              "weekly_start_time": 1774224000000,
+              "weekly_end_time": 1774828800000,
+              "weekly_remains_time": 224915317
+            }
+          ],
+          "base_resp": {
+            "status_code": 0,
+            "status_msg": "success"
+          }
+        }
+        """
+        let regionMismatchJSON = """
+        {
+          "base_resp": {
+            "status_code": 1004,
+            "status_msg": "cookie is missing, log in again"
+          }
+        }
+        """
+
+        var requestedEndpoints: [String] = []
+        MockURLProtocol.requestHandler = { request in
+            let urlString = request.url?.absoluteString ?? ""
+            requestedEndpoints.append(urlString)
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            if urlString.contains("api.minimaxi.com") {
+                return (response, Data(regionMismatchJSON.utf8))
+            }
+            return (response, Data(successJSON.utf8))
+        }
+
+        let result = try await provider.fetch()
+
+        XCTAssertEqual(requestedEndpoints.count, 2)
+        XCTAssertTrue(requestedEndpoints.first?.contains("api.minimaxi.com") == true)
+        XCTAssertTrue(requestedEndpoints.last?.contains("api.minimax.io") == true)
+
+        switch result.usage {
+        case .quotaBased(let remaining, let entitlement, let overagePermitted):
+            XCTAssertEqual(remaining, 40)
+            XCTAssertEqual(entitlement, 100)
+            XCTAssertFalse(overagePermitted)
+        default:
+            XCTFail("Expected quota-based usage")
+        }
+    }
+
+    func testFetchThrowsNetworkErrorWhenAllEndpointsReturnRegionMismatch() async throws {
+        guard TokenManager.shared.getMiniMaxCodingPlanAPIKey() != nil else {
+            throw XCTSkip("MiniMax Coding Plan API key not available; skipping fetch test.")
+        }
+
+        let session = makeSession()
+        let provider = MiniMaxProvider(tokenManager: .shared, session: session)
+        let regionMismatchJSON = """
+        {
+          "base_resp": {
+            "status_code": 1004,
+            "status_msg": "cookie is missing, log in again"
+          }
+        }
+        """
+
+        MockURLProtocol.requestHandler = { request in
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (response, Data(regionMismatchJSON.utf8))
+        }
+
+        do {
+            _ = try await provider.fetch()
+            XCTFail("Expected network error after all endpoints return region mismatch")
+        } catch let error as ProviderError {
+            switch error {
+            case .networkError:
+                break
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
     }
 }

@@ -124,6 +124,12 @@ private struct MiniMaxCodingPlanResponse: Decodable {
         case modelRemains = "model_remains"
         case baseResponse = "base_resp"
     }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        modelRemains = (try? container.decode([ModelRemain].self, forKey: .modelRemains)) ?? []
+        baseResponse = try? container.decode(BaseResponse.self, forKey: .baseResponse)
+    }
 }
 
 final class MiniMaxProvider: ProviderProtocol {
@@ -133,6 +139,7 @@ final class MiniMaxProvider: ProviderProtocol {
     private let tokenManager: TokenManager
     private let session: URLSession
     private let endpoints = [
+        "https://api.minimaxi.com/v1/api/openplatform/coding_plan/remains",
         "https://api.minimax.io/v1/api/openplatform/coding_plan/remains",
         "https://www.minimax.io/v1/api/openplatform/coding_plan/remains"
     ]
@@ -205,6 +212,27 @@ final class MiniMaxProvider: ProviderProtocol {
                 logger.debug("MiniMax Coding Plan request started: \(endpoint, privacy: .public)")
                 let data = try await fetchData(url: url, apiKey: apiKey)
                 let decoded = try JSONDecoder().decode(MiniMaxCodingPlanResponse.self, from: data)
+
+                if let baseResponse = decoded.baseResponse,
+                   let statusCode = baseResponse.statusCode,
+                   statusCode != 0 {
+                    let message = baseResponse.statusMessage ?? "MiniMax Coding Plan returned status \(statusCode)"
+                    let lowercased = message.lowercased()
+                    let isRegionMismatch = statusCode == 1004
+                        || lowercased.contains("cookie")
+                        || lowercased.contains("log in")
+                        || lowercased.contains("login")
+
+                    if isRegionMismatch {
+                        logger.warning("MiniMax Coding Plan endpoint #\(index + 1) region mismatch: \(message, privacy: .public)")
+                        lastNetworkError = ProviderError.networkError("Region mismatch: \(message)")
+                        continue
+                    }
+
+                    logger.error("MiniMax Coding Plan API status error: \(message, privacy: .public)")
+                    throw ProviderError.providerError(message)
+                }
+
                 return decoded
             } catch let error as ProviderError {
                 switch error {
