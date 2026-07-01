@@ -386,11 +386,11 @@ final class StatusBarController: NSObject {
         menu = NSMenu()
         menu.delegate = self
 
-        historyMenuItem = NSMenuItem(title: "Usage History", action: nil, keyEquivalent: "")
+        historyMenuItem = NSMenuItem(title: "用量历史", action: nil, keyEquivalent: "")
         historyMenuItem.image = NSImage(systemSymbolName: "chart.bar.fill", accessibilityDescription: "Usage History")
         historySubmenu = NSMenu()
         historyMenuItem.submenu = historySubmenu
-        let loadingItem = NSMenuItem(title: "Loading...", action: nil, keyEquivalent: "")
+        let loadingItem = NSMenuItem(title: "加载中…", action: nil, keyEquivalent: "")
         loadingItem.isEnabled = false
         historySubmenu.addItem(loadingItem)
         // Removed: History now in Copilot submenu only (see createCopilotHistorySubmenu())
@@ -399,17 +399,17 @@ final class StatusBarController: NSObject {
         // Load cached history immediately on startup (before API fetch completes)
         loadCachedHistoryOnStartup()
 
-        let refreshItem = NSMenuItem(title: "Refresh", action: #selector(refreshClicked), keyEquivalent: "r")
+        let refreshItem = NSMenuItem(title: "刷新", action: #selector(refreshClicked), keyEquivalent: "r")
         refreshItem.image = NSImage(systemSymbolName: "arrow.clockwise", accessibilityDescription: "Refresh")
         refreshItem.target = self
         menu.addItem(refreshItem)
 
-        let checkForUpdatesItem = NSMenuItem(title: "Check for Updates...", action: #selector(AppDelegate.checkForUpdates), keyEquivalent: "u")
+        let checkForUpdatesItem = NSMenuItem(title: "检查更新…", action: #selector(AppDelegate.checkForUpdates), keyEquivalent: "u")
         checkForUpdatesItem.image = NSImage(systemSymbolName: "arrow.down.circle", accessibilityDescription: "Check for Updates")
         checkForUpdatesItem.target = NSApp.delegate
         menu.addItem(checkForUpdatesItem)
 
-        let refreshIntervalItem = NSMenuItem(title: "Auto Refresh", action: nil, keyEquivalent: "")
+        let refreshIntervalItem = NSMenuItem(title: "自动刷新", action: nil, keyEquivalent: "")
         refreshIntervalItem.image = NSImage(systemSymbolName: "timer", accessibilityDescription: "Auto Refresh")
         refreshIntervalMenu = NSMenu()
         for interval in RefreshInterval.allCases {
@@ -422,11 +422,11 @@ final class StatusBarController: NSObject {
         menu.addItem(refreshIntervalItem)
         updateRefreshIntervalMenu()
 
-        let statusBarOptionsItem = NSMenuItem(title: "Status Bar Options", action: nil, keyEquivalent: "")
+        let statusBarOptionsItem = NSMenuItem(title: "状态栏选项", action: nil, keyEquivalent: "")
         statusBarOptionsItem.image = NSImage(systemSymbolName: "menubar.rectangle", accessibilityDescription: "Status Bar Options")
         let statusBarOptionsMenu = NSMenu()
 
-        let displayModeItem = NSMenuItem(title: "Menu Bar Display", action: nil, keyEquivalent: "")
+        let displayModeItem = NSMenuItem(title: "菜单栏显示", action: nil, keyEquivalent: "")
         displayModeItem.image = NSImage(systemSymbolName: "textformat.size", accessibilityDescription: "Menu Bar Display")
         menuBarDisplayModeMenu = NSMenu()
         for mode in MenuBarDisplayMode.allCases {
@@ -474,11 +474,11 @@ final class StatusBarController: NSObject {
         statusBarOptionsMenu.addItem(displayModeItem)
         statusBarOptionsMenu.addItem(NSMenuItem.separator())
 
-        criticalBadgeMenuItem = NSMenuItem(title: "Critical Badge", action: #selector(toggleCriticalBadge(_:)), keyEquivalent: "")
+        criticalBadgeMenuItem = NSMenuItem(title: "严重告警标记", action: #selector(toggleCriticalBadge(_:)), keyEquivalent: "")
         criticalBadgeMenuItem.target = self
         statusBarOptionsMenu.addItem(criticalBadgeMenuItem)
 
-        showProviderNameMenuItem = NSMenuItem(title: "Show Provider Icon", action: #selector(toggleShowProviderName(_:)), keyEquivalent: "")
+        showProviderNameMenuItem = NSMenuItem(title: "显示服务商图标", action: #selector(toggleShowProviderName(_:)), keyEquivalent: "")
         showProviderNameMenuItem.target = self
         statusBarOptionsMenu.addItem(showProviderNameMenuItem)
         statusBarOptionsMenu.addItem(buildCurrencyMenu())
@@ -498,19 +498,19 @@ final class StatusBarController: NSObject {
 
         menu.addItem(NSMenuItem.separator())
 
-        launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(launchAtLoginClicked), keyEquivalent: "")
+        launchAtLoginItem = NSMenuItem(title: "开机启动", action: #selector(launchAtLoginClicked), keyEquivalent: "")
         launchAtLoginItem.image = NSImage(systemSymbolName: "power", accessibilityDescription: "Launch at Login")
         launchAtLoginItem.target = self
         updateLaunchAtLoginState()
         menu.addItem(launchAtLoginItem)
 
-        installCLIItem = NSMenuItem(title: "Install CLI (opencodebar)", action: #selector(installCLIClicked), keyEquivalent: "")
+        installCLIItem = NSMenuItem(title: "安装命令行工具 (opencodebar)", action: #selector(installCLIClicked), keyEquivalent: "")
         installCLIItem.image = NSImage(systemSymbolName: "terminal", accessibilityDescription: "Install CLI")
         installCLIItem.target = self
         menu.addItem(installCLIItem)
         updateCLIInstallState()
 
-        let shareSnapshotItem = NSMenuItem(title: "Share Usage Snapshot...", action: #selector(shareUsageSnapshotClicked), keyEquivalent: "")
+        let shareSnapshotItem = NSMenuItem(title: "分享用量快照…", action: #selector(shareUsageSnapshotClicked), keyEquivalent: "")
         shareSnapshotItem.image = NSImage(systemSymbolName: "square.and.arrow.up", accessibilityDescription: "Share Usage Snapshot")
         shareSnapshotItem.target = self
         menu.addItem(shareSnapshotItem)
@@ -524,14 +524,14 @@ final class StatusBarController: NSObject {
         versionItem.target = self
         menu.addItem(versionItem)
 
-         let quitItem = NSMenuItem(title: "Quit", action: #selector(quitClicked), keyEquivalent: "q")
+         let quitItem = NSMenuItem(title: "退出", action: #selector(quitClicked), keyEquivalent: "q")
          quitItem.image = NSImage(systemSymbolName: "xmark.circle", accessibilityDescription: "Quit")
          quitItem.target = self
          menu.addItem(quitItem)
          
          menu.addItem(NSMenuItem.separator())
          
-         viewErrorDetailsItem = NSMenuItem(title: "View Error Details...", action: #selector(viewErrorDetailsClicked), keyEquivalent: "e")
+         viewErrorDetailsItem = NSMenuItem(title: "查看错误详情…", action: #selector(viewErrorDetailsClicked), keyEquivalent: "e")
          viewErrorDetailsItem.image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: "View Error Details")
          viewErrorDetailsItem.target = self
          viewErrorDetailsItem.isHidden = true
@@ -702,7 +702,7 @@ final class StatusBarController: NSObject {
     }
 
     private func buildCurrencyMenu() -> NSMenuItem {
-        let parent = NSMenuItem(title: "Currency", action: nil, keyEquivalent: "")
+        let parent = NSMenuItem(title: "货币", action: nil, keyEquivalent: "")
         let submenu = NSMenu()
         for currency in Currency.allCases {
             let item = NSMenuItem(title: currency.menuTitle,
@@ -1771,7 +1771,7 @@ final class StatusBarController: NSObject {
                     submenu.addItem(overageItem)
 
                     submenu.addItem(NSMenuItem.separator())
-                    let historyItem = NSMenuItem(title: "Usage History", action: nil, keyEquivalent: "")
+                    let historyItem = NSMenuItem(title: "用量历史", action: nil, keyEquivalent: "")
                     historyItem.image = NSImage(systemSymbolName: "chart.bar.fill", accessibilityDescription: "Usage History")
                     debugLog("updateMultiProviderMenu: calling createCopilotHistorySubmenu")
                     historyItem.submenu = createCopilotHistorySubmenu()
@@ -2884,7 +2884,7 @@ final class StatusBarController: NSObject {
            details.hasAnyValue {
             submenu.addItem(NSMenuItem.separator())
 
-            let cachedItem = NSMenuItem(title: "Cached Details", action: nil, keyEquivalent: "")
+            let cachedItem = NSMenuItem(title: "缓存详情", action: nil, keyEquivalent: "")
             cachedItem.image = NSImage(
                 systemSymbolName: "clock.arrow.circlepath",
                 accessibilityDescription: "Cached Details"
@@ -2908,7 +2908,7 @@ final class StatusBarController: NSObject {
         }
         guard !visibleSearchProviders.isEmpty else { return nil }
 
-        let searchEnginesItem = NSMenuItem(title: "Search Engines", action: nil, keyEquivalent: "")
+        let searchEnginesItem = NSMenuItem(title: "搜索引擎", action: nil, keyEquivalent: "")
         searchEnginesItem.image = NSImage(systemSymbolName: "magnifyingglass", accessibilityDescription: "Search Engines")
 
         let submenu = NSMenu()
@@ -3016,7 +3016,7 @@ final class StatusBarController: NSObject {
         let submenu = NSMenu()
 
         if isLoading {
-            let loadingItem = NSMenuItem(title: "Loading...", action: nil, keyEquivalent: "")
+            let loadingItem = NSMenuItem(title: "加载中…", action: nil, keyEquivalent: "")
             loadingItem.isEnabled = false
             submenu.addItem(loadingItem)
             return submenu
@@ -3092,7 +3092,7 @@ final class StatusBarController: NSObject {
             }
 
             submenu.addItem(NSMenuItem.separator())
-            let modeItem = NSMenuItem(title: "Refresh Mode", action: nil, keyEquivalent: "")
+            let modeItem = NSMenuItem(title: "刷新模式", action: nil, keyEquivalent: "")
             let modeMenu = NSMenu()
             for mode in BraveSearchRefreshMode.allCases {
                 let item = NSMenuItem(title: mode.title, action: #selector(braveRefreshModeSelected(_:)), keyEquivalent: "")
@@ -4049,7 +4049,7 @@ final class StatusBarController: NSObject {
         submenu.addItem(NSMenuItem.separator())
 
         // Prediction Period submenu
-        let periodItem = NSMenuItem(title: "Prediction Period", action: nil, keyEquivalent: "")
+        let periodItem = NSMenuItem(title: "预测周期", action: nil, keyEquivalent: "")
         periodItem.image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: "Prediction Period")
 
         // Create a fresh submenu for prediction period to avoid deadlock
@@ -4198,7 +4198,7 @@ final class StatusBarController: NSObject {
 
         debugLog("updateHistorySubmenu: adding final separator and prediction period menu")
         historySubmenu.addItem(NSMenuItem.separator())
-        let predictionPeriodItem = NSMenuItem(title: "Prediction Period", action: nil, keyEquivalent: "")
+        let predictionPeriodItem = NSMenuItem(title: "预测周期", action: nil, keyEquivalent: "")
         predictionPeriodItem.image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: "Prediction Period")
         
         // Create a fresh submenu to avoid NSMenu parent conflict
