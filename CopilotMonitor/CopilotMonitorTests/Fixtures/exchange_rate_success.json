@@ -1,0 +1,9 @@
+{
+  "result": "success",
+  "base_code": "USD",
+  "time_last_update_utc": "Wed, 01 Jul 2026 00:02:31 +0000",
+  "rates": {
+    "USD": 1,
+    "CNY": 7.2531
+  }
+}
