@@ -140,3 +140,26 @@ enum SearchEnginePreferences {
     static let braveEventCursorKey = "searchEngines.brave.eventCursor"
     static let braveEventMonthKey = "searchEngines.brave.eventMonth"
 }
+
+enum Currency: String, CaseIterable {
+    case usd = "USD"
+    case rmb = "RMB"
+
+    var symbol: String {
+        switch self {
+        case .usd: return "$"
+        case .rmb: return "¥"
+        }
+    }
+
+    var menuTitle: String {
+        switch self {
+        case .usd: return "US Dollar ($)"
+        case .rmb: return "人民币 (¥)"
+        }
+    }
+}
+
+enum CurrencyPreferences {
+    static let selectedCurrencyKey = "currency.selected"
+}
