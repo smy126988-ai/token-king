@@ -70,33 +70,33 @@ extension StatusBarController {
         case .openRouter:
             if let remaining = details.creditsRemaining {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Credits: \(CurrencyFormatter.shared.format(usd: remaining, decimals: 0))")
+                item.view = createDisabledLabelView(text: "额度：\(CurrencyFormatter.shared.format(usd: remaining, decimals: 0))")
                 submenu.addItem(item)
             }
 
         case .openCodeZen:
             if let avg = details.avgCostPerDay {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Avg/Day: \(CurrencyFormatter.shared.format(usd: avg))")
+                item.view = createDisabledLabelView(text: "日均：\(CurrencyFormatter.shared.format(usd: avg))")
                 submenu.addItem(item)
             }
             if let sessions = details.sessions {
                 let formatted = NumberFormatter.localizedString(from: NSNumber(value: sessions), number: .decimal)
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Sessions: \(formatted)")
+                item.view = createDisabledLabelView(text: "会话数：\(formatted)")
                 submenu.addItem(item)
             }
             if let messages = details.messages {
                 let formatted = NumberFormatter.localizedString(from: NSNumber(value: messages), number: .decimal)
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Messages: \(formatted)")
+                item.view = createDisabledLabelView(text: "消息数：\(formatted)")
                 submenu.addItem(item)
             }
 
             if let models = details.modelBreakdown, !models.isEmpty {
                 submenu.addItem(NSMenuItem.separator())
                 let headerItem = NSMenuItem()
-                headerItem.view = createHeaderView(title: "Top Models")
+                headerItem.view = createHeaderView(title: "高频模型")
                 submenu.addItem(headerItem)
 
                 let sortedModels = models.sorted { $0.value > $1.value }.prefix(5)
@@ -127,7 +127,7 @@ extension StatusBarController {
                 items.forEach { submenu.addItem($0) }
             } else {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Usage data unavailable")
+                item.view = createDisabledLabelView(text: "用量数据不可用")
                 submenu.addItem(item)
             }
 
@@ -146,7 +146,7 @@ extension StatusBarController {
                 }
                 let planItem = NSMenuItem()
                 planItem.view = createDisabledLabelView(
-                    text: "Plan: \(planName)",
+                    text: "套餐：\(planName)",
                     icon: NSImage(systemSymbolName: "crown", accessibilityDescription: "Plan")
                 )
                 submenu.addItem(planItem)
@@ -155,7 +155,7 @@ extension StatusBarController {
             if let limit = details.copilotLimitRequests {
                 let freeItem = NSMenuItem()
                 let limitText = (limit == Int.max) ? "Unlimited" : "\(limit)"
-                freeItem.view = createDisabledLabelView(text: "Quota Limit: \(limitText)")
+                freeItem.view = createDisabledLabelView(text: "额度上限：\(limitText)")
                 submenu.addItem(freeItem)
             }
 
@@ -165,7 +165,7 @@ extension StatusBarController {
             if let email = details.email {
                 let emailItem = NSMenuItem()
                 emailItem.view = createDisabledLabelView(
-                    text: "Account: \(email)",
+                    text: "账号：\(email)",
                     icon: NSImage(systemSymbolName: "person.circle", accessibilityDescription: "User Account"),
                     multiline: false
                 )
@@ -175,7 +175,7 @@ extension StatusBarController {
             let authSource = details.authSource ?? "Browser Cookies (Chrome/Brave/Arc/Edge)"
             let authItem = NSMenuItem()
             authItem.view = createDisabledLabelView(
-                text: "Token From: \(authSource)",
+                text: "令牌来源：\(authSource)",
                 icon: NSImage(systemSymbolName: "key", accessibilityDescription: "Auth Source"),
                 multiline: true
             )
@@ -249,7 +249,7 @@ extension StatusBarController {
                     submenu.addItem(NSMenuItem.separator())
                 }
                 let statusItem = NSMenuItem()
-                statusItem.view = createDisabledLabelView(text: "Extra Usage: \(extraUsageEnabled ? "ON" : "OFF")")
+                statusItem.view = createDisabledLabelView(text: "额外用量：\(extraUsageEnabled ? "开" : "关")")
                 submenu.addItem(statusItem)
 
                 if extraUsageEnabled,
@@ -264,13 +264,13 @@ extension StatusBarController {
 
                     let limitItem = NSMenuItem()
                     limitItem.view = createDisabledLabelView(
-                        text: "Limit: \(CurrencyFormatter.shared.format(usd: limitUSD))/m"
+                        text: "上限：\(CurrencyFormatter.shared.format(usd: limitUSD))/m"
                     )
                     submenu.addItem(limitItem)
 
                     let usedItem = NSMenuItem()
                     usedItem.view = createDisabledLabelView(
-                        text: "Used: \(CurrencyFormatter.shared.format(usd: usedUSD))"
+                        text: "已用：\(CurrencyFormatter.shared.format(usd: usedUSD))"
                     )
                     submenu.addItem(usedItem)
                 }
@@ -281,7 +281,7 @@ extension StatusBarController {
                 submenu.addItem(NSMenuItem.separator())
                 let emailItem = NSMenuItem()
                 emailItem.view = createDisabledLabelView(
-                    text: "Email: \(email)",
+                    text: "邮箱：\(email)",
                     icon: NSImage(systemSymbolName: "person.circle", accessibilityDescription: "User Email")
                 )
                 submenu.addItem(emailItem)
@@ -362,25 +362,25 @@ extension StatusBarController {
             submenu.addItem(NSMenuItem.separator())
             if let plan = details.planType {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Plan: \(plan)")
+                item.view = createDisabledLabelView(text: "套餐：\(plan)")
                 submenu.addItem(item)
             }
             if let credits = details.creditsBalance {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Credits: \(CurrencyFormatter.shared.format(usd: credits))")
+                item.view = createDisabledLabelView(text: "额度：\(CurrencyFormatter.shared.format(usd: credits))")
                 submenu.addItem(item)
             }
             if let serviceDisplayName = codexServiceDisplayName() {
                 let item = NSMenuItem()
                 item.view = createDisabledLabelView(
-                    text: "Service: \(serviceDisplayName)",
+                    text: "服务：\(serviceDisplayName)",
                     icon: NSImage(systemSymbolName: "server.rack", accessibilityDescription: "Codex Service")
                 )
                 submenu.addItem(item)
             } else if let email = details.email ?? codexEmail(for: accountId) {
                 let item = NSMenuItem()
                 item.view = createDisabledLabelView(
-                    text: "Email: \(email)",
+                    text: "邮箱：\(email)",
                     icon: NSImage(systemSymbolName: "person.circle", accessibilityDescription: "User Email")
                 )
                 submenu.addItem(item)
@@ -409,7 +409,7 @@ extension StatusBarController {
             if let plan = details.planType {
                 let item = NSMenuItem()
                 item.view = createDisabledLabelView(
-                    text: "Plan: \(plan)",
+                    text: "套餐：\(plan)",
                     icon: NSImage(systemSymbolName: "crown", accessibilityDescription: "Plan")
                 )
                 submenu.addItem(item)
@@ -417,19 +417,19 @@ extension StatusBarController {
 
             if let used = details.monthlyCost, let total = details.creditsTotal {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Monthly Used: \(CurrencyFormatter.shared.format(usd: used)) / \(CurrencyFormatter.shared.format(usd: total))")
+                item.view = createDisabledLabelView(text: "本月已用：\(CurrencyFormatter.shared.format(usd: used)) / \(CurrencyFormatter.shared.format(usd: total))")
                 submenu.addItem(item)
             }
 
             if let remaining = details.creditsRemaining {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Credits Left: \(CurrencyFormatter.shared.format(usd: remaining))")
+                item.view = createDisabledLabelView(text: "剩余额度：\(CurrencyFormatter.shared.format(usd: remaining))")
                 submenu.addItem(item)
             }
 
             if let purchasedCredits = details.creditsBalance, purchasedCredits > 0 {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Purchased Credits: \(CurrencyFormatter.shared.format(usd: purchasedCredits))")
+                item.view = createDisabledLabelView(text: "已购额度：\(CurrencyFormatter.shared.format(usd: purchasedCredits))")
                 submenu.addItem(item)
             }
 
@@ -456,7 +456,7 @@ extension StatusBarController {
                 if hasUsageWindow { submenu.addItem(NSMenuItem.separator()) }
                 let item = NSMenuItem()
                 item.view = createDisabledLabelView(
-                    text: "Plan: \(plan.replacingOccurrences(of: "_", with: " ").capitalized)",
+                    text: "套餐：\(plan.replacingOccurrences(of: "_", with: " ").capitalized)",
                     icon: NSImage(systemSymbolName: "crown", accessibilityDescription: "Plan")
                 )
                 submenu.addItem(item)
@@ -479,7 +479,7 @@ extension StatusBarController {
                 submenu.addItem(NSMenuItem.separator())
                 let item = NSMenuItem()
                 item.view = createDisabledLabelView(
-                    text: "Email: \(email)",
+                    text: "邮箱：\(email)",
                     icon: NSImage(systemSymbolName: "person.circle", accessibilityDescription: "User Email")
                 )
                 submenu.addItem(item)
@@ -501,10 +501,10 @@ extension StatusBarController {
 
             var accountItems: [(sfSymbol: String, text: String)] = []
             if let plan = details.planType {
-                accountItems.append((sfSymbol: "crown", text: "Plan: \(plan)"))
+                accountItems.append((sfSymbol: "crown", text: "套餐：\(plan)"))
             }
             if let email = details.email {
-                accountItems.append((sfSymbol: "person.circle", text: "Email: \(email)"))
+                accountItems.append((sfSymbol: "person.circle", text: "邮箱：\(email)"))
             }
             if !accountItems.isEmpty {
                 createAccountInfoSection(items: accountItems).forEach { submenu.addItem($0) }
@@ -540,7 +540,7 @@ extension StatusBarController {
             if let plan = details.planType {
                 submenu.addItem(NSMenuItem.separator())
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Plan: \(plan)")
+                item.view = createDisabledLabelView(text: "套餐：\(plan)")
                 submenu.addItem(item)
             }
 
@@ -612,12 +612,12 @@ extension StatusBarController {
             }
             if let plan = details.planType {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Plan: \(plan)")
+                item.view = createDisabledLabelView(text: "套餐：\(plan)")
                 submenu.addItem(item)
             }
             if let modelCount = details.openCodeGoModelCount {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Models: \(modelCount)")
+                item.view = createDisabledLabelView(text: "模型数：\(modelCount)")
                 submenu.addItem(item)
             }
 
@@ -639,13 +639,13 @@ extension StatusBarController {
             }
             if let plan = details.planType {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Plan: \(plan)")
+                item.view = createDisabledLabelView(text: "套餐：\(plan)")
                 submenu.addItem(item)
             }
             if let email = details.email {
                 let item = NSMenuItem()
                 item.view = createDisabledLabelView(
-                    text: "Account: \(email)",
+                    text: "账号：\(email)",
                     icon: NSImage(systemSymbolName: "person.circle", accessibilityDescription: "User Account")
                 )
                 submenu.addItem(item)
@@ -654,19 +654,19 @@ extension StatusBarController {
             if details.sessions != nil || details.messages != nil || details.modelBreakdown != nil {
                 submenu.addItem(NSMenuItem.separator())
                 let headerItem = NSMenuItem()
-                headerItem.view = createHeaderView(title: "Local Activity (30d)")
+                headerItem.view = createHeaderView(title: "本地活动（30 天）")
                 submenu.addItem(headerItem)
             }
             if let sessions = details.sessions {
                 let formatted = NumberFormatter.localizedString(from: NSNumber(value: sessions), number: .decimal)
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Sessions: \(formatted)")
+                item.view = createDisabledLabelView(text: "会话数：\(formatted)")
                 submenu.addItem(item)
             }
             if let tokens = details.messages {
                 let formatted = NumberFormatter.localizedString(from: NSNumber(value: tokens), number: .decimal)
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Tokens: \(formatted)")
+                item.view = createDisabledLabelView(text: "Token 数：\(formatted)")
                 submenu.addItem(item)
             }
             if let models = details.modelBreakdown, !models.isEmpty {
@@ -724,49 +724,49 @@ extension StatusBarController {
             if details.modelUsageTokens != nil || details.modelUsageCalls != nil {
                 submenu.addItem(NSMenuItem.separator())
                 let headerItem = NSMenuItem()
-                headerItem.view = createHeaderView(title: "Last 24h")
+                headerItem.view = createHeaderView(title: "最近 24 小时")
                 submenu.addItem(headerItem)
             }
 
             if let tokens = details.modelUsageTokens {
                 let tokensText = numberFormatter.string(from: NSNumber(value: tokens)) ?? "\(tokens)"
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Tokens Used: \(tokensText)")
+                item.view = createDisabledLabelView(text: "已用 Token：\(tokensText)")
                 submenu.addItem(item)
             }
 
             if let calls = details.modelUsageCalls {
                 let callsText = numberFormatter.string(from: NSNumber(value: calls)) ?? "\(calls)"
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Model Calls: \(callsText)")
+                item.view = createDisabledLabelView(text: "模型调用：\(callsText)")
                 submenu.addItem(item)
             }
 
             if details.toolNetworkSearchCount != nil || details.toolWebReadCount != nil || details.toolZreadCount != nil {
                 submenu.addItem(NSMenuItem.separator())
                 let headerItem = NSMenuItem()
-                headerItem.view = createHeaderView(title: "Tool Usage (24h)")
+                headerItem.view = createHeaderView(title: "工具用量（24 小时）")
                 submenu.addItem(headerItem)
             }
 
             if let networkSearch = details.toolNetworkSearchCount {
                 let countText = numberFormatter.string(from: NSNumber(value: networkSearch)) ?? "\(networkSearch)"
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Network Search: \(countText)")
+                item.view = createDisabledLabelView(text: "联网搜索：\(countText)")
                 submenu.addItem(item)
             }
 
             if let webRead = details.toolWebReadCount {
                 let countText = numberFormatter.string(from: NSNumber(value: webRead)) ?? "\(webRead)"
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Web Read: \(countText)")
+                item.view = createDisabledLabelView(text: "网页读取：\(countText)")
                 submenu.addItem(item)
             }
 
             if let zread = details.toolZreadCount {
                 let countText = numberFormatter.string(from: NSNumber(value: zread)) ?? "\(zread)"
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "ZRead: \(countText)")
+                item.view = createDisabledLabelView(text: "ZRead：\(countText)")
                 submenu.addItem(item)
             }
 
@@ -790,7 +790,7 @@ extension StatusBarController {
 
             if let usdBalance = details.creditsBalance {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "USD Balance: \(CurrencyFormatter.shared.format(usd: usdBalance))")
+                item.view = createDisabledLabelView(text: "美元余额：\(CurrencyFormatter.shared.format(usd: usdBalance))")
                 submenu.addItem(item)
             }
 
@@ -805,7 +805,7 @@ extension StatusBarController {
         case .chutes:
             if let plan = details.planType {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Plan: \(plan)")
+                item.view = createDisabledLabelView(text: "套餐：\(plan)")
                 submenu.addItem(item)
             }
 
@@ -827,25 +827,25 @@ extension StatusBarController {
                let usedPercent = chutesMonthlyValue.usedPercent {
                 let item = NSMenuItem()
                 item.view = createDisabledLabelView(
-                    text: "Monthly Value Used: \(CurrencyFormatter.shared.format(usd: usedUSD)) / \(CurrencyFormatter.shared.format(usd: capUSD)) (\(String(format: "%.0f", usedPercent))% used)"
+                    text: "本月价值已用：\(CurrencyFormatter.shared.format(usd: usedUSD)) / \(CurrencyFormatter.shared.format(usd: capUSD)) （已用 \(String(format: "%.0f", usedPercent))%）"
                 )
                 submenu.addItem(item)
             } else if let capUSD = chutesMonthlyValue.capUSD {
                 let item = NSMenuItem()
                 item.view = createDisabledLabelView(
-                    text: "Monthly Cap: \(CurrencyFormatter.shared.format(usd: capUSD)) (5× subscription)"
+                    text: "月度上限：\(CurrencyFormatter.shared.format(usd: capUSD))（5× 订阅）"
                 )
                 submenu.addItem(item)
             }
 
             if let credits = details.creditsBalance {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "Credits Balance: \(CurrencyFormatter.shared.format(usd: credits))")
+                item.view = createDisabledLabelView(text: "额度余额：\(CurrencyFormatter.shared.format(usd: credits))")
                 submenu.addItem(item)
             }
 
             let overageItem = NSMenuItem()
-            overageItem.view = createDisabledLabelView(text: "Overage: PAYGO after cap")
+            overageItem.view = createDisabledLabelView(text: "超额：达上限后按量付费")
             submenu.addItem(overageItem)
 
             addSubscriptionItems(to: submenu, provider: .chutes, accountId: subscriptionAccountId)
@@ -863,7 +863,7 @@ extension StatusBarController {
             if let limit = details.limit, let remaining = details.limitRemaining {
                 let item = NSMenuItem()
                 item.view = createDisabledLabelView(
-                    text: String(format: "Limit: %.1f/%.1f", remaining, limit),
+                    text: String(format: "上限：%.1f/%.1f", remaining, limit),
                     icon: NSImage(systemSymbolName: "chart.bar", accessibilityDescription: "Limit")
                 )
                 submenu.addItem(item)
@@ -892,7 +892,7 @@ extension StatusBarController {
                 submenu.addItem(usedItem)
 
                 let remainingItem = NSMenuItem()
-                remainingItem.view = createDisabledLabelView(text: String(format: "Credits Left: %.2f", remaining))
+                remainingItem.view = createDisabledLabelView(text: String(format: "剩余额度：%.2f", remaining))
                 submenu.addItem(remainingItem)
             }
 
@@ -909,7 +909,7 @@ extension StatusBarController {
             if let plan = details.planType {
                 let planItem = NSMenuItem()
                 planItem.view = createDisabledLabelView(
-                    text: "Plan: \(plan)",
+                    text: "套餐：\(plan)",
                     icon: NSImage(systemSymbolName: "crown", accessibilityDescription: "Plan")
                 )
                 submenu.addItem(planItem)
@@ -926,7 +926,7 @@ extension StatusBarController {
         if let daily = details.dailyUsage {
             let item = NSMenuItem()
             item.view = createDisabledLabelView(
-                text: "Daily: \(CurrencyFormatter.shared.format(usd: daily))",
+                text: "每日：\(CurrencyFormatter.shared.format(usd: daily))",
                 icon: NSImage(systemSymbolName: "calendar", accessibilityDescription: "Daily")
             )
             submenu.addItem(item)
@@ -935,7 +935,7 @@ extension StatusBarController {
         if let weekly = details.weeklyUsage {
             let item = NSMenuItem()
             item.view = createDisabledLabelView(
-                text: "Weekly: \(CurrencyFormatter.shared.format(usd: weekly))",
+                text: "每周：\(CurrencyFormatter.shared.format(usd: weekly))",
                 icon: NSImage(systemSymbolName: "calendar", accessibilityDescription: "Weekly")
             )
             submenu.addItem(item)
@@ -944,7 +944,7 @@ extension StatusBarController {
         if let monthly = details.monthlyUsage, identifier != .grok {
             let item = NSMenuItem()
             item.view = createDisabledLabelView(
-                text: "Monthly: \(CurrencyFormatter.shared.format(usd: monthly))",
+                text: "每月：\(CurrencyFormatter.shared.format(usd: monthly))",
                 icon: NSImage(systemSymbolName: "calendar", accessibilityDescription: "Monthly")
             )
             submenu.addItem(item)
@@ -953,7 +953,7 @@ extension StatusBarController {
         if let remaining = details.remainingCredits {
             let item = NSMenuItem()
             item.view = createDisabledLabelView(
-                text: "Credits: \(CurrencyFormatter.shared.format(usd: remaining)) left",
+                text: "额度：\(CurrencyFormatter.shared.format(usd: remaining)) 剩余",
                 icon: NSImage(systemSymbolName: "creditcard", accessibilityDescription: "Credits")
             )
             submenu.addItem(item)
@@ -962,7 +962,7 @@ extension StatusBarController {
         if let limit = details.limit, let remaining = details.limitRemaining {
             let item = NSMenuItem()
             item.view = createDisabledLabelView(
-                text: "Limit: \(CurrencyFormatter.shared.format(usd: remaining)) / \(CurrencyFormatter.shared.format(usd: limit))",
+                text: "上限：\(CurrencyFormatter.shared.format(usd: remaining)) / \(CurrencyFormatter.shared.format(usd: limit))",
                 icon: NSImage(systemSymbolName: "chart.bar", accessibilityDescription: "Limit")
             )
             submenu.addItem(item)
@@ -971,7 +971,7 @@ extension StatusBarController {
         if let period = details.resetPeriod {
             let item = NSMenuItem()
             item.view = createDisabledLabelView(
-                text: "Resets: \(period)",
+                text: "重置：\(period)",
                 icon: NSImage(systemSymbolName: "clock.arrow.circlepath", accessibilityDescription: "Reset")
             )
             submenu.addItem(item)
@@ -982,7 +982,7 @@ extension StatusBarController {
             submenu.addItem(NSMenuItem.separator())
             let authItem = NSMenuItem()
             authItem.view = createDisabledLabelView(
-                text: "Token From: \(authSource)",
+                text: "令牌来源：\(authSource)",
                 icon: NSImage(systemSymbolName: "key", accessibilityDescription: "Auth Source"),
                 multiline: true
             )
@@ -995,7 +995,7 @@ extension StatusBarController {
             }
             let usageItem = NSMenuItem()
             usageItem.view = createDisabledLabelView(
-                text: "Using in: \(authUsageSummary)",
+                text: "使用于：\(authUsageSummary)",
                 icon: NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "Auth Usage")
             )
             submenu.addItem(usageItem)
@@ -1109,7 +1109,7 @@ extension StatusBarController {
 
                 let resetItem = NSMenuItem()
                 resetItem.view = createDisabledLabelView(
-                    text: "Resets: \(formatter.string(from: resetDate))",
+                    text: "重置：\(formatter.string(from: resetDate))",
                     indent: 0,
                     textColor: .secondaryLabelColor
                 )
@@ -1136,14 +1136,14 @@ extension StatusBarController {
         )
 
         var accountItems: [(sfSymbol: String, text: String)] = [
-            (sfSymbol: "person.circle", text: "Email: \(account.email)"),
-            (sfSymbol: "key", text: "Token From: \(account.authSource)")
+            (sfSymbol: "person.circle", text: "邮箱：\(account.email)"),
+            (sfSymbol: "key", text: "令牌来源：\(account.authSource)")
         ]
         if let accountId = account.accountId, !accountId.isEmpty {
-            accountItems.insert((sfSymbol: "number.circle", text: "Account ID: \(accountId)"), at: 1)
+            accountItems.insert((sfSymbol: "number.circle", text: "账号 ID：\(accountId)"), at: 1)
         }
         if let authUsageSummary = account.authUsageSummary, !authUsageSummary.isEmpty {
-            accountItems.append((sfSymbol: "arrow.triangle.branch", text: "Using in: \(authUsageSummary)"))
+            accountItems.append((sfSymbol: "arrow.triangle.branch", text: "使用于：\(authUsageSummary)"))
         }
         createAccountInfoSection(items: accountItems).forEach { submenu.addItem($0) }
 
@@ -1164,10 +1164,10 @@ extension StatusBarController {
         submenu.addItem(NSMenuItem.separator())
 
         let headerItem = NSMenuItem()
-        headerItem.view = createHeaderView(title: "Subscription")
+        headerItem.view = createHeaderView(title: "订阅")
         submenu.addItem(headerItem)
 
-        let noneItem = NSMenuItem(title: "None ($0)", action: #selector(subscriptionPlanSelected(_:)), keyEquivalent: "")
+        let noneItem = NSMenuItem(title: "无 ($0)", action: #selector(subscriptionPlanSelected(_:)), keyEquivalent: "")
         noneItem.target = self
         noneItem.representedObject = SubscriptionMenuAction(subscriptionKey: subscriptionKey, plan: .none)
         noneItem.state = (currentPlan == .none) ? .on : .off
@@ -1187,12 +1187,12 @@ extension StatusBarController {
             submenu.addItem(item)
         }
 
-        let customItem = NSMenuItem(title: "Set custom...", action: #selector(customSubscriptionSelected(_:)), keyEquivalent: "")
+        let customItem = NSMenuItem(title: "自定义…", action: #selector(customSubscriptionSelected(_:)), keyEquivalent: "")
         customItem.target = self
         customItem.representedObject = subscriptionKey
         if case .custom(let amount) = currentPlan {
             customItem.state = .on
-            customItem.title = "Set custom ($\(Int(amount))/m)"
+            customItem.title = "自定义 ($\(Int(amount))/m)"
         }
         submenu.addItem(customItem)
     }
@@ -1208,7 +1208,7 @@ extension StatusBarController {
             debugLog("createCopilotHistorySubmenu: hasNoData=true, returning early")
             let item = NSMenuItem()
             item.view = createDisabledLabelView(
-                text: "No data",
+                text: "无数据",
                 icon: NSImage(systemSymbolName: "tray", accessibilityDescription: "No data")
             )
             submenu.addItem(item)
@@ -1220,7 +1220,7 @@ extension StatusBarController {
             debugLog("createCopilotHistorySubmenu: data is stale")
             let staleItem = NSMenuItem()
             staleItem.view = createDisabledLabelView(
-                text: "Data is stale",
+                text: "数据已过期",
                 icon: NSImage(systemSymbolName: "clock.badge.exclamationmark", accessibilityDescription: "Data is stale")
             )
             submenu.addItem(staleItem)
@@ -1657,7 +1657,7 @@ extension StatusBarController {
         let rightTextField = NSTextField(labelWithString: "")
         let rightAttributedString = NSMutableAttributedString()
         rightAttributedString.append(NSAttributedString(
-            string: "Used: ",
+            string: "已用：",
             attributes: [.font: NSFont.boldSystemFont(ofSize: headerFontSize), .foregroundColor: NSColor.disabledControlTextColor]
         ))
         rightAttributedString.append(NSAttributedString(
@@ -1735,7 +1735,7 @@ extension StatusBarController {
         formatter.timeZone = TimeZone.current
         let resetItem = NSMenuItem()
         resetItem.view = createDisabledLabelView(
-            text: "Resets: \(formatter.string(from: resetDate))",
+            text: "重置：\(formatter.string(from: resetDate))",
             indent: 0,
             textColor: .secondaryLabelColor
         )
@@ -1747,7 +1747,7 @@ extension StatusBarController {
     }
 
     /// Creates a "used/total" display row with optional unit prefix.
-    /// Example: "Tokens: 12,345 / 100,000", "Credits: $3.50 / $10.00"
+    /// Example: "Token 数：12,345 / 100,000", "额度：$3.50 / $10.00"
     func createLimitRow(label: String, used: Double, total: Double, unitPrefix: String = "") -> NSMenuItem {
         let numberFormatter = NumberFormatter()
         numberFormatter.numberStyle = .decimal
