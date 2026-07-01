@@ -894,6 +894,15 @@ extension StatusBarController {
                 let remainingItem = NSMenuItem()
                 remainingItem.view = createDisabledLabelView(text: String(format: "剩余额度：%.2f", remaining))
                 submenu.addItem(remainingItem)
+
+                if let totalConsumed = details.monthlyCost, totalConsumed > used + 0.001 {
+                    let overageItem = NSMenuItem()
+                    overageItem.view = createDisabledLabelView(
+                        text: String(format: "超额消耗：%.2f", totalConsumed - used),
+                        icon: NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: "Overage")
+                    )
+                    submenu.addItem(overageItem)
+                }
             }
 
             if let bonusUsage = details.secondaryUsage {

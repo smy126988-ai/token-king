@@ -12,6 +12,9 @@ struct KiroUsageSnapshot: Equatable {
     let bonusCreditsUsed: Double?
     let bonusCreditsTotal: Double?
     let bonusExpiryDays: Int?
+    /// Total credits consumed across plan + overages, when the CLI reports it separately
+    /// (e.g. "Credits used: 1676" vs "Credits (1000 of 1000 covered in plan)").
+    let totalConsumedCredits: Double?
 
     init(
         usedCredits: Double,
@@ -21,7 +24,8 @@ struct KiroUsageSnapshot: Equatable {
         overageStatus: String?,
         bonusCreditsUsed: Double? = nil,
         bonusCreditsTotal: Double? = nil,
-        bonusExpiryDays: Int? = nil
+        bonusExpiryDays: Int? = nil,
+        totalConsumedCredits: Double? = nil
     ) {
         self.usedCredits = usedCredits
         self.totalCredits = totalCredits
@@ -31,6 +35,7 @@ struct KiroUsageSnapshot: Equatable {
         self.bonusCreditsUsed = bonusCreditsUsed
         self.bonusCreditsTotal = bonusCreditsTotal
         self.bonusExpiryDays = bonusExpiryDays
+        self.totalConsumedCredits = totalConsumedCredits
     }
 
     var remainingCredits: Double {
@@ -278,7 +283,10 @@ final class KiroProvider: ProviderProtocol {
         }
 
         let resolvedTotalCredits = totalCredits ?? planName.flatMap(planCreditTotal)
-        let resolvedUsedCredits = explicitUsedCredits ?? coveredUsedCredits ?? percent.flatMap { parsedPercent in
+        // The "Credits (X of Y covered in plan)" line reflects plan-covered consumption.
+        // When overages are enabled, "Credits used:" reports plan + overage combined;
+        // we keep that separate so the UI can show both.
+        let resolvedUsedCredits = coveredUsedCredits ?? explicitUsedCredits ?? percent.flatMap { parsedPercent in
             resolvedTotalCredits.map { ($0 * parsedPercent) / 100.0 }
         }
 
@@ -304,7 +312,8 @@ final class KiroProvider: ProviderProtocol {
             overageStatus: overageStatus,
             bonusCreditsUsed: bonusCredits.used,
             bonusCreditsTotal: bonusCredits.total,
-            bonusExpiryDays: bonusCredits.expiryDays
+            bonusExpiryDays: bonusCredits.expiryDays,
+            totalConsumedCredits: explicitUsedCredits
         )
     }
 
@@ -317,7 +326,7 @@ final class KiroProvider: ProviderProtocol {
             secondaryReset: bonusExpiryDate(from: snapshot),
             primaryReset: snapshot.resetDate,
             planType: snapshot.planName,
-            monthlyCost: snapshot.usedCredits,
+            monthlyCost: snapshot.totalConsumedCredits ?? snapshot.usedCredits,
             creditsRemaining: snapshot.remainingCredits,
             creditsTotal: snapshot.totalCredits,
             authSource: "kiro-cli at \(binaryPath.path)"

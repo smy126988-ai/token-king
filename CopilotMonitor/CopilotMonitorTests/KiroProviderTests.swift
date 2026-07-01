@@ -141,7 +141,8 @@ final class KiroProviderTests: XCTestCase {
         let usage = try KiroProvider.parseUsageOutput(output)
 
         XCTAssertEqual(usage.totalCredits, 1000, accuracy: 0.001)
-        XCTAssertEqual(usage.usedCredits, 1472.94, accuracy: 0.001)
+        XCTAssertEqual(usage.usedCredits, 1000, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(usage.totalConsumedCredits), 1472.94, accuracy: 0.001)
         XCTAssertEqual(usage.planName, "Pro")
         XCTAssertEqual(usage.overageStatus, "Enabled")
     }
@@ -160,11 +161,12 @@ final class KiroProviderTests: XCTestCase {
 
     func testMakeResultPreservesOverageAmount() throws {
         let snapshot = KiroUsageSnapshot(
-            usedCredits: 1_050,
+            usedCredits: 1_000,
             totalCredits: 1_000,
             planName: "Pro",
             resetDate: nil,
-            overageStatus: "Enabled"
+            overageStatus: "Enabled",
+            totalConsumedCredits: 1_050
         )
 
         let result = KiroProvider.makeResult(
@@ -172,15 +174,16 @@ final class KiroProviderTests: XCTestCase {
             binaryPath: URL(fileURLWithPath: "/Users/test/.local/bin/kiro-cli")
         )
 
-        XCTAssertEqual(snapshot.remainingCredits, -50, accuracy: 0.001)
+        XCTAssertEqual(snapshot.remainingCredits, 0, accuracy: 0.001)
         XCTAssertEqual(result.usage.totalEntitlement, 100_000)
-        XCTAssertEqual(result.usage.remainingQuota, -5_000)
-        XCTAssertEqual(result.usage.usagePercentage, 105, accuracy: 0.001)
+        XCTAssertEqual(result.usage.remainingQuota, 0)
+        XCTAssertEqual(result.usage.usagePercentage, 100, accuracy: 0.001)
         if case .quotaBased(_, _, let overagePermitted) = result.usage {
             XCTAssertTrue(overagePermitted)
         } else {
             XCTFail("Expected quota-based usage")
         }
-        XCTAssertEqual(try XCTUnwrap(result.details?.creditsRemaining), -50, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(result.details?.creditsRemaining), 0, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(result.details?.monthlyCost), 1_050, accuracy: 0.001)
     }
 }
