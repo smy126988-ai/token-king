@@ -342,7 +342,7 @@ final class GrokProvider: ProviderProtocol {
         request.setValue("application/grpc-web+proto", forHTTPHeaderField: "Content-Type")
         request.setValue("1", forHTTPHeaderField: "x-grpc-web")
         request.setValue("connect-es/2.1.1", forHTTPHeaderField: "x-user-agent")
-        request.setValue("OpenCode Bar GrokProvider", forHTTPHeaderField: "User-Agent")
+        request.setValue("Token King GrokProvider", forHTTPHeaderField: "User-Agent")
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
         do {

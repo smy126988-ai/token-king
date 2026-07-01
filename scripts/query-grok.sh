@@ -624,7 +624,7 @@ def fetch_web_billing(args, credentials):
                 "Content-Type": "application/grpc-web+proto",
                 "x-grpc-web": "1",
                 "x-user-agent": "connect-es/2.1.1",
-                "User-Agent": "OpenCode Bar query-grok.sh",
+                "User-Agent": "Token King query-grok.sh",
             },
         )
         if kind == "cookie":
