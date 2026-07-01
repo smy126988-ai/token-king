@@ -100,7 +100,7 @@ final class KimiProvider: ProviderProtocol {
 
             let weeklyLimit = Int(usage.limit ?? "0") ?? 0
             let weeklyRemaining = Int(usage.remaining ?? "0") ?? 0
-            let weeklyUsed = Int(usage.used ?? "0") ?? 0
+            let weeklyUsed = max(0, weeklyLimit - weeklyRemaining)
 
             func parseISO8601Date(_ string: String) -> Date? {
                 let formatterWithFrac = ISO8601DateFormatter()

@@ -92,6 +92,7 @@
 		GROKCLI11111111111111 /* GrokProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = GROKFILE2222222222222 /* GrokProvider.swift */; };
 		GROKTESTBF11111111111 /* GrokProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = GROKTESTFR11111111111 /* GrokProviderTests.swift */; };
 		KI1111111111111111111111 /* KimiProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = KI2222222222222222222222 /* KimiProvider.swift */; };
+		KIMITESTBF11111111111 /* KimiProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = KIMITESTFR11111111111 /* KimiProviderTests.swift */; };
 		KIROAPP11111111111111 /* KiroProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = KIROFILE2222222222222 /* KiroProvider.swift */; };
 		KIROCLI11111111111111 /* KiroProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = KIROFILE2222222222222 /* KiroProvider.swift */; };
 		KIROTESTBF11111111111 /* KiroProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = KIROTESTFR11111111111 /* KiroProviderTests.swift */; };
@@ -221,6 +222,7 @@
 		GROKFILE2222222222222 /* GrokProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrokProvider.swift; sourceTree = "<group>"; };
 		GROKTESTFR11111111111 /* GrokProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrokProviderTests.swift; sourceTree = "<group>"; };
 		KI2222222222222222222222 /* KimiProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KimiProvider.swift; sourceTree = "<group>"; };
+		KIMITESTFR11111111111 /* KimiProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KimiProviderTests.swift; sourceTree = "<group>"; };
 		KIROFILE2222222222222 /* KiroProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KiroProvider.swift; sourceTree = "<group>"; };
 		KIROTESTFR11111111111 /* KiroProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KiroProviderTests.swift; sourceTree = "<group>"; };
 		ME2222222222222222222222 /* MenuEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuEnums.swift; sourceTree = "<group>"; };
@@ -474,6 +476,7 @@
 				OCGOTESTFR11111111111 /* OpenCodeGoProviderTests.swift */,
 				GROKTESTFR11111111111 /* GrokProviderTests.swift */,
 				KIROTESTFR11111111111 /* KiroProviderTests.swift */,
+				KIMITESTFR11111111111 /* KimiProviderTests.swift */,
 				CURSORTSTFR11111111111 /* CursorProviderTests.swift */,
 				TOKENTESTFR1111111111111 /* TokenManagerTests.swift */,
 				CODEXTESTFR111111111111 /* CodexProviderTests.swift */,
@@ -750,6 +753,7 @@
 				OCGOTESTBF11111111111 /* OpenCodeGoProviderTests.swift in Sources */,
 				GROKTESTBF11111111111 /* GrokProviderTests.swift in Sources */,
 				KIROTESTBF11111111111 /* KiroProviderTests.swift in Sources */,
+				KIMITESTBF11111111111 /* KimiProviderTests.swift in Sources */,
 				CURSORTSTBF11111111111 /* CursorProviderTests.swift in Sources */,
 				TOKENTESTBF1111111111111 /* TokenManagerTests.swift in Sources */,
 				CODEXTESTBF111111111111 /* CodexProviderTests.swift in Sources */,
