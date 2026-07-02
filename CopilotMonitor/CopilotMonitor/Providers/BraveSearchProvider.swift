@@ -139,21 +139,33 @@ final class BraveSearchProvider: ProviderProtocol {
             saveState(state)
         }
 
-        let limit = max(state.lastLimit ?? defaultMonthlyLimit, 1)
+        // In event-only mode the user has opted out of API sync, so any cached
+        // API snapshot from a previous hybrid/API run must not be treated as
+        // the current quota. Otherwise deleting the key (or simply staying in
+        // event-only mode) would continue showing stale API-derived numbers.
+        var displayState = state
+        if mode == .eventOnly {
+            displayState.lastRemaining = nil
+            displayState.lastLimit = nil
+            displayState.lastUsed = nil
+            displayState.lastResetSeconds = nil
+        }
+
+        let limit = max(displayState.lastLimit ?? defaultMonthlyLimit, 1)
         let used: Int
         let remaining: Int
 
-        if let apiRemaining = state.lastRemaining, let apiLimit = state.lastLimit, apiLimit > 0 {
+        if let apiRemaining = displayState.lastRemaining, let apiLimit = displayState.lastLimit, apiLimit > 0 {
             remaining = max(0, apiRemaining)
             used = max(0, apiLimit - remaining)
         } else {
-            used = max(0, state.eventEstimatedUsed)
+            used = max(0, displayState.eventEstimatedUsed)
             remaining = max(0, limit - used)
         }
 
         let usage = ProviderUsage.quotaBased(remaining: remaining, entitlement: limit, overagePermitted: false)
         let mcpUsagePercent = normalizedBraveQuotaUsagePercent(used: used, limit: limit)
-        let resetText = formatResetText(seconds: state.lastResetSeconds)
+        let resetText = formatResetText(seconds: displayState.lastResetSeconds)
         let sourceSummary = mode == .eventOnly ? "Estimated (event-based)" : "Mode: \(mode.title)"
 
         let details = DetailedUsage(

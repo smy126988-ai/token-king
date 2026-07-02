@@ -3221,18 +3221,21 @@ final class StatusBarController: NSObject {
         }
 
         if identifier == .braveSearch {
-            let lastSyncEpoch = UserDefaults.standard.double(forKey: SearchEnginePreferences.braveLastAPISyncAtKey)
-            if lastSyncEpoch > 0 {
-                let date = Date(timeIntervalSince1970: lastSyncEpoch)
-                let formatter = DateFormatter()
-                formatter.dateFormat = "yyyy-MM-dd HH:mm z"
-                formatter.timeZone = TimeZone.current
-                let syncItem = NSMenuItem()
-                syncItem.view = createDisabledLabelView(text: "上次 API 同步：\(formatter.string(from: date))")
-                submenu.addItem(syncItem)
+            if braveRefreshMode != .eventOnly {
+                let lastSyncEpoch = UserDefaults.standard.double(forKey: SearchEnginePreferences.braveLastAPISyncAtKey)
+                if lastSyncEpoch > 0 {
+                    let date = Date(timeIntervalSince1970: lastSyncEpoch)
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = "yyyy-MM-dd HH:mm z"
+                    formatter.timeZone = TimeZone.current
+                    let syncItem = NSMenuItem()
+                    syncItem.view = createDisabledLabelView(text: "上次 API 同步：\(formatter.string(from: date))")
+                    submenu.addItem(syncItem)
+                }
+
+                submenu.addItem(NSMenuItem.separator())
             }
 
-            submenu.addItem(NSMenuItem.separator())
             let modeItem = NSMenuItem(title: "刷新模式", action: nil, keyEquivalent: "")
             let modeMenu = NSMenu()
             for mode in BraveSearchRefreshMode.allCases {
