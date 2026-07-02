@@ -302,6 +302,6 @@ final class StatusBarIconView: NSView {
     }
 
     private func formatCost(_ cost: Double) -> String {
-        String(format: "$%.2f", cost)
+        CurrencyFormatter.shared.format(usd: cost)
     }
 }

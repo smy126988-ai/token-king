@@ -113,6 +113,9 @@ final class MultiProviderStatusBarIconView: NSView {
     }
 
     private func drawDollarIcon(at origin: NSPoint, isDark: Bool) {
+        // NOTE: MultiProviderStatusBarIconView is dead code; StatusBarController uses
+        // StatusBarIconView instead. The hardcoded "$" remains because this renderer
+        // is not wired to the live status item.
         let text = "$"
         let font = NSFont.boldSystemFont(ofSize: 14)
         // Use adaptive color for light/dark mode visibility

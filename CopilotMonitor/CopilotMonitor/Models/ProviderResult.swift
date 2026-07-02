@@ -844,7 +844,7 @@ struct TableFormatter {
                     switch account.usage {
                     case .payAsYouGo(_, let cost, _):
                         if let cost = cost {
-                            metricsStr = String(format: "$%.2f spent", cost)
+                            metricsStr = formatSpentCost(cost)
                         } else {
                             metricsStr = "Cost unavailable"
                         }
@@ -1035,7 +1035,7 @@ struct TableFormatter {
             typeStr = "Pay-as-you-go"
             usageStr = "-"
             if let cost = cost {
-                metricsStr = String(format: "$%.2f spent", cost)
+                metricsStr = formatSpentCost(cost)
             } else {
                 metricsStr = "Cost unavailable"
             }
@@ -1064,7 +1064,7 @@ struct TableFormatter {
             var metrics = ""
 
             if let cost = cost {
-                metrics += String(format: "$%.2f spent", cost)
+                metrics += formatSpentCost(cost)
             } else {
                 metrics += "Cost unavailable"
             }
@@ -1085,6 +1085,13 @@ struct TableFormatter {
                 overagePermitted: overagePermitted
             )
         }
+    }
+    private static func formatSpentCost(_ cost: Double) -> String {
+        #if CLI_TARGET
+        return String(format: "$%.2f spent", cost)
+        #else
+        return CurrencyFormatter.shared.format(usd: cost) + " spent"
+        #endif
     }
 }
 

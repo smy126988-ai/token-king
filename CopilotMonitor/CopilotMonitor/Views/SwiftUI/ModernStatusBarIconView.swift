@@ -38,6 +38,9 @@ struct ModernStatusBarIconView: View {
     
     @ViewBuilder
     private var multiProviderContent: some View {
+        // NOTE: This view is currently only used in SwiftUI previews (dead code in production).
+        // The hardcoded "$" below is a known issue but is intentionally left untouched
+        // because StatusBarController uses StatusBarIconView, not this view.
         Text("$")
             .font(.system(size: 14, weight: .bold))
             .foregroundColor(textColor)
