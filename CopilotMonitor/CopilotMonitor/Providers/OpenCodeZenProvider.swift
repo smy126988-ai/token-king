@@ -254,17 +254,12 @@ final class OpenCodeZenProvider: ProviderProtocol {
                     outputData.append(remainingData)
                 }
 
-                if proc.terminationStatus != 0 {
-                    continuation.resume(throwing: ProviderError.providerError("OpenCode CLI failed with exit code \(proc.terminationStatus)"))
-                    return
+                do {
+                    let output = try Self.handleStatsOutput(outputData: outputData, exitStatus: proc.terminationStatus)
+                    continuation.resume(returning: output)
+                } catch {
+                    continuation.resume(throwing: error)
                 }
-
-                guard let output = String(data: outputData, encoding: .utf8) else {
-                    continuation.resume(throwing: ProviderError.decodingError("Failed to decode CLI output"))
-                    return
-                }
-
-                continuation.resume(returning: output)
             }
 
             do {
@@ -273,6 +268,42 @@ final class OpenCodeZenProvider: ProviderProtocol {
                 continuation.resume(throwing: ProviderError.networkError("Failed to execute CLI: \(error.localizedDescription)"))
             }
         }
+    }
+
+    static func handleStatsOutput(outputData: Data, exitStatus: Int32) throws -> String {
+        if exitStatus != 0 {
+            let errorOutput = String(data: outputData, encoding: .utf8) ?? ""
+            if isOpenCodeAuthError(errorOutput) {
+                throw ProviderError.authenticationFailed("OpenCode CLI is not authenticated. Run `opencode login` first.")
+            }
+            throw ProviderError.providerError("OpenCode CLI failed with exit code \(exitStatus)")
+        }
+
+        guard let output = String(data: outputData, encoding: .utf8) else {
+            throw ProviderError.decodingError("Failed to decode CLI output")
+        }
+
+        return output
+    }
+
+    private static func isOpenCodeAuthError(_ output: String) -> Bool {
+        let lowercased = output.lowercased()
+        let authPatterns = [
+            "not authenticated",
+            "not logged in",
+            "please sign in",
+            "please login",
+            "please log in",
+            "authentication required",
+            "unauthorized",
+            "invalid token",
+            "token not found",
+            "no valid token",
+            "run 'opencode login'",
+            "run `opencode login`",
+            "sign in to opencode"
+        ]
+        return authPatterns.contains { lowercased.contains($0) }
     }
 
     /// Kills stale `opencode stats` processes that have run for over an hour.

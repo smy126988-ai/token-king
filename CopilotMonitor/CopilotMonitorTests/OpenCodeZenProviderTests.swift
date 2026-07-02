@@ -135,10 +135,10 @@ final class OpenCodeZenProviderTests: XCTestCase {
             case .authenticationFailed(let message):
                 XCTAssertTrue(message.lowercased().contains("not found"))
             default:
-                XCTFail("Expected authenticationFailed, got \\(error)")
+                XCTFail("Expected authenticationFailed, got \(error)")
             }
         } catch {
-            XCTFail("Unexpected error: \\(error)")
+            XCTFail("Unexpected error: \(error)")
         }
     }
 
@@ -153,10 +153,28 @@ final class OpenCodeZenProviderTests: XCTestCase {
             case .authenticationFailed:
                 break
             default:
-                XCTFail("Expected authenticationFailed, got \\(error)")
+                XCTFail("Expected authenticationFailed, got \(error)")
             }
         } catch {
-            XCTFail("Unexpected error: \\(error)")
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testFetchThrowsAuthenticationFailedWhenStatsReportsAuthError() throws {
+        let outputData = "Error: You are not authenticated. Run 'opencode login' first.".data(using: .utf8)!
+
+        do {
+            _ = try OpenCodeZenProvider.handleStatsOutput(outputData: outputData, exitStatus: 1)
+            XCTFail("Expected authentication failure")
+        } catch let error as ProviderError {
+            switch error {
+            case .authenticationFailed:
+                break
+            default:
+                XCTFail("Expected authenticationFailed for CLI auth error, got \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
         }
     }
 
