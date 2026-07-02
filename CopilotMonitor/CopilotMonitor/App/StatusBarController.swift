@@ -1685,6 +1685,7 @@ final class StatusBarController: NSObject {
           }
 
         var insertIndex = separatorIndex + 1
+        var unconfiguredItems: [NSMenuItem] = []
 
          let separator1 = NSMenuItem.separator()
          separator1.tag = 999
@@ -1740,13 +1741,18 @@ final class StatusBarController: NSObject {
                         debugLog("updateMultiProviderMenu: hiding \(identifier.displayName) pay-as-you-go row because credentials are unavailable")
                         continue
                     }
-                    hasPayAsYouGo = true
                     let item = createErrorMenuItem(identifier: identifier, errorMessage: errorMessage)
                     if item.isEnabled, item.action == nil {
                         item.submenu = createErrorSubmenu(identifier: identifier, result: nil, errorMessage: errorMessage)
                     }
-                    menu.insertItem(item, at: insertIndex)
-                    insertIndex += 1
+                    let status = errorMenuStatus(for: errorMessage)
+                    if status == .noCredentials {
+                        unconfiguredItems.append(item)
+                    } else {
+                        hasPayAsYouGo = true
+                        menu.insertItem(item, at: insertIndex)
+                        insertIndex += 1
+                    }
                 } else if loadingProviders.contains(identifier) {
                     hasPayAsYouGo = true
                     let item = NSMenuItem(title: "\(identifier.displayName)（加载中…）", action: nil, keyEquivalent: "")
@@ -1822,7 +1828,7 @@ final class StatusBarController: NSObject {
                 }
             }
 
-        if !hasPayAsYouGo {
+        if !hasPayAsYouGo && unconfiguredItems.isEmpty {
             let noItem = NSMenuItem()
             noItem.view = createDisabledLabelView(text: "无服务商")
             noItem.tag = 999
@@ -1849,8 +1855,6 @@ final class StatusBarController: NSObject {
          insertIndex += 1
 
          var hasQuota = false
-         var deferredUnavailableItems: [NSMenuItem] = []
-         var deferredUnavailableProviders: [ProviderIdentifier] = []
 
          if let copilotResult = providerResults[.copilot],
             let accounts = copilotResult.accounts,
@@ -2289,17 +2293,15 @@ final class StatusBarController: NSObject {
                     debugLog("updateMultiProviderMenu: hiding \(identifier.displayName) quota row because credentials are unavailable")
                     continue
                 }
-                hasQuota = true
                 let item = createErrorMenuItem(identifier: identifier, errorMessage: errorMessage)
                 if item.isEnabled, item.action == nil {
                     item.submenu = createErrorSubmenu(identifier: identifier, result: nil, errorMessage: errorMessage)
                 }
                 let status = errorMenuStatus(for: errorMessage)
-                if status.shouldDeferToBottom {
-                    deferredUnavailableItems.append(item)
-                    deferredUnavailableProviders.append(identifier)
-                    debugLog("updateMultiProviderMenu: deferred \(status.title) item for \(identifier.displayName)")
+                if status == .noCredentials {
+                    unconfiguredItems.append(item)
                 } else {
+                    hasQuota = true
                     menu.insertItem(item, at: insertIndex)
                     insertIndex += 1
                 }
@@ -2372,17 +2374,15 @@ final class StatusBarController: NSObject {
                 }
             } else if let errorMessage = geminiError {
                 if shouldDisplayErrorMenuItem(errorMessage) {
-                    hasQuota = true
                     let item = createErrorMenuItem(identifier: .geminiCLI, errorMessage: errorMessage)
                     if item.isEnabled, item.action == nil {
                         item.submenu = createErrorSubmenu(identifier: .geminiCLI, result: nil, errorMessage: errorMessage)
                     }
                     let status = errorMenuStatus(for: errorMessage)
-                    if status.shouldDeferToBottom {
-                        deferredUnavailableItems.append(item)
-                        deferredUnavailableProviders.append(.geminiCLI)
-                        debugLog("updateMultiProviderMenu: deferred \(status.title) item for Gemini CLI")
+                    if status == .noCredentials {
+                        unconfiguredItems.append(item)
                     } else {
+                        hasQuota = true
                         menu.insertItem(item, at: insertIndex)
                         insertIndex += 1
                     }
@@ -2400,17 +2400,6 @@ final class StatusBarController: NSObject {
             }
         }
 
-        if !deferredUnavailableItems.isEmpty {
-            let deferredNames = deferredUnavailableProviders.map { $0.displayName }.joined(separator: ", ")
-            debugLog(
-                "updateMultiProviderMenu: inserting \(deferredUnavailableItems.count) deferred unavailable item(s) after Gemini: [\(deferredNames)]"
-            )
-            for item in deferredUnavailableItems {
-                menu.insertItem(item, at: insertIndex)
-                insertIndex += 1
-            }
-        }
-
         if let searchEnginesItem = createSearchEnginesQuotaMenuItem() {
             hasQuota = true
             let separator = NSMenuItem.separator()
@@ -2423,11 +2412,21 @@ final class StatusBarController: NSObject {
             insertIndex += 1
         }
 
-        if !hasQuota {
+        if !hasQuota && unconfiguredItems.isEmpty {
             let noItem = NSMenuItem()
             noItem.view = createDisabledLabelView(text: "无服务商")
             noItem.tag = 999
             menu.insertItem(noItem, at: insertIndex)
+            insertIndex += 1
+        }
+
+        if !unconfiguredItems.isEmpty {
+            let unconfiguredSeparator = NSMenuItem.separator()
+            unconfiguredSeparator.tag = 999
+            menu.insertItem(unconfiguredSeparator, at: insertIndex)
+            insertIndex += 1
+
+            menu.insertItem(createUnconfiguredProvidersSubmenu(unconfiguredItems), at: insertIndex)
             insertIndex += 1
         }
 
@@ -2780,15 +2779,6 @@ final class StatusBarController: NSObject {
             }
         }
 
-        var shouldDeferToBottom: Bool {
-            switch self {
-            case .rateLimited, .error:
-                return false
-            case .noCredentials, .noSubscription:
-                return true
-            }
-        }
-
         var shouldDisplayInList: Bool {
             switch self {
             case .noCredentials:
@@ -2879,6 +2869,16 @@ final class StatusBarController: NSObject {
             )
         }
         return false
+    }
+
+    private func createUnconfiguredProvidersSubmenu(_ items: [NSMenuItem]) -> NSMenuItem {
+        let parent = NSMenuItem(title: "尚未配置 (\(items.count))", action: nil, keyEquivalent: "")
+        parent.image = NSImage(systemSymbolName: "exclamationmark.circle", accessibilityDescription: "Unconfigured")
+        let submenu = NSMenu()
+        items.forEach { submenu.addItem($0) }
+        parent.submenu = submenu
+        parent.tag = 999
+        return parent
     }
 
     private func createErrorMenuItem(identifier: ProviderIdentifier, errorMessage: String) -> NSMenuItem {
