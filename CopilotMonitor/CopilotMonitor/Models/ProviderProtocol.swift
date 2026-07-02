@@ -24,7 +24,9 @@ enum ProviderIdentifier: String, CaseIterable {
     case kiro
     case grok
     case kimi
+    case kimiCN = "kimi_cn"
     case minimaxCodingPlan = "minimax_coding_plan"
+    case minimaxCodingPlanCN = "minimax_coding_plan_cn"
     case zaiCodingPlan = "zai_coding_plan"
     case nanoGpt = "nano_gpt"
     case synthetic
@@ -62,8 +64,12 @@ enum ProviderIdentifier: String, CaseIterable {
             return "Grok"
         case .kimi:
             return "Kimi for Coding"
+        case .kimiCN:
+            return "Kimi for Coding（国内）"
         case .minimaxCodingPlan:
             return "MiniMax Coding Plan"
+        case .minimaxCodingPlanCN:
+            return "MiniMax Coding Plan（国内）"
         case .zaiCodingPlan:
             return "Z.AI Coding Plan"
         case .nanoGpt:
@@ -109,7 +115,11 @@ enum ProviderIdentifier: String, CaseIterable {
             return "Grok"
         case .kimi:
             return "Kimi"
+        case .kimiCN:
+            return "Kimi"
         case .minimaxCodingPlan:
+            return "MiniMax"
+        case .minimaxCodingPlanCN:
             return "MiniMax"
         case .zaiCodingPlan:
             return "Z.AI"
@@ -156,7 +166,11 @@ enum ProviderIdentifier: String, CaseIterable {
             return "GrokIcon"
         case .kimi:
             return "k.circle"
+        case .kimiCN:
+            return "k.circle"
         case .minimaxCodingPlan:
+            return "MinimaxIcon"
+        case .minimaxCodingPlanCN:
             return "MinimaxIcon"
         case .zaiCodingPlan:
             return "globe"

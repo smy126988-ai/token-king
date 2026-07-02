@@ -512,7 +512,7 @@ extension StatusBarController {
 
             addSubscriptionItems(to: submenu, provider: .antigravity, accountId: subscriptionAccountId)
 
-        case .kimi:
+        case .kimi, .kimiCN:
             // === Usage Windows ===
             if let fiveHour = details.fiveHourUsage {
                 let items = createUsageWindowRow(
@@ -545,9 +545,9 @@ extension StatusBarController {
             }
 
             // === Subscription ===
-            addSubscriptionItems(to: submenu, provider: .kimi, accountId: subscriptionAccountId)
+            addSubscriptionItems(to: submenu, provider: identifier, accountId: subscriptionAccountId, detectedPlanName: details.planType)
 
-        case .minimaxCodingPlan:
+        case .minimaxCodingPlan, .minimaxCodingPlanCN:
             if let fiveHour = details.fiveHourUsage {
                 let items = createUsageWindowRow(
                     label: "5h",
@@ -570,7 +570,7 @@ extension StatusBarController {
                 items.forEach { submenu.addItem($0) }
             }
 
-            addSubscriptionItems(to: submenu, provider: .minimaxCodingPlan, accountId: subscriptionAccountId)
+            addSubscriptionItems(to: submenu, provider: identifier, accountId: subscriptionAccountId)
 
         case .openCodeGo:
             if let fiveHour = details.fiveHourUsage {
@@ -1163,7 +1163,12 @@ extension StatusBarController {
         return submenu
     }
 
-    func addSubscriptionItems(to submenu: NSMenu, provider: ProviderIdentifier, accountId: String? = nil) {
+    func addSubscriptionItems(
+        to submenu: NSMenu,
+        provider: ProviderIdentifier,
+        accountId: String? = nil,
+        detectedPlanName: String? = nil
+    ) {
         let subscriptionKey = SubscriptionSettingsManager.shared.subscriptionKey(for: provider, accountId: accountId)
         let currentPlan = SubscriptionSettingsManager.shared.getPlan(forKey: subscriptionKey)
         let presets = ProviderSubscriptionPresets.presets(for: provider)
@@ -1176,6 +1181,24 @@ extension StatusBarController {
         headerItem.view = createHeaderView(title: "订阅")
         submenu.addItem(headerItem)
 
+        let currency = CurrencyFormatter.shared.currency
+        let visiblePresets: [SubscriptionPreset]
+        switch currency {
+        case .usd:
+            visiblePresets = presets
+        case .rmb:
+            visiblePresets = presets.filter { $0.cnyCost != nil }
+        }
+
+        // Manual selection takes precedence; otherwise let the API-detected plan highlight the matching preset.
+        let manualPresetName: String?
+        switch currentPlan {
+        case .preset(let name, _):
+            manualPresetName = name
+        case .none, .custom:
+            manualPresetName = nil
+        }
+
         let noneItem = NSMenuItem(
             title: "无 (\(CurrencyFormatter.shared.format(usd: 0, decimals: 0)))",
             action: #selector(subscriptionPlanSelected(_:)),
@@ -1186,18 +1209,25 @@ extension StatusBarController {
         noneItem.state = (currentPlan == .none) ? .on : .off
         submenu.addItem(noneItem)
 
-        for preset in presets {
-            let item = NSMenuItem(
-                title: "\(preset.name) (\(preset.formattedPrice(decimals: 0))/月)",
-                action: #selector(subscriptionPlanSelected(_:)),
-                keyEquivalent: ""
-            )
-            item.target = self
-            item.representedObject = SubscriptionMenuAction(subscriptionKey: subscriptionKey, plan: .preset(preset.name, preset.cost))
-            if case .preset(_, let currentCost) = currentPlan, currentCost == preset.cost {
-                item.state = .on
+        if visiblePresets.isEmpty {
+            let hintItem = NSMenuItem(title: "该版本仅海外", action: nil, keyEquivalent: "")
+            hintItem.isEnabled = false
+            submenu.addItem(hintItem)
+        } else {
+            for preset in visiblePresets {
+                let item = NSMenuItem(
+                    title: "\(preset.name) (\(preset.formattedPrice(decimals: 0))/月)",
+                    action: #selector(subscriptionPlanSelected(_:)),
+                    keyEquivalent: ""
+                )
+                item.target = self
+                item.representedObject = SubscriptionMenuAction(subscriptionKey: subscriptionKey, plan: .preset(preset.name, preset.cost))
+                let selectedName = manualPresetName ?? detectedPlanName
+                if selectedName == preset.name {
+                    item.state = .on
+                }
+                submenu.addItem(item)
             }
-            submenu.addItem(item)
         }
 
         let customItem = NSMenuItem(title: "自定义…", action: #selector(customSubscriptionSelected(_:)), keyEquivalent: "")

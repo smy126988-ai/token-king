@@ -1032,7 +1032,13 @@ final class StatusBarController: NSObject {
         case .kimi:
             add(details?.sevenDayUsage, priority: .weekly)
             add(details?.fiveHourUsage, priority: .hourly)
+        case .kimiCN:
+            add(details?.sevenDayUsage, priority: .weekly)
+            add(details?.fiveHourUsage, priority: .hourly)
         case .minimaxCodingPlan:
+            add(details?.sevenDayUsage, priority: .weekly)
+            add(details?.fiveHourUsage, priority: .hourly)
+        case .minimaxCodingPlanCN:
             add(details?.sevenDayUsage, priority: .weekly)
             add(details?.fiveHourUsage, priority: .hourly)
         case .openCodeGo:
@@ -2010,6 +2016,8 @@ final class StatusBarController: NSObject {
         let quotaOrder: [ProviderIdentifier] = [
             .claude,
             .kimi,
+            .kimiCN,
+            .minimaxCodingPlanCN,
             .minimaxCodingPlan,
             .openCodeGo,
             .kiro,
@@ -2154,7 +2162,7 @@ final class StatusBarController: NSObject {
                                 percents.append(sonnetUsage)
                             }
                             usedPercents = percents
-                        } else if identifier == .minimaxCodingPlan,
+                        } else if identifier == .minimaxCodingPlan || identifier == .minimaxCodingPlanCN,
                                   let fiveHour = account.details?.fiveHourUsage,
                                   let sevenDay = account.details?.sevenDayUsage {
                             usedPercents = [fiveHour, sevenDay]
@@ -2168,7 +2176,7 @@ final class StatusBarController: NSObject {
                         } else if identifier == .grok {
                             let percents = [account.details?.monthlyUsage].compactMap { $0 }
                             usedPercents = percents.isEmpty ? [account.usage.usagePercentage] : percents
-                        } else if identifier == .kimi,
+                        } else if identifier == .kimi || identifier == .kimiCN,
                                   let fiveHour = account.details?.fiveHourUsage,
                                   let sevenDay = account.details?.sevenDayUsage {
                             usedPercents = [fiveHour, sevenDay]
@@ -2237,7 +2245,7 @@ final class StatusBarController: NSObject {
                             percents.append(sonnetUsage)
                         }
                         usedPercents = percents
-                    } else if identifier == .minimaxCodingPlan,
+                    } else if identifier == .minimaxCodingPlan || identifier == .minimaxCodingPlanCN,
                               let fiveHour = result.details?.fiveHourUsage,
                               let sevenDay = result.details?.sevenDayUsage {
                         usedPercents = [fiveHour, sevenDay]
@@ -2251,7 +2259,7 @@ final class StatusBarController: NSObject {
                     } else if identifier == .grok {
                         let percents = [result.details?.monthlyUsage].compactMap { $0 }
                         usedPercents = percents.isEmpty ? [singlePercent] : percents
-                    } else if identifier == .kimi,
+                    } else if identifier == .kimi || identifier == .kimiCN,
                               let fiveHour = result.details?.fiveHourUsage,
                               let sevenDay = result.details?.sevenDayUsage {
                         usedPercents = [fiveHour, sevenDay]
@@ -2955,8 +2963,12 @@ final class StatusBarController: NSObject {
             return ("opencode-go", "~/.local/share/opencode/auth.json")
         case .kimi:
             return ("kimi-for-coding", "~/.local/share/opencode/auth.json")
+        case .kimiCN:
+            return ("kimi-for-coding-cn", "~/.local/share/opencode/auth.json")
         case .minimaxCodingPlan:
             return ("minimax-coding-plan", "~/.local/share/opencode/auth.json")
+        case .minimaxCodingPlanCN:
+            return ("minimax-coding-plan-cn", "~/.local/share/opencode/auth.json")
         case .zaiCodingPlan:
             return ("zai-coding-plan", "~/.local/share/opencode/auth.json")
         case .nanoGpt:
@@ -3250,7 +3262,11 @@ final class StatusBarController: NSObject {
             image = NSImage(named: "GrokIcon")
         case .kimi:
             image = NSImage(systemSymbolName: identifier.iconName, accessibilityDescription: identifier.displayName)
+        case .kimiCN:
+            image = NSImage(systemSymbolName: identifier.iconName, accessibilityDescription: identifier.displayName)
         case .minimaxCodingPlan:
+            image = NSImage(named: "MinimaxIcon")
+        case .minimaxCodingPlanCN:
             image = NSImage(named: "MinimaxIcon")
         case .zaiCodingPlan:
             image = NSImage(named: "ZaiIcon")
@@ -4418,12 +4434,32 @@ extension StatusBarController {
                     authSource: "OpenCode"
                 )
             ),
+            .kimiCN: ProviderResult(
+                usage: .quotaBased(remaining: 80, entitlement: 100, overagePermitted: false),
+                details: DetailedUsage(
+                    fiveHourUsage: 20.0,
+                    fiveHourReset: fiveHoursFromNow,
+                    sevenDayUsage: 20.0,
+                    sevenDayReset: sevenDaysFromNow,
+                    authSource: "OpenCode"
+                )
+            ),
             .minimaxCodingPlan: ProviderResult(
                 usage: .quotaBased(remaining: 8, entitlement: 100, overagePermitted: false),
                 details: DetailedUsage(
                     fiveHourUsage: 92.0,
                     fiveHourReset: fiveHoursFromNow,
                     sevenDayUsage: 68.0,
+                    sevenDayReset: sevenDaysFromNow,
+                    authSource: "OpenCode"
+                )
+            ),
+            .minimaxCodingPlanCN: ProviderResult(
+                usage: .quotaBased(remaining: 12, entitlement: 100, overagePermitted: false),
+                details: DetailedUsage(
+                    fiveHourUsage: 88.0,
+                    fiveHourReset: fiveHoursFromNow,
+                    sevenDayUsage: 64.0,
                     sevenDayReset: sevenDaysFromNow,
                     authSource: "OpenCode"
                 )

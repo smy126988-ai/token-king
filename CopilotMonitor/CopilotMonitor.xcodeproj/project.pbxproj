@@ -67,8 +67,6 @@
 		CLICOPY111111111111111111 /* opencodebar-cli in Embed CLI */ = {isa = PBXBuildFile; fileRef = CLI5555555555555555555555 /* opencodebar-cli */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		CLICURSOR1111111111111 /* CursorProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CURSORFILE222222222222 /* CursorProvider.swift */; };
 		CLIHISTORY11111111111111 /* CopilotHistoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1085A77EF4A58E5B5EC71B /* CopilotHistoryService.swift */; };
-		CLIKIMI1111111111111111 /* KimiProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = KI2222222222222222222222 /* KimiProvider.swift */; };
-		CLIMINIMAX11111111111111 /* MiniMaxProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = MINIMAXFILE2222222222222 /* MiniMaxProvider.swift */; };
 		CLIOPENCZEN1111111111111 /* OpenCodeZenProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = OZ2222222222222222222222 /* OpenCodeZenProvider.swift */; };
 		CLIOPENROUTER111111111 /* OpenRouterProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = OR2222222222222222222222 /* OpenRouterProvider.swift */; };
 		CLIPROVMGR11111111111111 /* CLIProviderManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CLIPROVMGR22222222222222 /* CLIProviderManager.swift */; };
@@ -93,13 +91,24 @@
 		GROKAPP11111111111111 /* GrokProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = GROKFILE2222222222222 /* GrokProvider.swift */; };
 		GROKCLI11111111111111 /* GrokProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = GROKFILE2222222222222 /* GrokProvider.swift */; };
 		GROKTESTBF11111111111 /* GrokProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = GROKTESTFR11111111111 /* GrokProviderTests.swift */; };
-		KI1111111111111111111111 /* KimiProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = KI2222222222222222222222 /* KimiProvider.swift */; };
 		KIMITESTBF11111111111 /* KimiProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = KIMITESTFR11111111111 /* KimiProviderTests.swift */; };
+		KIMIPLANMAPTESTBF111111111 /* KimiPlanMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = KIMIPLANMAPTESTFR111111111 /* KimiPlanMapperTests.swift */; };
+		MINIMAXCNAPP11111111111111 /* MiniMaxCNProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = MINIMAXCNFILE2222222222222 /* MiniMaxCNProvider.swift */; };
+		MINIMAXCNCLI11111111111111 /* MiniMaxCNProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = MINIMAXCNFILE2222222222222 /* MiniMaxCNProvider.swift */; };
+		MINIMAXGLOBALAPP1111111111 /* MiniMaxGlobalProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = MINIMAXGLOBALFILE2222222222 /* MiniMaxGlobalProvider.swift */; };
+		MINIMAXGLOBALCLI1111111111 /* MiniMaxGlobalProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = MINIMAXGLOBALFILE2222222222 /* MiniMaxGlobalProvider.swift */; };
+		MINIMAXTYPESAPP11111111111 /* MiniMaxCodingPlanTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = MINIMAXTYPESFILE2222222222 /* MiniMaxCodingPlanTypes.swift */; };
+		MINIMAXTYPESCLI11111111111 /* MiniMaxCodingPlanTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = MINIMAXTYPESFILE2222222222 /* MiniMaxCodingPlanTypes.swift */; };
 		KIROAPP11111111111111 /* KiroProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = KIROFILE2222222222222 /* KiroProvider.swift */; };
+		KIMICNAPP11111111111111 /* KimiCNProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = KIMICNFILE2222222222222 /* KimiCNProvider.swift */; };
+		KIMIGLOBALAPP1111111111 /* KimiGlobalProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = KIMIGLOBALFILE222222222 /* KimiGlobalProvider.swift */; };
+		KIMIUSAGEAPP11111111111 /* KimiUsageTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = KIMIUSAGEFILE2222222222 /* KimiUsageTypes.swift */; };
 		KIROCLI11111111111111 /* KiroProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = KIROFILE2222222222222 /* KiroProvider.swift */; };
+		KIMICNCLI11111111111111 /* KimiCNProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = KIMICNFILE2222222222222 /* KimiCNProvider.swift */; };
+		KIMIGLOBALCLI1111111111 /* KimiGlobalProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = KIMIGLOBALFILE222222222 /* KimiGlobalProvider.swift */; };
+		KIMIUSAGECLI11111111111 /* KimiUsageTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = KIMIUSAGEFILE2222222222 /* KimiUsageTypes.swift */; };
 		KIROTESTBF11111111111 /* KiroProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = KIROTESTFR11111111111 /* KiroProviderTests.swift */; };
 		ME1111111111111111111111 /* MenuEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = ME2222222222222222222222 /* MenuEnums.swift */; };
-		MINIMAXAPP11111111111111 /* MiniMaxProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = MINIMAXFILE2222222222222 /* MiniMaxProvider.swift */; };
 		MINIMAXJSONBF11111111111 /* minimax_response.json in Resources */ = {isa = PBXBuildFile; fileRef = MINIMAXJSONFR11111111111 /* minimax_response.json */; };
 		MINIMAXTESTBF11111111111 /* MiniMaxProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MINIMAXTESTFR11111111111 /* MiniMaxProviderTests.swift */; };
 		NANOGPTAPP11111111111111 /* NanoGptProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = NANOGPTFILE222222222222 /* NanoGptProvider.swift */; };
@@ -228,12 +237,17 @@
 		F4AE672516E564CC52739BD9 /* CopilotProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CopilotProvider.swift; sourceTree = "<group>"; };
 		GROKFILE2222222222222 /* GrokProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrokProvider.swift; sourceTree = "<group>"; };
 		GROKTESTFR11111111111 /* GrokProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrokProviderTests.swift; sourceTree = "<group>"; };
-		KI2222222222222222222222 /* KimiProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KimiProvider.swift; sourceTree = "<group>"; };
 		KIMITESTFR11111111111 /* KimiProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KimiProviderTests.swift; sourceTree = "<group>"; };
+		KIMIPLANMAPTESTFR111111111 /* KimiPlanMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KimiPlanMapperTests.swift; sourceTree = "<group>"; };
+		KIMICNFILE2222222222222 /* KimiCNProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KimiCNProvider.swift; sourceTree = "<group>"; };
+		KIMIGLOBALFILE222222222 /* KimiGlobalProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KimiGlobalProvider.swift; sourceTree = "<group>"; };
+		KIMIUSAGEFILE2222222222 /* KimiUsageTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KimiUsageTypes.swift; sourceTree = "<group>"; };
 		KIROFILE2222222222222 /* KiroProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KiroProvider.swift; sourceTree = "<group>"; };
 		KIROTESTFR11111111111 /* KiroProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KiroProviderTests.swift; sourceTree = "<group>"; };
 		ME2222222222222222222222 /* MenuEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuEnums.swift; sourceTree = "<group>"; };
-		MINIMAXFILE2222222222222 /* MiniMaxProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniMaxProvider.swift; sourceTree = "<group>"; };
+		MINIMAXCNFILE2222222222222 /* MiniMaxCNProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniMaxCNProvider.swift; sourceTree = "<group>"; };
+		MINIMAXGLOBALFILE2222222222 /* MiniMaxGlobalProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniMaxGlobalProvider.swift; sourceTree = "<group>"; };
+		MINIMAXTYPESFILE2222222222 /* MiniMaxCodingPlanTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniMaxCodingPlanTypes.swift; sourceTree = "<group>"; };
 		MINIMAXJSONFR11111111111 /* minimax_response.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = minimax_response.json; sourceTree = "<group>"; };
 		MINIMAXTESTFR11111111111 /* MiniMaxProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniMaxProviderTests.swift; sourceTree = "<group>"; };
 		NANOGPTFILE222222222222 /* NanoGptProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NanoGptProvider.swift; sourceTree = "<group>"; };
@@ -325,9 +339,13 @@
 				OZ2222222222222222222222 /* OpenCodeZenProvider.swift */,
 				OCGOFILE2222222222222 /* OpenCodeGoProvider.swift */,
 				GROKFILE2222222222222 /* GrokProvider.swift */,
+				MINIMAXCNFILE2222222222222 /* MiniMaxCNProvider.swift */,
+				MINIMAXGLOBALFILE2222222222 /* MiniMaxGlobalProvider.swift */,
+				MINIMAXTYPESFILE2222222222 /* MiniMaxCodingPlanTypes.swift */,
+				KIMICNFILE2222222222222 /* KimiCNProvider.swift */,
+				KIMIGLOBALFILE222222222 /* KimiGlobalProvider.swift */,
+				KIMIUSAGEFILE2222222222 /* KimiUsageTypes.swift */,
 				KIROFILE2222222222222 /* KiroProvider.swift */,
-				KI2222222222222222222222 /* KimiProvider.swift */,
-				MINIMAXFILE2222222222222 /* MiniMaxProvider.swift */,
 				283349002F313176004DADE1 /* ChutesProvider.swift */,
 				TAVILYFILE22222222222222 /* TavilySearchProvider.swift */,
 				BRAVEFILE22222222222222 /* BraveSearchProvider.swift */,
@@ -488,6 +506,7 @@
 				GROKTESTFR11111111111 /* GrokProviderTests.swift */,
 				KIROTESTFR11111111111 /* KiroProviderTests.swift */,
 				KIMITESTFR11111111111 /* KimiProviderTests.swift */,
+				KIMIPLANMAPTESTFR111111111 /* KimiPlanMapperTests.swift */,
 				CURSORTSTFR11111111111 /* CursorProviderTests.swift */,
 				TOKENTESTFR1111111111111 /* TokenManagerTests.swift */,
 				CODEXTESTFR111111111111 /* CodexProviderTests.swift */,
@@ -686,10 +705,14 @@
 				OR1111111111111111111111 /* OpenRouterProvider.swift in Sources */,
 				390C3E920A03C8890AAA1CEE /* AntigravityProvider.swift in Sources */,
 				OZ1111111111111111111111 /* OpenCodeZenProvider.swift in Sources */,
-				KI1111111111111111111111 /* KimiProvider.swift in Sources */,
-				MINIMAXAPP11111111111111 /* MiniMaxProvider.swift in Sources */,
 				OCGOAPP11111111111111 /* OpenCodeGoProvider.swift in Sources */,
 				GROKAPP11111111111111 /* GrokProvider.swift in Sources */,
+				KIMICNAPP11111111111111 /* KimiCNProvider.swift in Sources */,
+				KIMIGLOBALAPP1111111111 /* KimiGlobalProvider.swift in Sources */,
+				KIMIUSAGEAPP11111111111 /* KimiUsageTypes.swift in Sources */,
+				MINIMAXCNAPP11111111111111 /* MiniMaxCNProvider.swift in Sources */,
+				MINIMAXGLOBALAPP1111111111 /* MiniMaxGlobalProvider.swift in Sources */,
+				MINIMAXTYPESAPP11111111111 /* MiniMaxCodingPlanTypes.swift in Sources */,
 				KIROAPP11111111111111 /* KiroProvider.swift in Sources */,
 				283349012F313176004DADE1 /* ChutesProvider.swift in Sources */,
 				TAVILYAPP111111111111111 /* TavilySearchProvider.swift in Sources */,
@@ -729,10 +752,14 @@
 				CLIOPENROUTER111111111 /* OpenRouterProvider.swift in Sources */,
 				CLIANTIGRAVITY11111111 /* AntigravityProvider.swift in Sources */,
 				CLIOPENCZEN1111111111111 /* OpenCodeZenProvider.swift in Sources */,
-				CLIKIMI1111111111111111 /* KimiProvider.swift in Sources */,
-				CLIMINIMAX11111111111111 /* MiniMaxProvider.swift in Sources */,
 				OCGOCLI11111111111111 /* OpenCodeGoProvider.swift in Sources */,
 				GROKCLI11111111111111 /* GrokProvider.swift in Sources */,
+				KIMICNCLI11111111111111 /* KimiCNProvider.swift in Sources */,
+				KIMIGLOBALCLI1111111111 /* KimiGlobalProvider.swift in Sources */,
+				KIMIUSAGECLI11111111111 /* KimiUsageTypes.swift in Sources */,
+				MINIMAXCNCLI11111111111111 /* MiniMaxCNProvider.swift in Sources */,
+				MINIMAXGLOBALCLI1111111111 /* MiniMaxGlobalProvider.swift in Sources */,
+				MINIMAXTYPESCLI11111111111 /* MiniMaxCodingPlanTypes.swift in Sources */,
 				KIROCLI11111111111111 /* KiroProvider.swift in Sources */,
 				CLIZAI11111111111111111 /* ZaiCodingPlanProvider.swift in Sources */,
 				NANOGPTCLI11111111111111 /* NanoGptProvider.swift in Sources */,
@@ -769,6 +796,7 @@
 				GROKTESTBF11111111111 /* GrokProviderTests.swift in Sources */,
 				KIROTESTBF11111111111 /* KiroProviderTests.swift in Sources */,
 				KIMITESTBF11111111111 /* KimiProviderTests.swift in Sources */,
+				KIMIPLANMAPTESTBF111111111 /* KimiPlanMapperTests.swift in Sources */,
 				CURSORTSTBF11111111111 /* CursorProviderTests.swift in Sources */,
 				TOKENTESTBF1111111111111 /* TokenManagerTests.swift in Sources */,
 				CODEXTESTBF111111111111 /* CodexProviderTests.swift in Sources */,

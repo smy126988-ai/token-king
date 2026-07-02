@@ -14,7 +14,7 @@ actor CLIProviderManager {
     
     static let registeredProviders: [ProviderIdentifier] = [
         .claude, .codex, .commandCode, .cursor, .geminiCLI, .openRouter,
-        .antigravity, .openCodeZen, .openCodeGo, .kiro, .grok, .kimi, .minimaxCodingPlan, .zaiCodingPlan,
+        .antigravity, .openCodeZen, .openCodeGo, .kiro, .grok, .kimiCN, .kimi, .minimaxCodingPlanCN, .minimaxCodingPlan, .zaiCodingPlan,
         .nanoGpt,
         .chutes, .copilot,
         .synthetic
@@ -36,8 +36,10 @@ actor CLIProviderManager {
         let openCodeGoProvider = OpenCodeGoProvider()
         let kiroProvider = KiroProvider()
         let grokProvider = GrokProvider()
-        let kimiProvider = KimiProvider()
-        let minimaxProvider = MiniMaxProvider()
+        let kimiCNProvider = KimiCNProvider()
+        let kimiGlobalProvider = KimiGlobalProvider()
+        let minimaxCNProvider = MiniMaxCNProvider()
+        let minimaxGlobalProvider = MiniMaxGlobalProvider()
         let zaiCodingPlanProvider = ZaiCodingPlanProvider()
         let nanoGptProvider = NanoGptProvider()
         let chutesProvider = ChutesProvider()
@@ -58,8 +60,10 @@ actor CLIProviderManager {
             openCodeGoProvider,
             kiroProvider,
             grokProvider,
-            kimiProvider,
-            minimaxProvider,
+            kimiCNProvider,
+            kimiGlobalProvider,
+            minimaxCNProvider,
+            minimaxGlobalProvider,
             zaiCodingPlanProvider,
             nanoGptProvider,
             chutesProvider,

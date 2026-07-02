@@ -148,11 +148,12 @@ struct SwiftUIProviderAlertView: View {
         case .grok: return nil
         case .antigravity: return "arrow.up.circle"
         case .kimi: return "k.circle"
+        case .kimiCN: return "k.circle"
         case .zaiCodingPlan: return "globe"
         case .nanoGpt: return "n.circle"
         case .synthetic: return "diamond"
         case .chutes: return "c.circle"
-        case .tavilySearch, .braveSearch, .minimaxCodingPlan: return nil
+        case .tavilySearch, .braveSearch, .minimaxCodingPlan, .minimaxCodingPlanCN: return nil
         }
     }
 }

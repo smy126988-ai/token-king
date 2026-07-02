@@ -22,9 +22,17 @@ final class SubscriptionPresetTests: XCTestCase {
         XCTAssertNil(presets.first { $0.name == "Vivace" }?.cnyCost)
     }
 
-    func testMiniMaxPresetsHaveDomesticCNY() {
-        let presets = ProviderSubscriptionPresets.minimaxCodingPlan
+    func testMiniMaxCNPresetsHaveDomesticCNY() {
+        let presets = ProviderSubscriptionPresets.minimaxCodingPlanCN
         XCTAssertEqual(presets.first { $0.name == "Ultra HS" }?.cnyCost, 899)
         XCTAssertEqual(presets.first { $0.name == "Max" }?.cnyCost, 119)
+    }
+
+    func testMiniMaxGlobalPresetsUseUSDOnly() {
+        let presets = ProviderSubscriptionPresets.minimaxCodingPlan
+        XCTAssertNil(presets.first { $0.name == "Ultra HS" }?.cnyCost)
+        XCTAssertNil(presets.first { $0.name == "Max" }?.cnyCost)
+        XCTAssertEqual(presets.first { $0.name == "Ultra HS" }?.cost, 150)
+        XCTAssertEqual(presets.first { $0.name == "Max" }?.cost, 50)
     }
 }

@@ -24,11 +24,11 @@ enum SubscriptionPlan: Codable, Equatable {
     var displayName: String {
         switch self {
         case .none:
-            return "None ($0)"
-        case .preset(let name, let amount):
-            return "\(name) ($\(Int(amount))/m)"
-        case .custom(let amount):
-            return String(format: "Custom ($%.0f/m)", amount)
+            return "None"
+        case .preset(let name, _):
+            return name
+        case .custom:
+            return "Custom"
         }
     }
 
@@ -38,8 +38,8 @@ enum SubscriptionPlan: Codable, Equatable {
             return "None"
         case .preset(let name, _):
             return name
-        case .custom(let amount):
-            return String(format: "$%.0f", amount)
+        case .custom:
+            return "Custom"
         }
     }
 
@@ -144,19 +144,35 @@ struct ProviderSubscriptionPresets {
     ]
 
     static let kimi: [SubscriptionPreset] = [
-        SubscriptionPreset(name: "Andante", cost: 0, cnyCost: 49),   // 纯国内档，无官方海外价
-        SubscriptionPreset(name: "Moderato", cost: 19, cnyCost: 99),
-        SubscriptionPreset(name: "Allegretto", cost: 39, cnyCost: 199),
-        SubscriptionPreset(name: "Allegro", cost: 99, cnyCost: 699),
-        SubscriptionPreset(name: "Vivace", cost: 199)               // 纯海外档，无 cnyCost
+        SubscriptionPreset(name: "Andante",    cost: 0,   cnyCost: 49),   // 纯国内档，无官方海外价
+        SubscriptionPreset(name: "Moderato",   cost: 19,  cnyCost: 99),
+        SubscriptionPreset(name: "Allegretto", cost: 39,  cnyCost: 199),
+        SubscriptionPreset(name: "Allegro",    cost: 99,  cnyCost: 699),
+        SubscriptionPreset(name: "Vivace",     cost: 199)                // 纯海外档，无 cnyCost
+    ]
+
+    static let kimiCN: [SubscriptionPreset] = [
+        SubscriptionPreset(name: "Andante",    cost: 0,   cnyCost: 49),
+        SubscriptionPreset(name: "Moderato",   cost: 19,  cnyCost: 99),
+        SubscriptionPreset(name: "Allegretto", cost: 39,  cnyCost: 199),
+        SubscriptionPreset(name: "Allegro",    cost: 99,  cnyCost: 699)
     ]
 
     static let minimaxCodingPlan: [SubscriptionPreset] = [
-        SubscriptionPreset(name: "Starter", cost: 10, cnyCost: 29),
-        SubscriptionPreset(name: "Plus", cost: 20, cnyCost: 49),
-        SubscriptionPreset(name: "Max", cost: 50, cnyCost: 119),
-        SubscriptionPreset(name: "Plus HS", cost: 40, cnyCost: 98),
-        SubscriptionPreset(name: "Max HS", cost: 80, cnyCost: 199),
+        SubscriptionPreset(name: "Starter",  cost: 10),
+        SubscriptionPreset(name: "Plus",     cost: 20),
+        SubscriptionPreset(name: "Max",      cost: 50),
+        SubscriptionPreset(name: "Plus HS",  cost: 40),
+        SubscriptionPreset(name: "Max HS",   cost: 80),
+        SubscriptionPreset(name: "Ultra HS", cost: 150)
+    ]
+
+    static let minimaxCodingPlanCN: [SubscriptionPreset] = [
+        SubscriptionPreset(name: "Starter",  cost: 10, cnyCost: 29),
+        SubscriptionPreset(name: "Plus",     cost: 20, cnyCost: 49),
+        SubscriptionPreset(name: "Max",      cost: 50, cnyCost: 119),
+        SubscriptionPreset(name: "Plus HS",  cost: 40, cnyCost: 98),
+        SubscriptionPreset(name: "Max HS",   cost: 80, cnyCost: 199),
         SubscriptionPreset(name: "Ultra HS", cost: 150, cnyCost: 899)
     ]
 
@@ -222,8 +238,12 @@ struct ProviderSubscriptionPresets {
             return copilot
         case .kimi:
             return kimi
+        case .kimiCN:
+            return kimiCN
         case .minimaxCodingPlan:
             return minimaxCodingPlan
+        case .minimaxCodingPlanCN:
+            return minimaxCodingPlanCN
         case .antigravity:
             return antigravity
         case .openRouter:

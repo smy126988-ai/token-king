@@ -1,7 +1,7 @@
 import XCTest
 @testable import OpenCode_Bar
 
-final class MiniMaxProviderTests: XCTestCase {
+final class MiniMaxCNProviderTests: XCTestCase {
     private final class MockURLProtocol: URLProtocol {
         static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
 
@@ -44,38 +44,25 @@ final class MiniMaxProviderTests: XCTestCase {
     }
 
     func testProviderIdentifier() {
-        let provider = MiniMaxProvider()
-        XCTAssertEqual(provider.identifier, .minimaxCodingPlan)
+        let provider = MiniMaxCNProvider()
+        XCTAssertEqual(provider.identifier, .minimaxCodingPlanCN)
     }
 
     func testProviderType() {
-        let provider = MiniMaxProvider()
+        let provider = MiniMaxCNProvider()
         XCTAssertEqual(provider.type, .quotaBased)
     }
 
-    func testFetchSuccessCreatesProviderResult() async throws {
-        guard TokenManager.shared.getMiniMaxCodingPlanAPIKey() != nil else {
-            throw XCTSkip("MiniMax Coding Plan API key not available; skipping fetch test.")
+    func testFetchUsesChinaEndpointOnly() async throws {
+        guard TokenManager.shared.getMiniMaxCodingPlanCNAPIKey() != nil else {
+            throw XCTSkip("MiniMax Coding Plan CN API key not available; skipping fetch test.")
         }
 
         let session = makeSession()
-        let provider = MiniMaxProvider(tokenManager: .shared, session: session)
+        let provider = MiniMaxCNProvider(tokenManager: .shared, session: session)
         let responseJSON = """
         {
           "model_remains": [
-            {
-              "start_time": 1774569600000,
-              "end_time": 1774656000000,
-              "remains_time": 52115317,
-              "current_interval_total_count": 0,
-              "current_interval_usage_count": 0,
-              "model_name": "speech-hd",
-              "current_weekly_total_count": 0,
-              "current_weekly_usage_count": 0,
-              "weekly_start_time": 1774224000000,
-              "weekly_end_time": 1774828800000,
-              "weekly_remains_time": 224915317
-            },
             {
               "start_time": 1774587600000,
               "end_time": 1774605600000,
@@ -97,14 +84,18 @@ final class MiniMaxProviderTests: XCTestCase {
         }
         """
 
+        var requestedURLs: [URL] = []
         MockURLProtocol.requestHandler = { request in
+            requestedURLs.append(request.url!)
             XCTAssertTrue((request.value(forHTTPHeaderField: "Authorization") ?? "").hasPrefix("Bearer "))
-
             let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
             return (response, Data(responseJSON.utf8))
         }
 
         let result = try await provider.fetch()
+
+        XCTAssertEqual(requestedURLs.count, 1)
+        XCTAssertEqual(requestedURLs.first?.host, "api.minimaxi.com")
 
         switch result.usage {
         case .quotaBased(let remaining, let entitlement, let overagePermitted):
@@ -117,9 +108,247 @@ final class MiniMaxProviderTests: XCTestCase {
 
         XCTAssertEqual(result.details?.fiveHourUsage ?? -1, 50.0, accuracy: 0.001)
         XCTAssertEqual(result.details?.sevenDayUsage ?? -1, 60.0, accuracy: 0.001)
-        XCTAssertNotNil(result.details?.fiveHourReset)
-        XCTAssertNotNil(result.details?.sevenDayReset)
-        XCTAssertEqual(result.details?.authSource, "~/.local/share/opencode/auth.json")
+    }
+
+    func testFetchDoesNotFallbackOnRegionMismatch() async throws {
+        guard TokenManager.shared.getMiniMaxCodingPlanCNAPIKey() != nil else {
+            throw XCTSkip("MiniMax Coding Plan CN API key not available; skipping fetch test.")
+        }
+
+        let session = makeSession()
+        let provider = MiniMaxCNProvider(tokenManager: .shared, session: session)
+        let regionMismatchJSON = """
+        {
+          "base_resp": {
+            "status_code": 1004,
+            "status_msg": "cookie is missing, log in again"
+          }
+        }
+        """
+
+        var requestedURLs: [URL] = []
+        MockURLProtocol.requestHandler = { request in
+            requestedURLs.append(request.url!)
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (response, Data(regionMismatchJSON.utf8))
+        }
+
+        do {
+            _ = try await provider.fetch()
+            XCTFail("Expected provider error after region mismatch")
+        } catch let error as ProviderError {
+            switch error {
+            case .providerError:
+                break
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertEqual(requestedURLs.count, 1)
+        XCTAssertEqual(requestedURLs.first?.host, "api.minimaxi.com")
+    }
+
+    func testFetchReturnsAuthenticationErrorOn401() async throws {
+        guard TokenManager.shared.getMiniMaxCodingPlanCNAPIKey() != nil else {
+            throw XCTSkip("MiniMax Coding Plan CN API key not available; skipping fetch test.")
+        }
+
+        let session = makeSession()
+        let provider = MiniMaxCNProvider(tokenManager: .shared, session: session)
+
+        MockURLProtocol.requestHandler = { request in
+            let url = request.url ?? URL(string: "https://api.minimaxi.com")!
+            let response = HTTPURLResponse(url: url, statusCode: 401, httpVersion: nil, headerFields: nil)!
+            return (response, Data("{}".utf8))
+        }
+
+        do {
+            _ = try await provider.fetch()
+            XCTFail("Expected authentication failure")
+        } catch let error as ProviderError {
+            switch error {
+            case .authenticationFailed:
+                break
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testFetchLiveReturnsUsageWithRealKey() async throws {
+        guard TokenManager.shared.getMiniMaxCodingPlanCNAPIKey() != nil else {
+            throw XCTSkip("MiniMax Coding Plan CN API key not available; skipping live fetch test.")
+        }
+
+        let provider = MiniMaxCNProvider(tokenManager: .shared, session: .shared)
+        let result = try await provider.fetch()
+
+        switch result.usage {
+        case .quotaBased(let remaining, let entitlement, let overagePermitted):
+            XCTAssertGreaterThanOrEqual(remaining, 0)
+            XCTAssertEqual(entitlement, 100)
+            XCTAssertFalse(overagePermitted)
+        default:
+            XCTFail("Expected quota-based usage")
+        }
+
+        XCTAssertNotNil(result.details)
+    }
+}
+
+final class MiniMaxGlobalProviderTests: XCTestCase {
+    private final class MockURLProtocol: URLProtocol {
+        static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
+
+        override static func canInit(with request: URLRequest) -> Bool {
+            true
+        }
+
+        override static func canonicalRequest(for request: URLRequest) -> URLRequest {
+            request
+        }
+
+        override func startLoading() {
+            guard let handler = MockURLProtocol.requestHandler else {
+                client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
+                return
+            }
+
+            do {
+                let (response, data) = try handler(request)
+                client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+                client?.urlProtocol(self, didLoad: data)
+                client?.urlProtocolDidFinishLoading(self)
+            } catch {
+                client?.urlProtocol(self, didFailWithError: error)
+            }
+        }
+
+        override func stopLoading() {}
+    }
+
+    private func makeSession() -> URLSession {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [MockURLProtocol.self]
+        return URLSession(configuration: configuration)
+    }
+
+    override func tearDown() {
+        MockURLProtocol.requestHandler = nil
+        super.tearDown()
+    }
+
+    func testProviderIdentifier() {
+        let provider = MiniMaxGlobalProvider()
+        XCTAssertEqual(provider.identifier, .minimaxCodingPlan)
+    }
+
+    func testProviderType() {
+        let provider = MiniMaxGlobalProvider()
+        XCTAssertEqual(provider.type, .quotaBased)
+    }
+
+    func testFetchUsesGlobalEndpointOnly() async throws {
+        guard TokenManager.shared.getMiniMaxCodingPlanAPIKey() != nil else {
+            throw XCTSkip("MiniMax Coding Plan API key not available; skipping fetch test.")
+        }
+
+        let session = makeSession()
+        let provider = MiniMaxGlobalProvider(tokenManager: .shared, session: session)
+        let responseJSON = """
+        {
+          "model_remains": [
+            {
+              "start_time": 1774587600000,
+              "end_time": 1774605600000,
+              "remains_time": 1715317,
+              "current_interval_total_count": 1500,
+              "current_interval_usage_count": 750,
+              "model_name": "MiniMax-M*",
+              "current_weekly_total_count": 15000,
+              "current_weekly_usage_count": 6000,
+              "weekly_start_time": 1774224000000,
+              "weekly_end_time": 1774828800000,
+              "weekly_remains_time": 224915317
+            }
+          ],
+          "base_resp": {
+            "status_code": 0,
+            "status_msg": "success"
+          }
+        }
+        """
+
+        var requestedURLs: [URL] = []
+        MockURLProtocol.requestHandler = { request in
+            requestedURLs.append(request.url!)
+            XCTAssertTrue((request.value(forHTTPHeaderField: "Authorization") ?? "").hasPrefix("Bearer "))
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (response, Data(responseJSON.utf8))
+        }
+
+        let result = try await provider.fetch()
+
+        XCTAssertEqual(requestedURLs.count, 1)
+        XCTAssertEqual(requestedURLs.first?.host, "api.minimax.io")
+
+        switch result.usage {
+        case .quotaBased(let remaining, let entitlement, let overagePermitted):
+            XCTAssertEqual(remaining, 40)
+            XCTAssertEqual(entitlement, 100)
+            XCTAssertFalse(overagePermitted)
+        default:
+            XCTFail("Expected quota-based usage")
+        }
+
+        XCTAssertEqual(result.details?.fiveHourUsage ?? -1, 50.0, accuracy: 0.001)
+        XCTAssertEqual(result.details?.sevenDayUsage ?? -1, 60.0, accuracy: 0.001)
+    }
+
+    func testFetchDoesNotFallbackOnRegionMismatch() async throws {
+        guard TokenManager.shared.getMiniMaxCodingPlanAPIKey() != nil else {
+            throw XCTSkip("MiniMax Coding Plan API key not available; skipping fetch test.")
+        }
+
+        let session = makeSession()
+        let provider = MiniMaxGlobalProvider(tokenManager: .shared, session: session)
+        let regionMismatchJSON = """
+        {
+          "base_resp": {
+            "status_code": 1004,
+            "status_msg": "cookie is missing, log in again"
+          }
+        }
+        """
+
+        var requestedURLs: [URL] = []
+        MockURLProtocol.requestHandler = { request in
+            requestedURLs.append(request.url!)
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (response, Data(regionMismatchJSON.utf8))
+        }
+
+        do {
+            _ = try await provider.fetch()
+            XCTFail("Expected provider error after region mismatch")
+        } catch let error as ProviderError {
+            switch error {
+            case .providerError:
+                break
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertEqual(requestedURLs.count, 1)
+        XCTAssertEqual(requestedURLs.first?.host, "api.minimax.io")
     }
 
     func testFetchReturnsAuthenticationErrorOn401() async throws {
@@ -128,7 +357,7 @@ final class MiniMaxProviderTests: XCTestCase {
         }
 
         let session = makeSession()
-        let provider = MiniMaxProvider(tokenManager: .shared, session: session)
+        let provider = MiniMaxGlobalProvider(tokenManager: .shared, session: session)
 
         MockURLProtocol.requestHandler = { request in
             let url = request.url ?? URL(string: "https://api.minimax.io")!
@@ -157,7 +386,7 @@ final class MiniMaxProviderTests: XCTestCase {
         }
 
         let session = makeSession()
-        let provider = MiniMaxProvider(tokenManager: .shared, session: session)
+        let provider = MiniMaxGlobalProvider(tokenManager: .shared, session: session)
         let responseJSON = """
         {
           "model_remains": [
@@ -208,7 +437,7 @@ final class MiniMaxProviderTests: XCTestCase {
         }
 
         let session = makeSession()
-        let provider = MiniMaxProvider(tokenManager: .shared, session: session)
+        let provider = MiniMaxGlobalProvider(tokenManager: .shared, session: session)
         let responseJSON = """
         {
           "model_remains": [
@@ -257,114 +486,12 @@ final class MiniMaxProviderTests: XCTestCase {
         XCTAssertEqual(result.details?.sevenDayUsage ?? -1, (341.0 / 45000.0) * 100.0, accuracy: 0.0001)
     }
 
-    func testFetchFallsBackToGlobalEndpointWhenChinaReturnsRegionMismatch() async throws {
-        guard TokenManager.shared.getMiniMaxCodingPlanAPIKey() != nil else {
-            throw XCTSkip("MiniMax Coding Plan API key not available; skipping fetch test.")
-        }
-
-        let session = makeSession()
-        let provider = MiniMaxProvider(tokenManager: .shared, session: session)
-        let successJSON = """
-        {
-          "model_remains": [
-            {
-              "start_time": 1774587600000,
-              "end_time": 1774605600000,
-              "remains_time": 1715317,
-              "current_interval_total_count": 1500,
-              "current_interval_usage_count": 750,
-              "model_name": "MiniMax-M*",
-              "current_weekly_total_count": 15000,
-              "current_weekly_usage_count": 6000,
-              "weekly_start_time": 1774224000000,
-              "weekly_end_time": 1774828800000,
-              "weekly_remains_time": 224915317
-            }
-          ],
-          "base_resp": {
-            "status_code": 0,
-            "status_msg": "success"
-          }
-        }
-        """
-        let regionMismatchJSON = """
-        {
-          "base_resp": {
-            "status_code": 1004,
-            "status_msg": "cookie is missing, log in again"
-          }
-        }
-        """
-
-        var requestedEndpoints: [String] = []
-        MockURLProtocol.requestHandler = { request in
-            let urlString = request.url?.absoluteString ?? ""
-            requestedEndpoints.append(urlString)
-            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
-            if urlString.contains("api.minimaxi.com") {
-                return (response, Data(regionMismatchJSON.utf8))
-            }
-            return (response, Data(successJSON.utf8))
-        }
-
-        let result = try await provider.fetch()
-
-        XCTAssertEqual(requestedEndpoints.count, 2)
-        XCTAssertTrue(requestedEndpoints.first?.contains("api.minimaxi.com") == true)
-        XCTAssertTrue(requestedEndpoints.last?.contains("api.minimax.io") == true)
-
-        switch result.usage {
-        case .quotaBased(let remaining, let entitlement, let overagePermitted):
-            XCTAssertEqual(remaining, 40)
-            XCTAssertEqual(entitlement, 100)
-            XCTAssertFalse(overagePermitted)
-        default:
-            XCTFail("Expected quota-based usage")
-        }
-    }
-
-    func testFetchThrowsNetworkErrorWhenAllEndpointsReturnRegionMismatch() async throws {
-        guard TokenManager.shared.getMiniMaxCodingPlanAPIKey() != nil else {
-            throw XCTSkip("MiniMax Coding Plan API key not available; skipping fetch test.")
-        }
-
-        let session = makeSession()
-        let provider = MiniMaxProvider(tokenManager: .shared, session: session)
-        let regionMismatchJSON = """
-        {
-          "base_resp": {
-            "status_code": 1004,
-            "status_msg": "cookie is missing, log in again"
-          }
-        }
-        """
-
-        MockURLProtocol.requestHandler = { request in
-            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
-            return (response, Data(regionMismatchJSON.utf8))
-        }
-
-        do {
-            _ = try await provider.fetch()
-            XCTFail("Expected network error after all endpoints return region mismatch")
-        } catch let error as ProviderError {
-            switch error {
-            case .networkError:
-                break
-            default:
-                XCTFail("Unexpected error: \(error)")
-            }
-        } catch {
-            XCTFail("Unexpected error: \(error)")
-        }
-    }
-
     func testFetchLiveReturnsUsageWithRealKey() async throws {
         guard TokenManager.shared.getMiniMaxCodingPlanAPIKey() != nil else {
             throw XCTSkip("MiniMax Coding Plan API key not available; skipping live fetch test.")
         }
 
-        let provider = MiniMaxProvider(tokenManager: .shared, session: .shared)
+        let provider = MiniMaxGlobalProvider(tokenManager: .shared, session: .shared)
         let result = try await provider.fetch()
 
         switch result.usage {

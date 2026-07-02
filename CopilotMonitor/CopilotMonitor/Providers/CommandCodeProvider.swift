@@ -115,9 +115,7 @@ struct CommandCodeUsageSnapshot: Equatable {
     }
 
     var usageSummary: String? {
-        guard let monthlyCreditsTotal, let monthlyCreditsUsed else { return nil }
-        let planDisplay = plan?.displayName ?? "Free"
-        return String(format: "%@ · $%.2f of $%.2f", planDisplay, monthlyCreditsUsed, monthlyCreditsTotal)
+        plan?.displayName
     }
 }
 

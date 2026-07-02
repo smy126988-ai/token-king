@@ -158,7 +158,11 @@ final class MultiProviderStatusBarIconView: NSView {
             iconName = "GrokIcon"
         case .kimi:
             iconName = "k.circle"
+        case .kimiCN:
+            iconName = "k.circle"
         case .minimaxCodingPlan:
+            iconName = "MinimaxIcon"
+        case .minimaxCodingPlanCN:
             iconName = "MinimaxIcon"
         case .zaiCodingPlan:
             iconName = "ZaiIcon"

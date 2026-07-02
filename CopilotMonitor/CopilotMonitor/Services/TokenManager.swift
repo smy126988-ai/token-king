@@ -220,7 +220,9 @@ struct OpenCodeAuth: Codable {
     let opencode: APIKey?
     let openCodeGo: APIKey?
     let kimiForCoding: APIKey?
+    let kimiForCodingCN: APIKey?
     let minimaxCodingPlan: APIKey?
+    let minimaxCodingPlanCN: APIKey?
     let zaiCodingPlan: APIKey?
     let nanoGpt: APIKey?
     let synthetic: APIKey?
@@ -231,7 +233,9 @@ struct OpenCodeAuth: Codable {
         case openCodeGo = "opencode-go"
         case githubCopilot = "github-copilot"
         case kimiForCoding = "kimi-for-coding"
+        case kimiForCodingCN = "kimi-for-coding-cn"
         case minimaxCodingPlan = "minimax-coding-plan"
+        case minimaxCodingPlanCN = "minimax-coding-plan-cn"
         case zaiCodingPlan = "zai-coding-plan"
         case nanoGpt = "nano-gpt"
     }
@@ -245,7 +249,9 @@ struct OpenCodeAuth: Codable {
         opencode: APIKey?,
         openCodeGo: APIKey?,
         kimiForCoding: APIKey?,
+        kimiForCodingCN: APIKey?,
         minimaxCodingPlan: APIKey?,
+        minimaxCodingPlanCN: APIKey? = nil,
         zaiCodingPlan: APIKey?,
         nanoGpt: APIKey?,
         synthetic: APIKey?,
@@ -259,7 +265,9 @@ struct OpenCodeAuth: Codable {
         self.opencode = opencode
         self.openCodeGo = openCodeGo
         self.kimiForCoding = kimiForCoding
+        self.kimiForCodingCN = kimiForCodingCN
         self.minimaxCodingPlan = minimaxCodingPlan
+        self.minimaxCodingPlanCN = minimaxCodingPlanCN
         self.zaiCodingPlan = zaiCodingPlan
         self.nanoGpt = nanoGpt
         self.synthetic = synthetic
@@ -279,7 +287,9 @@ struct OpenCodeAuth: Codable {
         opencode = Self.decodeLossyIfPresent(APIKey.self, from: container, forKey: .opencode)
         openCodeGo = Self.decodeLossyIfPresent(APIKey.self, from: container, forKey: .openCodeGo)
         kimiForCoding = Self.decodeLossyIfPresent(APIKey.self, from: container, forKey: .kimiForCoding)
+        kimiForCodingCN = Self.decodeLossyIfPresent(APIKey.self, from: container, forKey: .kimiForCodingCN)
         minimaxCodingPlan = Self.decodeLossyIfPresent(APIKey.self, from: container, forKey: .minimaxCodingPlan)
+        minimaxCodingPlanCN = Self.decodeLossyIfPresent(APIKey.self, from: container, forKey: .minimaxCodingPlanCN)
         zaiCodingPlan = Self.decodeLossyIfPresent(APIKey.self, from: container, forKey: .zaiCodingPlan)
         nanoGpt = Self.decodeLossyIfPresent(APIKey.self, from: container, forKey: .nanoGpt)
         synthetic = Self.decodeLossyIfPresent(APIKey.self, from: container, forKey: .synthetic)
@@ -293,7 +303,9 @@ struct OpenCodeAuth: Codable {
            opencode == nil,
            openCodeGo == nil,
            kimiForCoding == nil,
+           kimiForCodingCN == nil,
            minimaxCodingPlan == nil,
+           minimaxCodingPlanCN == nil,
            zaiCodingPlan == nil,
            nanoGpt == nil,
            synthetic == nil,
@@ -330,7 +342,9 @@ struct OpenCodeAuth: Codable {
         try container.encodeIfPresent(opencode, forKey: .opencode)
         try container.encodeIfPresent(openCodeGo, forKey: .openCodeGo)
         try container.encodeIfPresent(kimiForCoding, forKey: .kimiForCoding)
+        try container.encodeIfPresent(kimiForCodingCN, forKey: .kimiForCodingCN)
         try container.encodeIfPresent(minimaxCodingPlan, forKey: .minimaxCodingPlan)
+        try container.encodeIfPresent(minimaxCodingPlanCN, forKey: .minimaxCodingPlanCN)
         try container.encodeIfPresent(zaiCodingPlan, forKey: .zaiCodingPlan)
         try container.encodeIfPresent(nanoGpt, forKey: .nanoGpt)
         try container.encodeIfPresent(synthetic, forKey: .synthetic)
@@ -830,6 +844,16 @@ final class TokenManager: @unchecked Sendable {
     private init() {
         logger.info("TokenManager initialized")
     }
+
+    #if DEBUG
+    /// Resets cached OpenCode auth so tests can swap auth.json locations.
+    func resetCachedAuthForTesting() {
+        queue.sync {
+            cachedAuth = nil
+            cacheTimestamp = nil
+        }
+    }
+    #endif
 
     // MARK: - OpenCode Auth File Reading
 
@@ -4169,9 +4193,19 @@ final class TokenManager: @unchecked Sendable {
         return auth.kimiForCoding?.key
     }
 
+    func getKimiCNAPIKey() -> String? {
+        guard let auth = readOpenCodeAuth() else { return nil }
+        return auth.kimiForCodingCN?.key
+    }
+
     func getMiniMaxCodingPlanAPIKey() -> String? {
         guard let auth = readOpenCodeAuth() else { return nil }
         return auth.minimaxCodingPlan?.key
+    }
+
+    func getMiniMaxCodingPlanCNAPIKey() -> String? {
+        guard let auth = readOpenCodeAuth() else { return nil }
+        return auth.minimaxCodingPlanCN?.key
     }
 
     func getZaiCodingPlanAPIKey() -> String? {
@@ -4896,7 +4930,9 @@ final class TokenManager: @unchecked Sendable {
             debugLines.append("  [OpenCode] \(auth.opencode != nil ? "CONFIGURED" : "NOT CONFIGURED")")
             debugLines.append("  [OpenCode Go] \(auth.openCodeGo != nil ? "CONFIGURED" : "NOT CONFIGURED")")
             debugLines.append("  [Kimi] \(auth.kimiForCoding != nil ? "CONFIGURED" : "NOT CONFIGURED")")
+            debugLines.append("  [Kimi CN] \(auth.kimiForCodingCN != nil ? "CONFIGURED" : "NOT CONFIGURED")")
             debugLines.append("  [MiniMax Coding Plan] \(auth.minimaxCodingPlan != nil ? "CONFIGURED" : "NOT CONFIGURED")")
+            debugLines.append("  [MiniMax Coding Plan CN] \(auth.minimaxCodingPlanCN != nil ? "CONFIGURED" : "NOT CONFIGURED")")
             debugLines.append("  [Z.AI Coding Plan] \(auth.zaiCodingPlan != nil ? "CONFIGURED" : "NOT CONFIGURED")")
             debugLines.append("  [Nano-GPT] \(auth.nanoGpt != nil ? "CONFIGURED" : "NOT CONFIGURED")")
         } else {
@@ -5214,12 +5250,28 @@ final class TokenManager: @unchecked Sendable {
                 debugLines.append("[Kimi for Coding] NOT CONFIGURED")
             }
 
+            if let kimiCN = auth.kimiForCodingCN {
+                debugLines.append("[Kimi for Coding CN] API Key Present")
+                debugLines.append("  - Key Length: \(kimiCN.key.count) chars")
+                debugLines.append("  - Key Preview: \(maskToken(kimiCN.key))")
+            } else {
+                debugLines.append("[Kimi for Coding CN] NOT CONFIGURED")
+            }
+
             if let minimaxCodingPlan = auth.minimaxCodingPlan {
                 debugLines.append("[MiniMax Coding Plan] API Key Present")
                 debugLines.append("  - Key Length: \(minimaxCodingPlan.key.count) chars")
                 debugLines.append("  - Key Preview: \(maskToken(minimaxCodingPlan.key))")
             } else {
                 debugLines.append("[MiniMax Coding Plan] NOT CONFIGURED")
+            }
+
+            if let minimaxCodingPlanCN = auth.minimaxCodingPlanCN {
+                debugLines.append("[MiniMax Coding Plan CN] API Key Present")
+                debugLines.append("  - Key Length: \(minimaxCodingPlanCN.key.count) chars")
+                debugLines.append("  - Key Preview: \(maskToken(minimaxCodingPlanCN.key))")
+            } else {
+                debugLines.append("[MiniMax Coding Plan CN] NOT CONFIGURED")
             }
 
             if let zaiCodingPlan = auth.zaiCodingPlan {

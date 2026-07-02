@@ -79,7 +79,7 @@ final class CommandCodeProviderTests: XCTestCase {
         XCTAssertEqual(snapshot.monthlyCreditsTotal, 10)
         XCTAssertEqual(snapshot.monthlyCreditsUsed ?? 0, 1.2216, accuracy: 0.0001)
         XCTAssertEqual(snapshot.usagePercent, 12.216, accuracy: 0.001)
-        XCTAssertEqual(snapshot.usageSummary, "Go · $1.22 of $10.00")
+        XCTAssertEqual(snapshot.usageSummary, "Go")
         XCTAssertNotNil(snapshot.billingPeriodEnd)
     }
 
