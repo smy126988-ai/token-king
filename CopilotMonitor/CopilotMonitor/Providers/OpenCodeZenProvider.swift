@@ -28,11 +28,22 @@ final class OpenCodeZenProvider: ProviderProtocol {
 
     /// Path to opencode CLI binary (lazily resolved)
     private lazy var opencodePath: URL? = {
-        findOpenCodeBinary()
+        injectedBinaryPath ?? findOpenCodeBinary()
     }()
 
     /// Cached description of where the binary was found
     private var binarySourceDescription: String = "unknown"
+
+    /// Optional path injected by tests to bypass filesystem discovery.
+    internal var injectedBinaryPath: URL?
+
+    init() {
+        self.injectedBinaryPath = nil
+    }
+
+    init(injectedBinaryPath: URL?) {
+        self.injectedBinaryPath = injectedBinaryPath
+    }
 
     /// Finds opencode binary using multiple strategies:
     /// 1. Try "opencode" command directly via PATH (user's current environment)
@@ -162,12 +173,12 @@ final class OpenCodeZenProvider: ProviderProtocol {
     func fetch() async throws -> ProviderResult {
         guard let binaryPath = opencodePath else {
             logger.error("OpenCode CLI not found in PATH or standard locations")
-            throw ProviderError.providerError("OpenCode CLI not found. Install via: brew install opencode, or ensure 'opencode' is in PATH")
+            throw ProviderError.authenticationFailed("OpenCode CLI not found. Install and sign in to OpenCode CLI first.")
         }
 
         guard FileManager.default.fileExists(atPath: binaryPath.path) else {
             logger.error("OpenCode CLI binary not accessible at \(binaryPath.path)")
-            throw ProviderError.providerError("OpenCode CLI not accessible at \(binaryPath.path)")
+            throw ProviderError.authenticationFailed("OpenCode CLI not accessible at \(binaryPath.path). Install and sign in to OpenCode CLI first.")
         }
 
         debugLog("Fetching current stats only (history tracking disabled)")
@@ -206,7 +217,7 @@ final class OpenCodeZenProvider: ProviderProtocol {
 
     private func runOpenCodeStats(days: Int) async throws -> String {
         guard let binaryPath = opencodePath else {
-            throw ProviderError.providerError("OpenCode CLI not found")
+            throw ProviderError.authenticationFailed("OpenCode CLI not found. Install and sign in to OpenCode CLI first.")
         }
 
         // `opencode stats` occasionally hangs and leaves a background process alive

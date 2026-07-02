@@ -124,6 +124,42 @@ final class OpenCodeZenProviderTests: XCTestCase {
         XCTAssertTrue(adjusted.modelCosts.isEmpty)
     }
 
+    func testFetchThrowsAuthenticationFailedWhenBinaryMissing() async {
+        let provider = OpenCodeZenProvider(injectedBinaryPath: nil)
+
+        do {
+            _ = try await provider.fetch()
+            XCTFail("Expected authentication failure")
+        } catch let error as ProviderError {
+            switch error {
+            case .authenticationFailed(let message):
+                XCTAssertTrue(message.lowercased().contains("not found"))
+            default:
+                XCTFail("Expected authenticationFailed, got \\(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error: \\(error)")
+        }
+    }
+
+    func testFetchThrowsAuthenticationFailedWhenBinaryPathIsNotAccessible() async {
+        let provider = OpenCodeZenProvider(injectedBinaryPath: URL(fileURLWithPath: "/nonexistent/opencode"))
+
+        do {
+            _ = try await provider.fetch()
+            XCTFail("Expected authentication failure")
+        } catch let error as ProviderError {
+            switch error {
+            case .authenticationFailed:
+                break
+            default:
+                XCTFail("Expected authenticationFailed, got \\(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error: \\(error)")
+        }
+    }
+
     func testIsOpenCodeZenModelMatchesOnlyZenProviderPrefixes() {
         XCTAssertTrue(OpenCodeZenProvider.isOpenCodeZenModel("opencode/gpt-5.5"))
         XCTAssertTrue(OpenCodeZenProvider.isOpenCodeZenModel(" opencode-go/minimax-m2.7 "))
