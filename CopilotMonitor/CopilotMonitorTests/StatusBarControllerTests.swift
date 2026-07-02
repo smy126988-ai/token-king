@@ -18,4 +18,41 @@ final class StatusBarControllerTests: XCTestCase {
 
         XCTAssertEqual(titles, ["刷新", "设置"], "初始化后顶层菜单应只保留「刷新」和「设置」")
     }
+
+    @MainActor
+    func testUnconfiguredCopilotErrorAppearsInUnconfiguredSubmenu() {
+        UserDefaults.standard.set(true, forKey: "githubStarPromptDismissed")
+
+        let controller = StatusBarController()
+        controller.injectProviderStateForTesting(
+            results: [
+                .synthetic: ProviderResult(
+                    usage: .quotaBased(remaining: 100, entitlement: 100, overagePermitted: false),
+                    details: nil
+                )
+            ],
+            errors: [.copilot: "Authentication failed: GitHub Copilot token not found"],
+            loading: []
+        )
+
+        guard let menu = controller.topMenuForTesting else {
+            XCTFail("顶层菜单未创建")
+            return
+        }
+
+        let unconfiguredItem = menu.items.first {
+            $0.title.hasPrefix("尚未配置")
+        }
+        XCTAssertNotNil(unconfiguredItem, "应存在「尚未配置」子菜单")
+
+        guard let submenu = unconfiguredItem?.submenu else {
+            XCTFail("「尚未配置」项应有子菜单")
+            return
+        }
+
+        let copilotItem = submenu.items.first {
+            $0.title.contains("GitHub Copilot") && $0.title.contains("点击配置")
+        }
+        XCTAssertNotNil(copilotItem, "尚未配置子菜单中应包含 Copilot 的「点击配置」入口")
+    }
 }
