@@ -15,8 +15,10 @@ final class SubscriptionPresetTests: XCTestCase {
 
     func testKimiPresetsHaveDomesticCNY() {
         let presets = ProviderSubscriptionPresets.kimi
+        XCTAssertEqual(presets.first { $0.name == "Andante" }?.cnyCost, 49)
         XCTAssertEqual(presets.first { $0.name == "Moderato" }?.cnyCost, 99)
         XCTAssertEqual(presets.first { $0.name == "Allegretto" }?.cnyCost, 199)
+        XCTAssertEqual(presets.first { $0.name == "Allegro" }?.cnyCost, 699)
         XCTAssertNil(presets.first { $0.name == "Vivace" }?.cnyCost)
     }
 

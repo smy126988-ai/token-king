@@ -137,9 +137,11 @@ struct ProviderSubscriptionPresets {
     ]
 
     static let kimi: [SubscriptionPreset] = [
+        SubscriptionPreset(name: "Andante", cost: 0, cnyCost: 49),   // 纯国内档，无官方海外价
         SubscriptionPreset(name: "Moderato", cost: 19, cnyCost: 99),
         SubscriptionPreset(name: "Allegretto", cost: 39, cnyCost: 199),
-        SubscriptionPreset(name: "Vivace", cost: 199)
+        SubscriptionPreset(name: "Allegro", cost: 99, cnyCost: 699),
+        SubscriptionPreset(name: "Vivace", cost: 199)               // 纯海外档，无 cnyCost
     ]
 
     static let minimaxCodingPlan: [SubscriptionPreset] = [
