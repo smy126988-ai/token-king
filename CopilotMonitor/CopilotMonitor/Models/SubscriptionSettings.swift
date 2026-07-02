@@ -90,16 +90,36 @@ enum SubscriptionPlan: Codable, Equatable {
     }
 }
 
+extension SubscriptionPlan {
+    /// User-facing title for the selected subscription plan, formatted with the supplied formatter.
+    /// Pass the matching preset list so RMB mode can use native CNY prices where available.
+    /// Example outputs: "Pro ($20/月)", "Moderato (¥99/月)", "自定义 (¥144/月)", "无 (¥0)".
+    func displayTitle(formatter: CurrencyFormatter = CurrencyFormatter.shared,
+                      presets: [SubscriptionPreset] = []) -> String {
+        switch self {
+        case .none:
+            return "无 (\(formatter.format(usd: 0, decimals: 0)))"
+        case .preset(let name, let cost):
+            let matchedPreset = presets.first { $0.name == name && $0.cost == cost }
+            let price = matchedPreset?.formattedPrice(decimals: 0, formatter: formatter)
+                ?? formatter.format(usd: cost, decimals: 0)
+            return "\(name) (\(price)/月)"
+        case .custom(let amount):
+            return "自定义 (\(formatter.format(usd: amount, decimals: 0))/月)"
+        }
+    }
+}
+
 struct SubscriptionPreset {
     let name: String
     let cost: Double          // USD，ROI 计算唯一真值
     var cnyCost: Double? = nil // 国内套餐人民币原生价，仅展示用
 
-    func formattedPrice(decimals: Int = 0) -> String {
-        if CurrencyFormatter.shared.currency == .rmb, let cny = cnyCost {
+    func formattedPrice(decimals: Int = 0, formatter: CurrencyFormatter = CurrencyFormatter.shared) -> String {
+        if formatter.currency == .rmb, let cny = cnyCost {
             return "¥\(Int(cny))"
         }
-        return CurrencyFormatter.shared.format(usd: cost, decimals: decimals)
+        return formatter.format(usd: cost, decimals: decimals)
     }
 }
 
