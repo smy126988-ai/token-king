@@ -362,28 +362,37 @@ actor ProviderManager {
     }
 
     private func fetchWithTimeout(provider: ProviderProtocol) async throws -> ProviderResult {
-        let timeout = provider.fetchTimeout
-        return try await withThrowingTaskGroup(of: ProviderResult.self) { group in
-            // Add fetch task
-            group.addTask {
-                try await provider.fetch()
+        // Cap per-provider timeout so a single blocking CLI/network provider
+        // cannot stall the entire refresh for more than ~20s.
+        let timeout = min(provider.fetchTimeout, 20.0)
+        let box = SingleResumption<ProviderResult>()
+        return try await withCheckedThrowingContinuation { continuation in
+            let fetchTask = Task {
+                do {
+                    let result = try await provider.fetch()
+                    await box.resume(continuation, with: .success(result))
+                } catch {
+                    await box.resume(continuation, with: .failure(error))
+                }
             }
-
-            // Add timeout task
-            group.addTask {
-                try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-                throw ProviderError.networkError("Fetch timeout after \(timeout)s")
+            Task {
+                try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+                fetchTask.cancel()
+                let timeoutError = ProviderError.networkError("Fetch timeout after \(timeout)s")
+                await box.resume(continuation, with: .failure(timeoutError))
             }
-
-            // Return first result (either success or timeout)
-            guard let result = try await group.next() else {
-                throw ProviderError.networkError("Task group failed")
-            }
-
-            // Cancel remaining task
-            group.cancelAll()
-
-            return result
         }
+    }
+}
+
+/// Ensures a continuation is resumed exactly once, even when a blocking
+/// provider fetch outlives its timeout and tries to complete afterwards.
+private actor SingleResumption<T> {
+    private var resumed = false
+
+    func resume(_ continuation: CheckedContinuation<T, Error>, with result: Result<T, Error>) {
+        guard !resumed else { return }
+        resumed = true
+        continuation.resume(with: result)
     }
 }
