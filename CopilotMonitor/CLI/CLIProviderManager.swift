@@ -17,7 +17,8 @@ actor CLIProviderManager {
         .antigravity, .openCodeZen, .openCodeGo, .kiro, .grok, .kimiCN, .kimi, .minimaxCodingPlanCN, .minimaxCodingPlan, .zaiCodingPlan,
         .nanoGpt,
         .chutes, .copilot,
-        .synthetic, .volcanoArk
+        .synthetic, .volcanoArk,
+        .mimo, .hunyuan, .zhipuGLM
     ]
     
     // MARK: - Initialization
@@ -48,6 +49,11 @@ actor CLIProviderManager {
         // Volcano Ark (CN quota-based provider)
         let volcanoArkProvider = VolcanoArkProvider()
 
+        // Catalog-only CN providers (no public usage API yet)
+        let mimoProvider = MimoProvider()
+        let hunyuanProvider = HunyuanProvider()
+        let zhipuGLMProvider = ZhipuGLMProvider()
+
         // 1 CLI-specific provider (uses browser cookies instead of WebView)
         let copilotCLIProvider = CopilotCLIProvider()
 
@@ -72,7 +78,10 @@ actor CLIProviderManager {
             chutesProvider,
             copilotCLIProvider,
             syntheticProvider,
-            volcanoArkProvider
+            volcanoArkProvider,
+            mimoProvider,
+            hunyuanProvider,
+            zhipuGLMProvider
         ]
 
         let providerCount = providers.count
