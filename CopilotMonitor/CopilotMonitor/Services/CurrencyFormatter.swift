@@ -17,7 +17,7 @@ final class CurrencyFormatter {
     var currency: Currency {
         get {
             guard let raw = defaults.string(forKey: CurrencyPreferences.selectedCurrencyKey),
-                  let c = Currency(rawValue: raw) else { return .usd }
+                  let c = Currency(rawValue: raw) else { return .rmb }
             return c
         }
         set { defaults.set(newValue.rawValue, forKey: CurrencyPreferences.selectedCurrencyKey) }

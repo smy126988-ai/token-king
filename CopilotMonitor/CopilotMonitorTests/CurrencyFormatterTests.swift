@@ -9,9 +9,9 @@ final class CurrencyFormatterTests: XCTestCase {
         return defaults
     }
 
-    func testDefaultsToUSD() {
+    func testDefaultsToRMB() {
         let f = CurrencyFormatter(defaults: makeDefaults(), rateStore: ExchangeRateStore(defaults: makeDefaults()))
-        XCTAssertEqual(f.currency, .usd)
+        XCTAssertEqual(f.currency, .rmb)
     }
 
     func testFormatsUSDUnchanged() {
