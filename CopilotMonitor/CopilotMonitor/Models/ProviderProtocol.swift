@@ -260,7 +260,7 @@ enum ProviderIdentifier: String, CaseIterable {
         case .hunyuan:
             return "h.circle"
         case .zhipuGLM:
-            return "g.circle"
+            return "z.circle"
         }
     }
 
