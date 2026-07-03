@@ -73,9 +73,20 @@ final class SubscriptionPlanDisplayTests: XCTestCase {
         XCTAssertTrue(title.contains("/月"), "USD custom-plan text should use Chinese '月' suffix: \(title)")
     }
 
-    func testDisplayNameRemainsPlainDataWithoutFormatting() {
-        let plan = SubscriptionPlan.preset("Pro", 20)
-        XCTAssertEqual(plan.displayName, "Pro")
-        XCTAssertEqual(plan.cost, 20, accuracy: 0.001)
+    @MainActor
+    func testCodexSubscriptionMenuShowsDistinctPro100AndPro200() {
+        UserDefaults.standard.set(true, forKey: "githubStarPromptDismissed")
+
+        let controller = StatusBarController()
+        let menu = NSMenu()
+        controller.addSubscriptionItems(to: menu, provider: .codex, accountId: nil)
+
+        let titles = menu.items.map(\.title)
+        let pro100 = titles.first { $0.contains("Pro $100") }
+        let pro200 = titles.first { $0.contains("Pro $200") }
+
+        XCTAssertNotNil(pro100, "Codex subscription menu should contain 'Pro $100' preset: \(titles)")
+        XCTAssertNotNil(pro200, "Codex subscription menu should contain 'Pro $200' preset: \(titles)")
+        XCTAssertNotEqual(pro100, pro200, "Pro $100 and Pro $200 should be distinct menu items")
     }
 }

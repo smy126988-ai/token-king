@@ -135,8 +135,8 @@ struct ProviderSubscriptionPresets {
     static let codex: [SubscriptionPreset] = [
         SubscriptionPreset(name: "Go", cost: 8),
         SubscriptionPreset(name: "Plus", cost: 20),
-        SubscriptionPreset(name: "Pro", cost: 100),
-        SubscriptionPreset(name: "Pro", cost: 200),
+        SubscriptionPreset(name: "Pro $100", cost: 100),
+        SubscriptionPreset(name: "Pro $200", cost: 200),
         SubscriptionPreset(name: "Business", cost: 25)
     ]
 
@@ -300,7 +300,6 @@ struct ProviderSubscriptionPresets {
         case (.synthetic, _): return synthetic
         case (.nanoGpt, _): return nanoGpt
         case (.openRouter, _): return openRouter
-        case (.openCode, .global) where false: return []
         case (.openCode, _): return openCode
         case (.kiro, _): return kiro
         case (.grok, _): return grok

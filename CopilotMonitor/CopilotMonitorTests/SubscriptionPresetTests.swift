@@ -43,8 +43,12 @@ final class SubscriptionPresetTests: XCTestCase {
 
     func testCodexPresetsIncludeBothProTiers() {
         let presets = ProviderSubscriptionPresets.presets(family: .codex, region: .global)
-        let proTiers = presets.filter { $0.name == "Pro" }
-        XCTAssertEqual(proTiers.map { $0.cost }.sorted(), [100, 200])
+        let pro100 = presets.first { $0.name == "Pro $100" }
+        let pro200 = presets.first { $0.name == "Pro $200" }
+        XCTAssertNotNil(pro100)
+        XCTAssertNotNil(pro200)
+        XCTAssertEqual(pro100?.cost, 100)
+        XCTAssertEqual(pro200?.cost, 200)
     }
 
     func testNewProvidersHavePresets() {
