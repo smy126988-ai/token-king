@@ -43,9 +43,10 @@ final class ProviderRegionTests: XCTestCase {
     // MARK: - RMB filtering by current region
 
     func testRMBModeShowsKimiGlobalTiersWithUSDConversion() {
+        let previousCurrency = CurrencyFormatter.shared.currency
         let presets = ProviderSubscriptionPresets.presets(for: .kimi)
         CurrencyFormatter.shared.currency = .rmb
-        defer { CurrencyFormatter.shared.currency = .usd }
+        defer { CurrencyFormatter.shared.currency = previousCurrency }
 
         // 当前 region 没有 cnyCost，所以不过滤，所有 global tier 都显示 USD 折算价
         XCTAssertTrue(presets.contains { $0.name == "Vivace" })
@@ -59,9 +60,10 @@ final class ProviderRegionTests: XCTestCase {
     }
 
     func testRMBModeShowsMiniMaxGlobalTiersWithUSDConversion() {
+        let previousCurrency = CurrencyFormatter.shared.currency
         let presets = ProviderSubscriptionPresets.presets(for: .minimaxCodingPlan)
         CurrencyFormatter.shared.currency = .rmb
-        defer { CurrencyFormatter.shared.currency = .usd }
+        defer { CurrencyFormatter.shared.currency = previousCurrency }
 
         XCTAssertFalse(presets.isEmpty)
         XCTAssertTrue(presets.allSatisfy { $0.cnyCost == nil })
@@ -69,30 +71,33 @@ final class ProviderRegionTests: XCTestCase {
     }
 
     func testRMBModeShowsAllMiniMaxCNTiers() {
+        let previousCurrency = CurrencyFormatter.shared.currency
         let presets = ProviderSubscriptionPresets.presets(for: .minimaxCodingPlanCN)
         CurrencyFormatter.shared.currency = .rmb
-        defer { CurrencyFormatter.shared.currency = .usd }
+        defer { CurrencyFormatter.shared.currency = previousCurrency }
 
         XCTAssertTrue(presets.allSatisfy { $0.cnyCost != nil })
     }
 
     func testCNPresetFormattedPriceUsesNativeCNYInRMBMode() {
+        let previousCurrency = CurrencyFormatter.shared.currency
         let preset = ProviderSubscriptionPresets.presets(for: .kimiCN).first { $0.name == "Moderato" }
         XCTAssertNotNil(preset)
 
         CurrencyFormatter.shared.currency = .rmb
-        defer { CurrencyFormatter.shared.currency = .usd }
+        defer { CurrencyFormatter.shared.currency = previousCurrency }
 
         let price = preset!.formattedPrice(decimals: 0)
         XCTAssertEqual(price, "¥99")
     }
 
     func testMiniMaxCNPresetFormattedPriceUsesNativeCNYInRMBMode() {
+        let previousCurrency = CurrencyFormatter.shared.currency
         let preset = ProviderSubscriptionPresets.presets(for: .minimaxCodingPlanCN).first { $0.name == "Plus" }
         XCTAssertNotNil(preset)
 
         CurrencyFormatter.shared.currency = .rmb
-        defer { CurrencyFormatter.shared.currency = .usd }
+        defer { CurrencyFormatter.shared.currency = previousCurrency }
 
         let price = preset!.formattedPrice(decimals: 0)
         XCTAssertEqual(price, "¥49")
