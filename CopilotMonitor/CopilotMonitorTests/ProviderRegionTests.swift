@@ -1,7 +1,6 @@
 import XCTest
 @testable import OpenCode_Bar
 
-/// Phase 5 regression tests for the CN/Global provider split and RMB hiding.
 final class ProviderRegionTests: XCTestCase {
 
     // MARK: - Provider Order
@@ -25,31 +24,56 @@ final class ProviderRegionTests: XCTestCase {
         XCTAssertLessThan(minimaxCNIndex!, minimaxGlobalIndex!, "MiniMax CN must appear before MiniMax Global in the menu")
     }
 
-    // MARK: - RMB Hide Overseas Tiers
+    // MARK: - Family / Region mapping
 
-    func testRMBModeHidesKimiVivace() {
-        let presets = ProviderSubscriptionPresets.presets(for: .kimi)
-        let rmbVisible = presets.filter { $0.cnyCost != nil }
-
-        XCTAssertTrue(rmbVisible.contains { $0.name == "Andante" })
-        XCTAssertTrue(rmbVisible.contains { $0.name == "Moderato" })
-        XCTAssertTrue(rmbVisible.contains { $0.name == "Allegretto" })
-        XCTAssertTrue(rmbVisible.contains { $0.name == "Allegro" })
-        XCTAssertFalse(rmbVisible.contains { $0.name == "Vivace" }, "Vivace has no native CNY price and must be hidden in RMB mode")
+    func testKimiIdentifiersShareFamily() {
+        XCTAssertEqual(ProviderIdentifier.kimi.family, .kimi)
+        XCTAssertEqual(ProviderIdentifier.kimiCN.family, .kimi)
+        XCTAssertEqual(ProviderIdentifier.kimi.region, .global)
+        XCTAssertEqual(ProviderIdentifier.kimiCN.region, .china)
     }
 
-    func testRMBModeHidesAllMiniMaxGlobalTiers() {
-        let presets = ProviderSubscriptionPresets.presets(for: .minimaxCodingPlan)
-        let rmbVisible = presets.filter { $0.cnyCost != nil }
+    func testMiniMaxIdentifiersShareFamily() {
+        XCTAssertEqual(ProviderIdentifier.minimaxCodingPlan.family, .minimax)
+        XCTAssertEqual(ProviderIdentifier.minimaxCodingPlanCN.family, .minimax)
+        XCTAssertEqual(ProviderIdentifier.minimaxCodingPlan.region, .global)
+        XCTAssertEqual(ProviderIdentifier.minimaxCodingPlanCN.region, .china)
+    }
 
-        XCTAssertTrue(rmbVisible.isEmpty, "MiniMax Global presets have no CNY prices; none should be visible in RMB mode")
+    // MARK: - RMB filtering by current region
+
+    func testRMBModeShowsKimiGlobalTiersWithUSDConversion() {
+        let presets = ProviderSubscriptionPresets.presets(for: .kimi)
+        CurrencyFormatter.shared.currency = .rmb
+        defer { CurrencyFormatter.shared.currency = .usd }
+
+        // 当前 region 没有 cnyCost，所以不过滤，所有 global tier 都显示 USD 折算价
+        XCTAssertTrue(presets.contains { $0.name == "Vivace" })
+        let vivace = presets.first { $0.name == "Vivace" }!
+        XCTAssertTrue(vivace.formattedPrice(decimals: 0).contains("¥"))
+    }
+
+    func testRMBModeHidesKimiVivaceInChinaRegion() {
+        let presets = ProviderSubscriptionPresets.presets(for: .kimiCN)
+        XCTAssertFalse(presets.contains { $0.name == "Vivace" })
+    }
+
+    func testRMBModeShowsMiniMaxGlobalTiersWithUSDConversion() {
+        let presets = ProviderSubscriptionPresets.presets(for: .minimaxCodingPlan)
+        CurrencyFormatter.shared.currency = .rmb
+        defer { CurrencyFormatter.shared.currency = .usd }
+
+        XCTAssertFalse(presets.isEmpty)
+        XCTAssertTrue(presets.allSatisfy { $0.cnyCost == nil })
+        XCTAssertTrue(presets.first!.formattedPrice(decimals: 0).contains("¥"))
     }
 
     func testRMBModeShowsAllMiniMaxCNTiers() {
         let presets = ProviderSubscriptionPresets.presets(for: .minimaxCodingPlanCN)
-        let rmbVisible = presets.filter { $0.cnyCost != nil }
+        CurrencyFormatter.shared.currency = .rmb
+        defer { CurrencyFormatter.shared.currency = .usd }
 
-        XCTAssertEqual(rmbVisible.count, presets.count, "All MiniMax CN presets should have native CNY prices")
+        XCTAssertTrue(presets.allSatisfy { $0.cnyCost != nil })
     }
 
     func testCNPresetFormattedPriceUsesNativeCNYInRMBMode() {
@@ -60,25 +84,24 @@ final class ProviderRegionTests: XCTestCase {
         defer { CurrencyFormatter.shared.currency = .usd }
 
         let price = preset!.formattedPrice(decimals: 0)
-        XCTAssertEqual(price, "¥99", "CN preset with cnyCost should show native RMB price")
+        XCTAssertEqual(price, "¥99")
     }
 
     func testMiniMaxCNPresetFormattedPriceUsesNativeCNYInRMBMode() {
-        let preset = ProviderSubscriptionPresets.presets(for: .minimaxCodingPlanCN).first { $0.name == "Starter" }
+        let preset = ProviderSubscriptionPresets.presets(for: .minimaxCodingPlanCN).first { $0.name == "Plus" }
         XCTAssertNotNil(preset)
 
         CurrencyFormatter.shared.currency = .rmb
         defer { CurrencyFormatter.shared.currency = .usd }
 
         let price = preset!.formattedPrice(decimals: 0)
-        XCTAssertEqual(price, "¥29", "MiniMax CN preset with cnyCost should show native RMB price")
+        XCTAssertEqual(price, "¥49")
     }
 
     // MARK: - Migration / Config Preservation
 
     func testOldMiniMaxGlobalSubscriptionKeyIsStillReadable() {
         let manager = SubscriptionSettingsManager.shared
-        // The old enum value `.minimaxCodingPlan` was retained as the global provider alias.
         let key = "minimax_coding_plan.migration-test@example.com"
         defer { manager.removePlan(forKey: key) }
 
@@ -90,7 +113,6 @@ final class ProviderRegionTests: XCTestCase {
 
     func testOldKimiGlobalSubscriptionKeyIsStillReadable() {
         let manager = SubscriptionSettingsManager.shared
-        // The old enum value `.kimi` was retained as the global provider alias.
         let key = "kimi.migration-test@example.com"
         defer { manager.removePlan(forKey: key) }
 

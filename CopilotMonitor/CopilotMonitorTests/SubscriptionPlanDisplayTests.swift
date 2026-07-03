@@ -20,7 +20,7 @@ final class SubscriptionPlanDisplayTests: XCTestCase {
 
     func testRMBSelectedPresetUsesYuanAndMonthlySuffix() {
         let formatter = makeFormatter(currency: .rmb)
-        let presets = ProviderSubscriptionPresets.kimiCN
+        let presets = ProviderSubscriptionPresets.kimiChina
         let plan = SubscriptionPlan.preset("Moderato", 19)
 
         let title = plan.displayTitle(formatter: formatter, presets: presets)
@@ -53,7 +53,7 @@ final class SubscriptionPlanDisplayTests: XCTestCase {
 
     func testUSDSelectedPresetUsesDollarAndMonthlySuffix() {
         let formatter = makeFormatter(currency: .usd)
-        let presets = ProviderSubscriptionPresets.kimiCN
+        let presets = ProviderSubscriptionPresets.kimiChina
         let plan = SubscriptionPlan.preset("Moderato", 19)
 
         let title = plan.displayTitle(formatter: formatter, presets: presets)
