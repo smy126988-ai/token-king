@@ -421,21 +421,21 @@ final class StatusBarController: NSObject {
     /// the underlying `NSSceneStatusItem`.
     ///
     /// On macOS 26.x this `NSStatusItem` is actually an `NSSceneStatusItem`
-    /// subclass that does NOT respond to `setMenu:` (verified by lldb —
-    /// `performSelector:@selector(setMenu:)` returns NO). Setting the menu
-    /// here is therefore best-effort; the actual menu wiring goes through
-    /// the SwiftUI Scene path inside `MenuBarExtraAccess`. What we CAN
-    /// reliably do is:
-    ///   1. Set `statusItem.length` to variable so we can resize it.
-    ///   2. Re-render our `StatusBarIconView` into `button.image` (the
-    ///      subview drawing path is unreliable on NSSceneStatusItem).
-    ///   3. Stash the item so subsequent `updateStatusBarText()` calls
-    ///      target the correct NSStatusBarButton.
+    /// subclass. Verified by lldb:
+    ///   - `respondsToSelector:@selector(setMenu:)` → YES
+    ///   - `respondsToSelector:@selector(menu)`      → YES
+    ///   - `respondsToSelector:@selector(_setMenu:)` → NO (private setter absent)
+    /// The public `setMenu:` setter does work. What does NOT work is
+    /// `NSStatusBar.system.statusItem(withLength:)` from a pure AppKit path —
+    /// the resulting status item never gets registered with `SystemUIServer`
+    /// in a way that is clickable. We must obtain the item from SwiftUI's
+    /// Scene (via `MenuBarExtraAccess` which queries `NSApp.windows` for
+    /// `NSStatusBarWindow` instances). Once we have it, setting the menu
+    /// and rendering our custom icon via `button.image` work as expected.
     func attachTo(_ statusItem: NSStatusItem) {
         debugLog("attachTo: called with statusItem")
         self.statusItem = statusItem
-        // Best-effort: NSSceneStatusItem may not respond to setMenu:, but
-        // harmless if ignored.
+        // Public setMenu: works on NSSceneStatusItem (verified by lldb).
         statusItem.menu = self.menu
         statusItem.length = NSStatusItem.variableLength
         if statusBarIconView != nil {
