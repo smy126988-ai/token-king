@@ -4,14 +4,24 @@ import os.log
 
 private let logger = Logger(subsystem: "com.opencodeproviders", category: "AppDelegate")
 
-// Pure AppKit entry point: `main.swift` constructs `NSApplication.shared`,
-// installs this delegate and calls `app.run()`. We do not use
-// `@NSApplicationMain` because in Xcode 26.x debug-dylib builds the macro
-// emits an `_main` stub that invokes `NSApplicationMain` without passing the
-// delegate class, leaving `NSApp.delegate` nil. See `main.swift` for details.
+// SwiftUI App lifecycle entry point: `@main struct ModernApp` (in
+// `ModernApp.swift`) constructs this delegate via
+// `@NSApplicationDelegateAdaptor`. The `MenuBarExtraAccess` bridge inside
+// `ModernApp` calls `attachStatusItem(_:)` once SwiftUI has provisioned the
+// underlying `NSSceneStatusItem`. We forward it to `StatusBarController`,
+// queuing it if the controller has not been initialized yet (the bridge
+// callback can fire before `applicationDidFinishLaunching` in some launch
+// orderings).
 class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
     var statusBarController: StatusBarController!
     private(set) var updaterController: SPUStandardUpdaterController!
+
+    // Bridge handoff: MenuBarExtraAccess calls this from ModernApp's body
+    // evaluation. If `statusBarController` already exists (the normal case,
+    // since `applicationDidFinishLaunching` runs first), we forward
+    // directly. Otherwise we queue the item and drain the queue after the
+    // controller is created in `applicationDidFinishLaunching`.
+    private var pendingStatusItem: NSStatusItem?
 
     @objc func checkForUpdates() {
         logger.info("⌨️ [Keyboard] ⌘U Check for Updates triggered")
@@ -19,22 +29,42 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         updaterController.checkForUpdates(self)
     }
 
+    @MainActor
+    func attachStatusItem(_ statusItem: NSStatusItem) {
+        if let controller = statusBarController {
+            logger.info("🌉 [Bridge] attachStatusItem: forwarding to existing controller")
+            controller.attachTo(statusItem)
+        } else {
+            logger.info("🌉 [Bridge] attachStatusItem: controller not ready, queuing item")
+            pendingStatusItem = statusItem
+        }
+    }
+
+    @MainActor
     func applicationDidFinishLaunching(_ notification: Notification) {
         if AppMigrationHelper.shared.checkAndMigrateIfNeeded() {
             return
         }
-        
+
         AppMigrationHelper.shared.cleanupLegacyBundlesIfNeeded()
-        
+
         updaterController = SPUStandardUpdaterController(
             startingUpdater: true,
             updaterDelegate: self,
             userDriverDelegate: nil
         )
-        
+
         configureAutomaticUpdates()
         statusBarController = StatusBarController()
         closeAllWindows()
+
+        // Drain the bridge queue if the bridge callback already fired
+        // before the controller was constructed.
+        if let pending = pendingStatusItem {
+            logger.info("🌉 [Bridge] draining queued statusItem into controller")
+            statusBarController?.attachTo(pending)
+            pendingStatusItem = nil
+        }
     }
     
     private func configureAutomaticUpdates() {

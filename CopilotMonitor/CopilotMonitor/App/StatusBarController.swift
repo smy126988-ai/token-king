@@ -348,23 +348,16 @@ final class StatusBarController: NSObject {
     }
 
     private func setupStatusItem() {
-        // Direct AppKit path: NSStatusBar.system.statusItem creates a real NSStatusItem
-        // (not NSSceneStatusItem) that registers in _statusItems. With @NSApplicationMain
-        // on AppDelegate (no SwiftUI App lifecycle), this works correctly on macOS 26.x.
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem?.menu = self.menu
-
+        // SwiftUI MenuBarExtraAccess bridge path: NSStatusItem is owned by SwiftUI
+        // (it is an NSSceneStatusItem that registers in `[NSStatusBar systemStatusBar]
+        // _statusItems` on macOS 26.x). It will be supplied later via `attachTo(_:)`
+        // from AppDelegate. We only set up the custom StatusBarIconView here so it
+        // is ready when the bridge arrives.
         statusBarIconView = StatusBarIconView(frame: .zero)
         statusBarIconView?.onIntrinsicContentSizeDidChange = { [weak self] in
             self?.updateStatusItemLayout(reason: "intrinsic-size-changed")
         }
         statusBarIconView?.showLoading()
-
-        // Attach the icon view as a subview of the NSStatusBarButton so it draws
-        // directly into the status bar item.
-        if let button = statusItem?.button {
-            button.addSubview(statusBarIconView!)
-        }
         updateStatusItemLayout(reason: "setup")
     }
 
@@ -373,7 +366,32 @@ final class StatusBarController: NSObject {
             return
         }
         button.title = ""
+        // Fallback path: keep icon view as a subview. On macOS 26.x NSSceneStatusItem
+        // subview drawing is unreliable, so we ALSO render the icon view into
+        // `button.image` via `renderStatusItemImage()` (called from
+        // `updateStatusItemLayout()`) — that path is the actual rendering source.
         button.addSubview(iconView)
+    }
+
+    /// Render the StatusBarIconView into a template NSImage and assign it to
+    /// `button.image`. On macOS 26.x NSSceneStatusItem the button's subview
+    /// drawing is unreliable, so the image-assignment path is what actually
+    /// shows up in the menu bar.
+    private func renderStatusItemImage() {
+        guard let iconView = statusBarIconView, let button = statusItem?.button else {
+            return
+        }
+        let size = NSSize(
+            width: max(iconView.intrinsicContentSize.width, 22),
+            height: iconView.intrinsicContentSize.height
+        )
+        let image = NSImage(size: size)
+        image.lockFocus()
+        iconView.draw(NSRect(origin: .zero, size: size))
+        image.unlockFocus()
+        image.isTemplate = true
+        button.image = image
+        button.title = ""
     }
 
     private func updateStatusItemLayout(reason: String) {
@@ -385,14 +403,47 @@ final class StatusBarController: NSObject {
         let minWidth = MenuDesignToken.Dimension.iconSize + 4
         let width = max(minWidth, ceil(intrinsicSize.width))
 
-        iconView.frame = NSRect(x: 0, y: 0, width: width, height: intrinsicSize.height)
         statusItem.length = width
+        iconView.frame = NSRect(x: 0, y: 0, width: width, height: intrinsicSize.height)
+        // Re-render the button image at the new size — subview drawing may not
+        // work on NSSceneStatusItem, so this is the actual visible path.
+        renderStatusItemImage()
         button.needsDisplay = true
 
         let widthText = String(format: "%.1f", width)
         let intrinsicWidthText = String(format: "%.1f", intrinsicSize.width)
         debugLog("statusIconLayout[\(reason)]: width=\(widthText), intrinsicWidth=\(intrinsicWidthText)")
         logger.debug("statusIconLayout[\(reason)]: width=\(widthText, privacy: .public)")
+    }
+
+    /// Bridge handoff: called by `AppDelegate.attachStatusItem(_:)` once
+    /// SwiftUI's `MenuBarExtra` (via `MenuBarExtraAccess`) has provisioned
+    /// the underlying `NSSceneStatusItem`.
+    ///
+    /// On macOS 26.x this `NSStatusItem` is actually an `NSSceneStatusItem`
+    /// subclass that does NOT respond to `setMenu:` (verified by lldb —
+    /// `performSelector:@selector(setMenu:)` returns NO). Setting the menu
+    /// here is therefore best-effort; the actual menu wiring goes through
+    /// the SwiftUI Scene path inside `MenuBarExtraAccess`. What we CAN
+    /// reliably do is:
+    ///   1. Set `statusItem.length` to variable so we can resize it.
+    ///   2. Re-render our `StatusBarIconView` into `button.image` (the
+    ///      subview drawing path is unreliable on NSSceneStatusItem).
+    ///   3. Stash the item so subsequent `updateStatusBarText()` calls
+    ///      target the correct NSStatusBarButton.
+    func attachTo(_ statusItem: NSStatusItem) {
+        debugLog("attachTo: called with statusItem")
+        self.statusItem = statusItem
+        // Best-effort: NSSceneStatusItem may not respond to setMenu:, but
+        // harmless if ignored.
+        statusItem.menu = self.menu
+        statusItem.length = NSStatusItem.variableLength
+        if statusBarIconView != nil {
+            attachStatusIconViewToButton()
+            updateStatusItemLayout(reason: "attach")
+        } else {
+            debugLog("attachTo: iconView is nil!")
+        }
     }
 
     private func setupMenu() {
@@ -557,8 +608,9 @@ final class StatusBarController: NSObject {
         // 这条分隔线是 updateMultiProviderMenu() 定位动态区起点的锚，必须保留。
         menu.addItem(NSMenuItem.separator())
 
-        // Pure AppKit lifecycle: NSStatusItem is created directly in setupStatusItem();
-        // no SwiftUI MenuBarExtra / MenuBarExtraAccess bridge involvement.
+        // SwiftUI MenuBarExtra + MenuBarExtraAccess bridge: NSStatusItem is
+        // supplied to us via `attachTo(_:)` from AppDelegate (the bridge
+        // callback fires once SwiftUI provisions the NSSceneStatusItem).
         logMenuStructure()
     }
 
