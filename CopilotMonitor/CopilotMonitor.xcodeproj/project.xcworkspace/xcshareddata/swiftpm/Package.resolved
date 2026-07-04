@@ -1,15 +1,6 @@
 {
-  "originHash" : "ba4558903a96c28af452db78192a84163ae52e90a1f34897852615add1b9c52f",
+  "originHash" : "df0c938e5bddad95a88d98a49bb3f929e368b5501385afd51fb14af9a8e13088",
   "pins" : [
-    {
-      "identity" : "menubarextraaccess",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/orchetect/MenuBarExtraAccess",
-      "state" : {
-        "revision" : "707dff6f55217b3ef5b6be84ced3e83511d4df5c",
-        "version" : "1.2.2"
-      }
-    },
     {
       "identity" : "sparkle",
       "kind" : "remoteSourceControl",

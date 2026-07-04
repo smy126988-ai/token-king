@@ -348,13 +348,23 @@ final class StatusBarController: NSObject {
     }
 
     private func setupStatusItem() {
+        // Direct AppKit path: NSStatusBar.system.statusItem creates a real NSStatusItem
+        // (not NSSceneStatusItem) that registers in _statusItems. With @NSApplicationMain
+        // on AppDelegate (no SwiftUI App lifecycle), this works correctly on macOS 26.x.
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        statusItem?.menu = self.menu
+
         statusBarIconView = StatusBarIconView(frame: .zero)
         statusBarIconView?.onIntrinsicContentSizeDidChange = { [weak self] in
             self?.updateStatusItemLayout(reason: "intrinsic-size-changed")
         }
         statusBarIconView?.showLoading()
-        attachStatusIconViewToButton()
+
+        // Attach the icon view as a subview of the NSStatusBarButton so it draws
+        // directly into the status bar item.
+        if let button = statusItem?.button {
+            button.addSubview(statusBarIconView!)
+        }
         updateStatusItemLayout(reason: "setup")
     }
 
@@ -362,10 +372,7 @@ final class StatusBarController: NSObject {
         guard let button = statusItem?.button, let iconView = statusBarIconView else {
             return
         }
-
-        iconView.removeFromSuperview()
         button.title = ""
-        button.image = nil
         button.addSubview(iconView)
     }
 
@@ -550,24 +557,9 @@ final class StatusBarController: NSObject {
         // 这条分隔线是 updateMultiProviderMenu() 定位动态区起点的锚，必须保留。
         menu.addItem(NSMenuItem.separator())
 
-        statusItem?.menu = menu
+        // Pure AppKit lifecycle: NSStatusItem is created directly in setupStatusItem();
+        // no SwiftUI MenuBarExtra / MenuBarExtraAccess bridge involvement.
         logMenuStructure()
-    }
-
-    /// Attach the existing menu to an external NSStatusItem (for MenuBarExtraAccess bridge)
-    func attachTo(_ statusItem: NSStatusItem) {
-        debugLog("attachTo: called with statusItem")
-        self.statusItem = statusItem
-        statusItem.menu = self.menu
-        statusItem.length = NSStatusItem.variableLength
-        
-        if statusBarIconView != nil {
-            debugLog("attachTo: setting up iconView")
-            attachStatusIconViewToButton()
-            updateStatusItemLayout(reason: "attach")
-        } else {
-            debugLog("attachTo: iconView is nil!")
-        }
     }
 
     private func updateRefreshIntervalMenu() {
@@ -898,11 +890,18 @@ final class StatusBarController: NSObject {
                debugLog("🔴 fetchMultiProviderData: errors from: \(errorNames)")
                logger.warning("🔴 [StatusBarController] Errors from providers: \(errorNames)")
            }
-           debugLog("🟢 fetchMultiProviderData: calling updateMultiProviderMenu")
-           logger.debug("🟢 [StatusBarController] providerResults updated, calling updateMultiProviderMenu()")
-           self.updateMultiProviderMenu()
-           debugLog("🟢 fetchMultiProviderData: updateMultiProviderMenu completed")
-           logger.info("🟢 [StatusBarController] fetchMultiProviderData: updateMultiProviderMenu() completed")
+            debugLog("🟢 fetchMultiProviderData: calling updateMultiProviderMenu")
+            logger.debug("🟢 [StatusBarController] providerResults updated, calling updateMultiProviderMenu()")
+            self.updateMultiProviderMenu()
+            debugLog("🟢 fetchMultiProviderData: updateMultiProviderMenu completed")
+            logger.info("🟢 [StatusBarController] fetchMultiProviderData: updateMultiProviderMenu() completed")
+
+            // Refresh the status bar text/icon so the loading spinner is replaced
+            // with the real cost/usage display. Without this call, the icon stays
+            // in showLoading() state (rotating gauge) and the user sees a
+            // permanent "Loading..." indicator (B09 follow-up).
+            debugLog("🟢 fetchMultiProviderData: calling updateStatusBarText")
+            self.updateStatusBarText()
 
            logger.info("🟢 [StatusBarController] fetchMultiProviderData: Completed with \(filteredResults.count) results")
            debugLog("🟢 fetchMultiProviderData: completed")

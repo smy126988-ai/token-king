@@ -4,7 +4,11 @@ import os.log
 
 private let logger = Logger(subsystem: "com.opencodeproviders", category: "AppDelegate")
 
-@MainActor
+// Pure AppKit entry point: `main.swift` constructs `NSApplication.shared`,
+// installs this delegate and calls `app.run()`. We do not use
+// `@NSApplicationMain` because in Xcode 26.x debug-dylib builds the macro
+// emits an `_main` stub that invokes `NSApplicationMain` without passing the
+// delegate class, leaving `NSApp.delegate` nil. See `main.swift` for details.
 class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
     var statusBarController: StatusBarController!
     private(set) var updaterController: SPUStandardUpdaterController!

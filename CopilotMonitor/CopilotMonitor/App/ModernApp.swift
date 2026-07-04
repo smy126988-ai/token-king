@@ -1,21 +1,2 @@
-import SwiftUI
-
-@main
-struct ModernApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @State private var isMenuPresented = false
-    @State private var isMenuEnabled = false
-    
-    var body: some Scene {
-        MenuBarExtra(isInserted: $isMenuEnabled) {
-            Text("Loading...")
-        } label: {
-            Image(systemName: "gauge.medium")
-        }
-        .menuBarExtraStyle(.menu)
-        
-        Settings {
-            EmptyView()
-        }
-    }
-}
+// ModernApp.swift — temporarily empty; will be deleted in Phase 3
+// The app entry point is now @NSApplicationMain on AppDelegate (pure AppKit).
