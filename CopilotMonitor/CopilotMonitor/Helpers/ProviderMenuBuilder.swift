@@ -1299,7 +1299,12 @@ extension StatusBarController {
                 item.target = self
                 item.representedObject = SubscriptionMenuAction(subscriptionKey: subscriptionKey, plan: .preset(preset.name, preset.cost))
                 let selectedName = manualPresetName ?? detectedPlanName
-                if selectedName == preset.name {
+                let selectedCost: Double? = {
+                    if case .preset(_, let cost) = currentPlan { return cost }
+                    return nil
+                }()
+                if selectedName == preset.name,
+                   selectedCost == nil || selectedCost == preset.cost {
                     switch currentPlan {
                     case .preset(_, let cost) where cost == preset.cost:
                         item.state = .on
