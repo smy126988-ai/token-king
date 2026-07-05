@@ -114,9 +114,10 @@ final class MultiProviderStatusBarIconView: NSView {
 
     private func drawDollarIcon(at origin: NSPoint, isDark: Bool) {
         // NOTE: MultiProviderStatusBarIconView is dead code; StatusBarController uses
-        // StatusBarIconView instead. The hardcoded "$" remains because this renderer
-        // is not wired to the live status item.
-        let text = "$"
+        // StatusBarIconView instead. The currency symbol now respects the user's
+        // currency preference ($ vs ¥) even though this renderer is not wired to the
+        // live status item, so behavior is consistent if it ever does get wired up.
+        let text = CurrencyFormatter.shared.currency.symbol
         let font = NSFont.boldSystemFont(ofSize: 14)
         // Use adaptive color for light/dark mode visibility
         let textColor = isDark ? NSColor.white : NSColor.black
@@ -129,65 +130,10 @@ final class MultiProviderStatusBarIconView: NSView {
     }
 
     private func drawProviderAlert(_ alert: ProviderAlert, at origin: NSPoint, isDark: Bool) {
-        let iconName: String
-        switch alert.identifier {
-        case .claude:
-            iconName = "ClaudeIcon"
-        case .codex:
-            iconName = "CodexIcon"
-        case .commandCode:
-            iconName = "command"
-        case .cursor:
-            iconName = "CursorIcon"
-        case .geminiCLI:
-            iconName = "GeminiIcon"
-        case .copilot:
-            iconName = "CopilotIcon"
-        case .openRouter:
-            // No OpenRouterIcon asset exists, use SF Symbol fallback
-            iconName = "dollarsign.circle"
-        case .openCode:
-            // Asset is named "OpencodeIcon" (lowercase 'c')
-            iconName = "OpencodeIcon"
-        case .antigravity:
-            iconName = "AntigravityIcon"
-        case .openCodeZen:
-            iconName = "OpencodeIcon"
-        case .openCodeGo:
-            iconName = "OpencodeIcon"
-        case .kiro:
-            iconName = "KiroIcon"
-        case .grok:
-            iconName = "GrokIcon"
-        case .kimi:
-            iconName = "k.circle"
-        case .kimiCN:
-            iconName = "k.circle"
-        case .minimaxCodingPlan:
-            iconName = "MinimaxIcon"
-        case .minimaxCodingPlanCN:
-            iconName = "MinimaxIcon"
-        case .zaiCodingPlan:
-            iconName = "ZaiIcon"
-        case .nanoGpt:
-            iconName = "NanoGptIcon"
-        case .synthetic:
-            iconName = "SyntheticIcon"
-        case .chutes:
-            iconName = "c.circle"
-        case .tavilySearch:
-            iconName = "TavilyIcon"
-        case .braveSearch:
-            iconName = "BraveSearchIcon"
-        case .mimo:
-            iconName = "m.circle"
-        case .volcanoArk:
-            iconName = "v.circle"
-        case .hunyuan:
-            iconName = "h.circle"
-        case .zhipuGLM:
-            iconName = "z.circle"
-        }
+        // B04: delegate to ProviderIdentifier.iconName (single source of truth)
+        // so this view can never drift from the canonical mapping again
+        // (zhipuGLM, geminiCLI, minimaxCodingPlanCN, etc.).
+        let iconName = alert.identifier.iconName
 
         let icon: NSImage
         if let assetIcon = NSImage(named: iconName) {
