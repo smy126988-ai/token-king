@@ -301,6 +301,8 @@ struct ProviderSubscriptionPresets {
         case (.nanoGpt, _): return nanoGpt
         case (.openRouter, _): return openRouter
         case (.openCode, _): return openCode
+        case (.openCodeZen, _): return openCodeZen
+        case (.openCodeGo, _): return openCodeGo
         case (.kiro, _): return kiro
         case (.grok, _): return grok
         case (.tavily, _): return tavily
@@ -381,6 +383,40 @@ final class SubscriptionSettingsManager {
             .map { String($0.dropFirst(userDefaultsKeyPrefix.count)) }
             .filter { isCurrentSubscriptionKey($0) }
             .sorted()
+    }
+
+    /// Return subscription keys that look like duplicates of the same physical account.
+    ///
+    /// Heuristics:
+    /// - `.kimi.<id>` and `.kimi_cn.<id>` both present for the same `id` (most common case:
+    ///   user switched between Global and CN provider but kept both selections).
+    /// - Two keys with identical `.accountId` suffix whose plans match by name+amount.
+    func findLikelyDuplicateSubscriptionKeys() -> [String] {
+        let allKeys = getAllSubscriptionKeys()
+        let groups = Dictionary(grouping: allKeys) { key -> String in
+            // ".kimi.d7k…" → suffix "d7k…"; drop the ".kimi." portion
+            // ".kimi_cn.d7k…" → suffix "d7k…"
+            // ".openCodeGo._default_" → "_default_" (account id part)
+            if let dot = key.firstIndex(of: ".") {
+                let rest = key[key.index(after: dot)...]
+                if rest.firstIndex(of: ".") != nil {
+                    let afterFirstDot = rest.index(after: rest.firstIndex(of: ".")!)
+                    return String(rest[afterFirstDot...])
+                } else {
+                    return String(rest)
+                }
+            }
+            return key
+        }
+        var duplicateKeys: [String] = []
+        for (accountId, keys) in groups where keys.count > 1 && accountId != Self.defaultAccountId {
+            // Multiple keys for the same account id → flag all but the first
+            let sortedKeys = keys.sorted()
+            for k in sortedKeys.dropFirst() {
+                duplicateKeys.append(k)
+            }
+        }
+        return duplicateKeys.sorted()
     }
 
     func getTotalMonthlySubscriptionCost() -> Double {

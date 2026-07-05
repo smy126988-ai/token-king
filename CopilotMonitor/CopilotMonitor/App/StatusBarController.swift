@@ -2005,6 +2005,39 @@ final class StatusBarController: NSObject {
          menu.insertItem(quotaHeader, at: insertIndex)
          insertIndex += 1
 
+         // Surface likely-duplicate subscriptions (e.g. Kimi Global + Kimi CN
+         // keys for the same accountId). One delete action per duplicate key.
+         let duplicateKeys = SubscriptionSettingsManager.shared.findLikelyDuplicateSubscriptionKeys()
+         if !duplicateKeys.isEmpty {
+             let warningItem = NSMenuItem()
+             warningItem.view = createDisabledLabelView(
+                 text: "⚠︎ 检测到 \(duplicateKeys.count) 组重复订阅（Key 列表见下，单击删除）"
+             )
+             warningItem.tag = MenuItemTag.dynamic
+             menu.insertItem(warningItem, at: insertIndex)
+             insertIndex += 1
+
+             for key in duplicateKeys {
+                 let planTitle = SubscriptionSettingsManager.shared.getPlan(forKey: key).displayTitle(
+                     formatter: CurrencyFormatter.shared
+                 )
+                 let item = NSMenuItem(
+                     title: "🗑 删除 \(planTitle)（Key: \(key)）",
+                     action: #selector(removeDuplicateSubscription(_:)),
+                     keyEquivalent: ""
+                 )
+                 item.target = self
+                 item.representedObject = key
+                 item.tag = MenuItemTag.dynamic
+                 menu.insertItem(item, at: insertIndex)
+                 insertIndex += 1
+             }
+             let separatorX = NSMenuItem.separator()
+             separatorX.tag = MenuItemTag.dynamic
+             menu.insertItem(separatorX, at: insertIndex)
+             insertIndex += 1
+         }
+
          var hasQuota = false
 
          if let copilotResult = providerResults[.copilot],
@@ -3529,16 +3562,33 @@ final class StatusBarController: NSObject {
                     shouldPrompt = false
                 } else {
                     let errorAlert = NSAlert()
-                    errorAlert.messageText = "金额无效"
-                    errorAlert.informativeText = "请输入有效的非负数。"
-                    errorAlert.addButton(withTitle: "确定")
-                    errorAlert.runModal()
-                }
-            } else {
-                shouldPrompt = false
-            }
-        }
-    }
+                     errorAlert.messageText = "金额无效"
+                     errorAlert.informativeText = "请输入有效的非负数。"
+                     errorAlert.addButton(withTitle: "确定")
+                     errorAlert.runModal()
+                 }
+             } else {
+                 shouldPrompt = false
+             }
+         }
+     }
+
+     /// Remove a likely-duplicate subscription surfaced via the quota header.
+     /// Mirrors the same refresh-and-rebuild pattern as `customSubscriptionSelected`.
+     @objc func removeDuplicateSubscription(_ sender: NSMenuItem) {
+         guard let key = sender.representedObject as? String else { return }
+         let alert = NSAlert()
+         alert.messageText = "删除订阅"
+         alert.informativeText = "确定要删除这笔订阅吗？\nKey: \(key)"
+         alert.addButton(withTitle: "删除")
+         alert.addButton(withTitle: "取消")
+         NSApp.activate(ignoringOtherApps: true)
+         guard alert.runModal() == .alertFirstButtonReturn else { return }
+         SubscriptionSettingsManager.shared.removePlan(forKey: key)
+         debugLog("Removed duplicate subscription key=\(key)")
+         menu.cancelTracking()
+         updateMultiProviderMenu()
+     }
 
      // MARK: - Custom Menu Item Views
 

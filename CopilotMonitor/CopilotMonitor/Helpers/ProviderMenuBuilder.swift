@@ -537,10 +537,28 @@ extension StatusBarController {
             }
 
             // === Plan ===
-            if let plan = details.planType {
+            // Prefer the user-selected plan (currentPlan.displayTitle) over the
+            // API-detected plan name. When neither is set, omit the row entirely.
+            let subscriptionKeyForHeader = SubscriptionSettingsManager.shared.subscriptionKey(
+                for: identifier,
+                accountId: subscriptionAccountId
+            )
+            let currentPlanForHeader = SubscriptionSettingsManager.shared.getPlan(forKey: subscriptionKeyForHeader)
+            let planHeaderText: String?
+            if currentPlanForHeader.isSet {
+                planHeaderText = currentPlanForHeader.displayTitle(
+                    formatter: CurrencyFormatter.shared,
+                    presets: ProviderSubscriptionPresets.presets(for: identifier)
+                )
+            } else if let plan = details.planType {
+                planHeaderText = "套餐：\(plan)"
+            } else {
+                planHeaderText = nil
+            }
+            if let planHeaderText {
                 submenu.addItem(NSMenuItem.separator())
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "套餐：\(plan)")
+                item.view = createDisabledLabelView(text: planHeaderText)
                 submenu.addItem(item)
             }
 
@@ -640,12 +658,29 @@ extension StatusBarController {
                 items.forEach { submenu.addItem($0) }
             }
 
-            if details.planType != nil || details.openCodeGoModelCount != nil {
+            // === Plan (user-selected preferred; falls back to API-detected) ===
+            let openCodeGoSubscriptionKey = SubscriptionSettingsManager.shared.subscriptionKey(
+                for: .openCodeGo,
+                accountId: subscriptionAccountId
+            )
+            let openCodeGoCurrentPlan = SubscriptionSettingsManager.shared.getPlan(forKey: openCodeGoSubscriptionKey)
+            let openCodeGoPlanHeader: String?
+            if openCodeGoCurrentPlan.isSet {
+                openCodeGoPlanHeader = openCodeGoCurrentPlan.displayTitle(
+                    formatter: CurrencyFormatter.shared,
+                    presets: ProviderSubscriptionPresets.presets(for: .openCodeGo)
+                )
+            } else if let plan = details.planType {
+                openCodeGoPlanHeader = "套餐：\(plan)"
+            } else {
+                openCodeGoPlanHeader = nil
+            }
+            if openCodeGoPlanHeader != nil || details.openCodeGoModelCount != nil {
                 submenu.addItem(NSMenuItem.separator())
             }
-            if let plan = details.planType {
+            if let openCodeGoPlanHeader {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "套餐：\(plan)")
+                item.view = createDisabledLabelView(text: openCodeGoPlanHeader)
                 submenu.addItem(item)
             }
             if let modelCount = details.openCodeGoModelCount {

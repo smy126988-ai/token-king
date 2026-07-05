@@ -11,7 +11,7 @@ enum ProviderType {
 /// 供应商家族，用于订阅套餐按供应商聚合。
 enum ProviderFamily: String, CaseIterable {
     case copilot, claude, codex, commandCode, cursor, geminiCLI
-    case openRouter, openCode, antigravity, kiro, grok
+    case openRouter, openCode, openCodeZen, openCodeGo, antigravity, kiro, grok
     case kimi, minimax, zai, nanoGpt, synthetic, chutes
     case tavily, brave
     case mimo, volcanoArk, hunyuan, zhipuGLM
@@ -61,7 +61,9 @@ enum ProviderIdentifier: String, CaseIterable {
         case .cursor: return .cursor
         case .geminiCLI: return .geminiCLI
         case .openRouter: return .openRouter
-        case .openCode, .openCodeZen, .openCodeGo: return .openCode
+        case .openCode: return .openCode
+        case .openCodeZen: return .openCodeZen
+        case .openCodeGo: return .openCodeGo
         case .antigravity: return .antigravity
         case .kiro: return .kiro
         case .grok: return .grok
