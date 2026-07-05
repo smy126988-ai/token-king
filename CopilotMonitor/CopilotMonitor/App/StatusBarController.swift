@@ -454,6 +454,10 @@ final class StatusBarController: NSObject {
     /// draw at its natural ~17.5pt size with full opaque rendering.
     private func renderStatusItemImage() {
         guard let button = statusItem?.button else { return }
+        // Hide SwiftUI's MenuBarExtra label image so it doesn't render alongside
+        // our StatusBarIconView subview (the subview IS what gets drawn).
+        // See docs/handoffs/2026-07-05-token-king-icon-blurry.md.
+        button.image = nil
         button.title = ""
     }
 
