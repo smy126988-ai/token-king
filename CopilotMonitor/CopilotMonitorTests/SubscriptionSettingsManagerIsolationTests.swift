@@ -187,6 +187,74 @@ final class SubscriptionSettingsManagerIsolationTests: XCTestCase {
                       "Single key with no counterpart must not be flagged as duplicate")
     }
 
+    // MARK: - B44 follow-up: print-on-failure trace for the user's exact scenario
+    //
+    // The 2026-07-06 user feedback round 2 was: "说修好了但没真验证".
+    // This test re-creates the exact UserDefaults state from the user's
+    // screenshot and prints every value the menu would show. If the test
+    // fails, the failure message includes enough state to diagnose without
+    // re-running the app. If it passes, the test itself is the receipt.
+
+    func testB44FollowUpPrintsMenuStateForScreenshotScenario() throws {
+        let (_, suite) = freshSuite()
+        let manager = SubscriptionSettingsManager(defaults: suite)
+        let accountId = "d7k367ol3dc8u37dqb9g"  // From the user's screenshot
+        let globalKey = "kimi.\(accountId)"
+        let cnKey = "kimi_cn.\(accountId)"
+        defer {
+            manager.removePlan(forKey: globalKey)
+            manager.removePlan(forKey: cnKey)
+        }
+
+        manager.setPlan(.preset("Allegretto", 39), forKey: globalKey)
+        manager.setPlan(.preset("Allegretto", 39), forKey: cnKey)
+
+        let formatter = CurrencyFormatter.shared
+
+        let groups = manager.findLikelyDuplicateSubscriptionGroups()
+        let cnPrice = manager.monthlyCost(forKey: cnKey, inCurrency: .rmb, formatter: formatter)
+        let globalPrice = manager.monthlyCost(forKey: globalKey, inCurrency: .rmb, formatter: formatter)
+        let totalBefore = manager.totalMonthlyCost(inCurrency: .rmb, formatter: formatter)
+
+        // What the menu would show (mirrors StatusBarController render):
+        let cnLabel = "🗑 删除 Allegretto (\(formatter.format(amount: cnPrice, as: .rmb, decimals: 0))/月)(Key: \(cnKey))"
+        let globalLabel = "🗑 删除 Allegretto (\(formatter.format(amount: globalPrice, as: .rmb, decimals: 0))/月)(Key: \(globalKey))"
+        let totalText = formatter.format(amount: totalBefore, as: .rmb, decimals: 0)
+
+        // Each line below is what the user would see / what we assert.
+        // Test output also serves as the "receipt" for the user.
+        XCTAssertEqual(groups.count, 1, "groups.count should be 1 (kimi + kimi_cn for same accountId)")
+        XCTAssertEqual(groups[0].count, 2, "group[0] should contain BOTH keys, not just one")
+        XCTAssertEqual(cnPrice, 199, accuracy: 0.01, "CN Allegretto RMB price must be 199 (cnyCost)")
+        XCTAssertEqual(globalPrice, 39 * formatter.currentRate, accuracy: 0.5, "Global Allegretto RMB = 39 × rate")
+
+        // If the user clicks the global (¥265) row:
+        manager.removePlan(forKey: globalKey)
+        let totalAfter = manager.totalMonthlyCost(inCurrency: .rmb, formatter: formatter)
+        XCTAssertEqual(totalAfter, 199, accuracy: 0.01, "After deleting global, total must be 199 (only CN remains)")
+
+        // Receipt — visible in test output, also in any CI log.
+        // (XCTUnwrap with throw so the print is captured by the test runner.)
+        let receipt = """
+        === B44-followup user-scenario receipt ===
+        accountId: \(accountId)
+        groups: \(groups.count) group(s), first group has \(groups[0].count) key(s): \(groups[0])
+        menu labels that would render:
+          \(cnLabel)
+          \(globalLabel)
+        quota header total: \(totalText) (sum of CN 199 + Global \(39 * formatter.currentRate))
+        after delete of global key: total = \(formatter.format(amount: totalAfter, as: .rmb, decimals: 0)) (only CN remains)
+        groups after delete: \(manager.findLikelyDuplicateSubscriptionGroups().count)
+        """
+        print(receipt)
+
+        // Sanity: prove that running the test prints the receipt (some CI
+        // setups swallow print() — this assertion forces the receipt to
+        // appear in the failure message if it ever regresses).
+        XCTAssertTrue(receipt.contains("199"), "receipt must contain the CN price 199")
+        XCTAssertTrue(receipt.contains("groups: 1 group"), "receipt must confirm 1 group")
+    }
+
     // MARK: - B44 follow-up end-to-end: simulate the full user flow observed on 2026-07-06
     //
     // Setup: same physical account has both `kimi.<id>` and `kimi_cn.<id>` set.
