@@ -14,33 +14,54 @@ final class BraveSearchProviderTests: XCTestCase {
     private let lastLimitKey = "searchEngines.brave.lastLimit"
     private let lastResetSecondsKey = "searchEngines.brave.lastResetSeconds"
 
+    /// All Brave-related keys this test class touches.
+    private var allKeys: [String] {
+        [
+            refreshModeKey,
+            eventEstimatedUsedKey,
+            eventCursorKey,
+            eventMonthKey,
+            eventLastScanAtKey,
+            lastApiSyncAtKey,
+            lastUsedKey,
+            lastRemainingKey,
+            lastLimitKey,
+            lastResetSecondsKey
+        ]
+    }
+
+    // B13: snapshot the existing values for every key this test may mutate, so
+    // tearDown can restore the developer's real state instead of silently
+    // deleting whatever they had configured.
+    private struct Snapshot {
+        var exists: Bool
+        var value: Any?
+    }
+    private var snapshot: [String: Snapshot] = [:]
+
     override func setUp() {
         super.setUp()
         let defaults = UserDefaults.standard
-        defaults.removeObject(forKey: refreshModeKey)
-        defaults.removeObject(forKey: eventEstimatedUsedKey)
-        defaults.removeObject(forKey: eventCursorKey)
-        defaults.removeObject(forKey: eventMonthKey)
-        defaults.removeObject(forKey: eventLastScanAtKey)
-        defaults.removeObject(forKey: lastApiSyncAtKey)
-        defaults.removeObject(forKey: lastUsedKey)
-        defaults.removeObject(forKey: lastRemainingKey)
-        defaults.removeObject(forKey: lastLimitKey)
-        defaults.removeObject(forKey: lastResetSecondsKey)
+        for key in allKeys {
+            if let value = defaults.object(forKey: key) {
+                snapshot[key] = Snapshot(exists: true, value: value)
+            } else {
+                snapshot[key] = Snapshot(exists: false, value: nil)
+            }
+            defaults.removeObject(forKey: key)
+        }
     }
 
     override func tearDown() {
         let defaults = UserDefaults.standard
-        defaults.removeObject(forKey: refreshModeKey)
-        defaults.removeObject(forKey: eventEstimatedUsedKey)
-        defaults.removeObject(forKey: eventCursorKey)
-        defaults.removeObject(forKey: eventMonthKey)
-        defaults.removeObject(forKey: eventLastScanAtKey)
-        defaults.removeObject(forKey: lastApiSyncAtKey)
-        defaults.removeObject(forKey: lastUsedKey)
-        defaults.removeObject(forKey: lastRemainingKey)
-        defaults.removeObject(forKey: lastLimitKey)
-        defaults.removeObject(forKey: lastResetSecondsKey)
+        for key in allKeys {
+            if let entry = snapshot[key], entry.exists {
+                defaults.set(entry.value, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
+        }
+        snapshot.removeAll()
         super.tearDown()
     }
 
@@ -115,6 +136,41 @@ final class BraveSearchProviderTests: XCTestCase {
         XCTAssertEqual(result.details?.monthlyUsage, 0)
         XCTAssertEqual(result.details?.authUsageSummary, "Estimated (event-based)")
         XCTAssertNil(result.details?.authSource)
+    }
+
+    // MARK: - B13 regression: setUp/tearDown must restore original values
+
+    func testSetUpAndTearDownPreservePreExistingValues() {
+        // Simulate a developer who has configured Brave Search: the refresh
+        // mode is 1 (API) and they have an API snapshot with 200 remaining.
+        let defaults = UserDefaults.standard
+        defaults.set(1, forKey: refreshModeKey)
+        defaults.set(200, forKey: lastRemainingKey)
+        defer {
+            defaults.removeObject(forKey: refreshModeKey)
+            defaults.removeObject(forKey: lastRemainingKey)
+        }
+
+        // setUp must snapshot both keys then erase them (so the test starts clean).
+        // We invoke the lifecycle methods explicitly so we can verify the
+        // post-tearDown state matches the pre-test state.
+        setUp()
+        XCTAssertNil(defaults.object(forKey: refreshModeKey),
+                     "setUp should have cleared refreshModeKey")
+        XCTAssertNil(defaults.object(forKey: lastRemainingKey),
+                     "setUp should have cleared lastRemainingKey")
+        // Simulate a test that writes a new value mid-flight.
+        defaults.set(7, forKey: refreshModeKey)
+        tearDown()
+
+        XCTAssertEqual(
+            defaults.integer(forKey: refreshModeKey), 1,
+            "tearDown must restore the developer's pre-test refreshModeKey value"
+        )
+        XCTAssertEqual(
+            defaults.integer(forKey: lastRemainingKey), 200,
+            "tearDown must restore the developer's pre-test lastRemainingKey value"
+        )
     }
 }
 
