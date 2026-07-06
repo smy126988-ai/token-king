@@ -321,4 +321,64 @@ final class SubscriptionSettingsManagerIsolationTests: XCTestCase {
                       "With only one key left, duplicate warning must disappear")
         XCTAssertTrue(manager.findLikelyDuplicateSubscriptionGroups().isEmpty)
     }
+
+    // MARK: - B52 regression: email-style accountIds must not be grouped by TLD
+
+    /// Pre-fix bug: `findLikelyDuplicateSubscriptionGroups` split the
+    /// accountId suffix on the FIRST "." after the provider prefix. For
+    /// emails like `codex.user@gmail.com`, that returned `gmail.com` (the
+    /// TLD) — grouping every `.com` email under one fake "duplicate" group.
+    ///
+    /// Post-fix: the grouping key is the entire suffix after the provider
+    /// prefix, so `codex.user@gmail.com` and `kimi.user@gmail.com` are
+    /// two distinct accounts.
+    func testEmailStyleAccountIdsAreNotGroupedByTLD() {
+        let (_, suite) = freshSuite()
+        let manager = SubscriptionSettingsManager(defaults: suite)
+        let aliceEmail = "alice@example.com"
+        let bobEmail = "bob@example.com"
+        defer {
+            manager.removePlan(forKey: "codex.\(aliceEmail)")
+            manager.removePlan(forKey: "kimi.\(aliceEmail)")
+            manager.removePlan(forKey: "kimi.\(bobEmail)")
+            manager.removePlan(forKey: "kimi_cn.\(aliceEmail)")
+        }
+
+        // Four distinct physical accounts across three providers, none with the
+        // same (family, accountId) pair, so no duplicates should be flagged.
+// (We don't include kimi/kimi_cn for alice here — that pair IS a
+// duplicate by design. The point of this block is to verify codex+alice
+// is NOT grouped with kimi+alice just because the suffix matches.)
+        manager.setPlan(.preset("Pro", 100), forKey: "codex.\(aliceEmail)")
+        manager.setPlan(.preset("Pro", 100), forKey: "kimi.\(bobEmail)")
+
+        let groups = manager.findLikelyDuplicateSubscriptionGroups()
+        XCTAssertTrue(groups.isEmpty,
+                      "Different (family, accountId) pairs should not be duplicates. Got: \(groups)")
+
+        // Pre-fix regression case: codex.user@gmail.com + kimi.user@gmail.com
+        // both ended up in the "com" group (TLD). Verify the helper now
+        // returns the full email, not the TLD. The grouping itself is
+        // family-aware — different families with the same suffix are not
+        // duplicates (verified above).
+        let codexSuffix = SubscriptionSettingsManager.accountIdSuffix(for: "codex.\(aliceEmail)")
+        let kimiSuffix = SubscriptionSettingsManager.accountIdSuffix(for: "kimi.\(aliceEmail)")
+        XCTAssertEqual(codexSuffix, aliceEmail,
+                       "accountIdSuffix must return the full email, not the TLD")
+        XCTAssertEqual(kimiSuffix, aliceEmail,
+                       "accountIdSuffix must return the full email, not the TLD")
+        // The suffixes are the same — but they belong to different families,
+        // so the new grouping key (family:suffix) keeps them in separate
+        // groups. We don't assert suffix inequality — the grouping key
+        // is what matters, and that's already covered above.
+
+        // Now add the duplicate (kimi + kimi_cn for alice) — should be the
+        // ONLY duplicate group now.
+        manager.setPlan(.preset("Allegretto", 39), forKey: "kimi.\(aliceEmail)")
+        manager.setPlan(.preset("Allegretto", 39), forKey: "kimi_cn.\(aliceEmail)")
+        let groups2 = manager.findLikelyDuplicateSubscriptionGroups()
+        XCTAssertEqual(groups2.count, 1,
+                       "Only the kimi+kimi_cn pair for alice should be grouped. Got: \(groups2)")
+        XCTAssertEqual(Set(groups2[0]), Set(["kimi.\(aliceEmail)", "kimi_cn.\(aliceEmail)"]))
+    }
 }

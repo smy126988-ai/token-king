@@ -459,30 +459,46 @@ final class SubscriptionSettingsManager {
 
     /// Same as `findLikelyDuplicateSubscriptionKeys()` but preserves group structure
     /// so the UI can render a per-group warning count and a per-key delete row.
+    ///
+    /// B52 fix: a duplicate is only flagged when the keys' provider prefixes
+    /// belong to the SAME provider family (e.g. `kimi` + `kimi_cn`,
+    /// `openCode` + `openCodeZen` + `openCodeGo`). Different families with
+    /// the same accountId suffix are independent subscriptions, not duplicates.
+    /// For matching families, the full accountId suffix is the group key
+    /// (no splitting on dots — email-style accountIds must stay intact).
     func findLikelyDuplicateSubscriptionGroups() -> [[String]] {
         let allKeys = getAllSubscriptionKeys()
+        // Group by (provider family, accountId) so cross-family matches
+        // (e.g. `codex.alice@x` vs `kimi.alice@x`) are not flagged.
         let groups = Dictionary(grouping: allKeys) { key -> String in
-            // ".kimi.d7k…" → suffix "d7k…"; drop the ".kimi." portion
-            // ".kimi_cn.d7k…" → suffix "d7k…"
-            // ".openCodeGo._default_" → "_default_" (account id part)
-            if let dot = key.firstIndex(of: ".") {
-                let rest = key[key.index(after: dot)...]
-                if rest.firstIndex(of: ".") != nil {
-                    let afterFirstDot = rest.index(after: rest.firstIndex(of: ".")!)
-                    return String(rest[afterFirstDot...])
-                } else {
-                    return String(rest)
-                }
-            }
-            return key
+            guard let provider = Self.providerIdentifier(forKey: key) else { return key }
+            return "\(provider.family.rawValue):\(Self.accountIdSuffix(for: key))"
         }
         var duplicateGroups: [[String]] = []
-        for (accountId, keys) in groups where keys.count > 1 && accountId != Self.defaultAccountId {
-            duplicateGroups.append(keys.sorted())
+        for (_, keys) in groups where keys.count > 1 {
+            let suffix = Self.accountIdSuffix(for: keys[0])
+            if suffix != Self.defaultAccountId {
+                duplicateGroups.append(keys.sorted())
+            }
         }
         return duplicateGroups.sorted { lhs, rhs in
             (lhs.first ?? "") < (rhs.first ?? "")
         }
+    }
+
+    /// Extract the account-id suffix from a subscription key (the part after
+    /// the provider prefix). The whole suffix is the grouping key — splitting
+    /// on "." would mis-handle email-style accountIds.
+    /// B52 regression: keep the whole suffix intact.
+    static func accountIdSuffix(for key: String) -> String {
+        guard let dot = key.firstIndex(of: ".") else { return key }
+        return String(key[key.index(after: dot)...])
+    }
+
+    private static func providerIdentifier(forKey key: String) -> ProviderIdentifier? {
+        let prefix = key.split(separator: ".", maxSplits: 1).first
+        guard let prefix else { return nil }
+        return ProviderIdentifier(rawValue: String(prefix))
     }
 
     func getTotalMonthlySubscriptionCost() -> Double {

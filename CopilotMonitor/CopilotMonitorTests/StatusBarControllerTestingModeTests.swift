@@ -167,4 +167,129 @@ final class StatusBarControllerTestingModeTests: XCTestCase {
         XCTAssertNotNil(afterRecover,
                          "After recovery, the anchor separator should be back — without this, every subsequent rebuild early-returns and the menu is stuck")
     }
+
+    // MARK: - B44-followup-2 followup: drive the full delete flow end-to-end
+
+    /// Drives the post-confirmation delete logic in a controlled test
+    /// environment to verify the menu actually rebuilds after a duplicate
+    /// subscription is removed — without the user having to click through
+    /// an alert.
+    ///
+    /// StatusBarController always uses `SubscriptionSettingsManager.shared`
+    /// (not an injected instance), so this test manipulates the real shared
+    /// store. It snapshots and restores the developer's existing keys for
+    /// the same accountId to keep the test self-contained.
+    ///
+    /// Uses a non-email accountId so the duplicate-detection grouping
+    /// (which splits on "." after the provider prefix) groups correctly.
+    @MainActor
+    func testRemoveDuplicateRebuildsMenuEndToEnd() {
+        let accountId = "b44-e2e-driver-test"
+        let globalKey = "subscription_v2.kimi.\(accountId)"
+        let cnKey = "subscription_v2.kimi_cn.\(accountId)"
+
+        let manager = SubscriptionSettingsManager.shared
+        let savedGlobal = manager.getPlan(forKey: "kimi.\(accountId)")
+        let savedCN = manager.getPlan(forKey: "kimi_cn.\(accountId)")
+        defer {
+            // Restore the developer's real state after the test.
+            if savedGlobal.isSet {
+                manager.setPlan(savedGlobal, forKey: "kimi.\(accountId)")
+            } else {
+                manager.removePlan(forKey: "kimi.\(accountId)")
+            }
+            if savedCN.isSet {
+                manager.setPlan(savedCN, forKey: "kimi_cn.\(accountId)")
+            } else {
+                manager.removePlan(forKey: "kimi_cn.\(accountId)")
+            }
+        }
+
+        // Set up the user's exact scenario.
+        manager.setPlan(.preset("Allegretto", 39), forKey: "kimi.\(accountId)")
+        manager.setPlan(.preset("Allegretto", 39), forKey: "kimi_cn.\(accountId)")
+
+        // Provide some provider results so updateMultiProviderMenu doesn't
+        // bail out at the `providerResults.isEmpty` guard.
+        let providerResult = ProviderResult(
+            usage: .quotaBased(remaining: 80, entitlement: 100, overagePermitted: false),
+            details: nil
+        )
+
+        let controller = StatusBarController(options: .testing(userDefaults: .standard))
+        controller.injectProviderStateForTesting(
+            results: [.kimi: providerResult]
+        )
+        guard let initialMenu = controller.topMenuForTesting else {
+            XCTFail("Initial menu should be built")
+            return
+        }
+
+        // 1. Initial state: anchor present, exactly 2 duplicate delete items
+        // (one for kimi, one for kimi_cn — both for this accountId).
+        XCTAssertNotNil(initialMenu.items.firstIndex(where: { $0.isSeparatorItem }),
+                        "Initial menu should have the anchor separator")
+        let initialAllegrettoItems = initialMenu.items.filter {
+            $0.title.hasPrefix("🗑 删除 Allegretto") &&
+            ($0.representedObject as? String)?.hasPrefix("kimi") == true &&
+            ($0.representedObject as? String)?.contains(accountId) == true
+        }
+        XCTAssertEqual(initialAllegrettoItems.count, 2,
+                       "Initial menu should show 2 duplicate delete items for our accountId, got: \(initialAllegrettoItems.map(\.title))")
+
+        // 2. Simulate the user clicking the global (¥265) row — bypass the
+        // alert by calling the extracted post-confirmation method.
+        controller.performRemoveDuplicateSubscription(forKey: "kimi.\(accountId)")
+
+        // 3. After the delete: the menu should still be rebuildable. We
+        // call injectProviderStateForTesting to force a rebuild — the
+        // recovery path should kick in if the anchor is missing.
+        controller.injectProviderStateForTesting(
+            results: [.kimi: providerResult]
+        )
+        guard let afterMenu = controller.topMenuForTesting else {
+            XCTFail("Menu should still be queryable after delete")
+            return
+        }
+        XCTAssertNotNil(afterMenu.items.firstIndex(where: { $0.isSeparatorItem }),
+                        "After delete + rebuild, the anchor separator should still be present (or recovered)")
+        XCTAssertNotNil(afterMenu.items.firstIndex(where: { $0.isSeparatorItem }),
+                        "After delete + rebuild, the anchor separator should still be present (or recovered)")
+
+        // 4. After deleting global, only the CN key remains for our accountId.
+        // A single key is NOT a "duplicate" (the warning requires keys.count > 1),
+        // so the menu's Allegretto delete items for our accountId should be empty.
+        // The CN plan itself is still in UserDefaults — verified at the end.
+        let remainingDeleteItems = afterMenu.items.filter {
+            $0.title.hasPrefix("🗑 删除 Allegretto") &&
+            ($0.representedObject as? String)?.contains(accountId) == true
+        }
+        XCTAssertEqual(remainingDeleteItems.count, 0,
+                       "After deleting global, CN alone is not a duplicate, so no Allegretto delete items should remain for our accountId; got: \(remainingDeleteItems.map(\.title))")
+
+        // 5. The CN plan is still preserved in storage — that's what the
+        // user actually cares about (the bug was that clicking delete on
+        // the wrong row wiped out the user's selected plan).
+        let cnPlanAfterFirstDelete = manager.getPlan(forKey: "kimi_cn.\(accountId)")
+        XCTAssertEqual(cnPlanAfterFirstDelete, .preset("Allegretto", 39),
+                       "After deleting global, the CN plan the user chose must still be in UserDefaults")
+
+        // 6. After deleting the remaining CN, no delete items for our accountId.
+        controller.performRemoveDuplicateSubscription(forKey: "kimi_cn.\(accountId)")
+        controller.injectProviderStateForTesting(
+            results: [.kimi: providerResult]
+        )
+        guard let finalMenu = controller.topMenuForTesting else {
+            XCTFail("Menu should still be queryable after second delete")
+            return
+        }
+        XCTAssertNotNil(finalMenu.items.firstIndex(where: { $0.isSeparatorItem }),
+                        "After second delete, anchor should still be present (or recovered)")
+        let finalDeleteItems = finalMenu.items.filter {
+            $0.title.hasPrefix("🗑 删除 Allegretto") &&
+            ($0.representedObject as? String)?.contains(accountId) == true
+        }
+        XCTAssertTrue(finalDeleteItems.isEmpty,
+                      "After deleting both, no delete items for our accountId should remain")
+    }
 }

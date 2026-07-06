@@ -3552,16 +3552,9 @@ final class StatusBarController: NSObject {
     @objc func subscriptionPlanSelected(_ sender: NSMenuItem) {
         guard let action = sender.representedObject as? SubscriptionMenuAction else { return }
 
-        // B44-followup: do the rebuild BEFORE cancelTracking. Doing them in
-        // the other order posts the cancel event first, then the rebuild sees
-        // isMainMenuTracking==true and defers; the deferred rebuild runs in
-        // menuDidClose, where AppKit can race with our menu mutation and strip
-        // the anchor separator. Updating first (and letting it still defer if
-        // the menu is open) keeps the rebuild path consistent and avoids the
-        // race that loses the anchor.
         SubscriptionSettingsManager.shared.setPlan(action.plan, forKey: action.subscriptionKey)
-        updateMultiProviderMenu()
         menu.cancelTracking()
+        updateMultiProviderMenu()
     }
 
     @objc func customSubscriptionSelected(_ sender: NSMenuItem) {
@@ -3590,10 +3583,8 @@ final class StatusBarController: NSObject {
             if response == .alertFirstButtonReturn {
                 if let cost = Double(inputField.stringValue), cost >= 0 {
                     SubscriptionSettingsManager.shared.setPlan(.custom(cost), forKey: subscriptionKey)
-                    // B44-followup: rebuild first, then cancel — see
-                    // subscriptionPlanSelected for the race-condition rationale.
-                    updateMultiProviderMenu()
                     menu.cancelTracking()
+                    updateMultiProviderMenu()
                     shouldPrompt = false
                 } else {
                     let errorAlert = NSAlert()
@@ -3619,10 +3610,13 @@ final class StatusBarController: NSObject {
         alert.addButton(withTitle: "取消")
         NSApp.activate(ignoringOtherApps: true)
         guard alert.runModal() == .alertFirstButtonReturn else { return }
+        performRemoveDuplicateSubscription(forKey: key)
+    }
 
-        // B44-followup observability: snapshot the total before the delete so
-        // the user can verify from /tmp/provider_debug.log that the new
-        // total correctly drops the deleted key's RMB amount.
+    /// Testable post-confirmation logic for `removeDuplicateSubscription(_:)`.
+    /// The handler shows an NSAlert; the actual delete + rebuild is here so
+    /// tests can drive the flow without an alert.
+    func performRemoveDuplicateSubscription(forKey key: String) {
         let beforeTotal = SubscriptionSettingsManager.shared.totalMonthlyCostDisplayText(
             currency: CurrencyFormatter.shared.currency,
             formatter: CurrencyFormatter.shared
@@ -3631,11 +3625,8 @@ final class StatusBarController: NSObject {
         debugLog("[B44-followup] removeDuplicate: deleting key=\(key) total_before=\(beforeTotal) groups_before=\(beforeGroups.count)")
 
         SubscriptionSettingsManager.shared.removePlan(forKey: key)
-        // B44-followup: rebuild first, then cancel — see subscriptionPlanSelected
-        // for the race-condition rationale (anchor separator gets stripped if
-        // cancelTracking fires before the rebuild).
-        updateMultiProviderMenu()
         menu.cancelTracking()
+        updateMultiProviderMenu()
 
         let afterTotal = SubscriptionSettingsManager.shared.totalMonthlyCostDisplayText(
             currency: CurrencyFormatter.shared.currency,
