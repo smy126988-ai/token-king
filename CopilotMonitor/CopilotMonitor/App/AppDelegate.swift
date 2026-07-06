@@ -23,6 +23,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
     // controller is created in `applicationDidFinishLaunching`.
     private var pendingStatusItem: NSStatusItem?
 
+    // Workaround: `MenuBarExtraAccess`'s `observerSetup()` runs ONCE on first
+    // `body` evaluation. If that evaluation happens *before* SwiftUI has put
+    // the NSStatusBarWindow into `NSApp.windows`, the introspection silently
+    // returns nil and the bridge closure is never called. We detect this by
+    // polling: if `bridgeHasFired` is still false after a few seconds, we
+    // attach the status item ourselves by scanning `NSApp.windows` directly.
+    private var bridgeHasFired = false
+
     @objc func checkForUpdates() {
         logger.info("⌨️ [Keyboard] ⌘U Check for Updates triggered")
         NSApp.activate(ignoringOtherApps: true)
@@ -31,10 +39,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
 
     @MainActor
     func attachStatusItem(_ statusItem: NSStatusItem) {
+        bridgeHasFired = true
         if let controller = statusBarController {
             logger.info("🌉 [Bridge] attachStatusItem: forwarding to existing controller")
             controller.attachTo(statusItem)
             syncMenuToAllStatusWindows()
+            observePrimaryStatusItemForImageOverwrites()
+            dumpStatusBarLandscape("after attachStatusItem")
         } else {
             logger.info("🌉 [Bridge] attachStatusItem: controller not ready, queuing item")
             pendingStatusItem = statusItem
@@ -57,26 +68,134 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
               let primaryItem = controller.statusItem
         else { return }
         var attachedCount = 0
-        for window in NSApp.windows {
-            guard window.className.contains("NSStatusBarWindow") else { continue }
-            guard let item = _safeStatusItem(from: window),
-                  item !== primaryItem
-            else { continue }
+        var skippedWithNoItem = 0
+        let barWindows = NSApp.windows.filter { $0.className.contains("NSStatusBarWindow") }
+        if barWindows.count > 1 {
+            logger.info("🌉 [Bridge] syncMenuToAllStatusWindows: \(barWindows.count) NSStatusBarWindow(s); primary=\(primaryItem)")
+        }
+        for window in barWindows {
+            let safeItem = _safeStatusItem(from: window)
+            if safeItem == nil {
+                skippedWithNoItem += 1
+                logger.info("🌉 [Bridge] sync: window frame=\(String(describing: window.frame)) - Mirror.descendant(\"statusItem\") returned nil")
+                continue
+            }
+            guard let item = safeItem, item !== primaryItem else { continue }
             item.menu = primaryMenu
             item.length = NSStatusItem.variableLength
             attachedCount += 1
+            logger.info("🌉 [Bridge] sync: attached to item @ \(String(describing: window.frame)) (count=\(attachedCount))")
         }
         if attachedCount > 0 {
             logger.info("🌉 [Bridge] syncMenuToAllStatusWindows: attached menu to \(attachedCount) secondary item(s)")
+        }
+        if skippedWithNoItem > 0 && attachedCount == 0 {
+            logger.warning("🌉 [Bridge] syncMenuToAllStatusWindows: \(skippedWithNoItem) secondary window(s) had no Mirror.statusItem")
         }
     }
 
     /// Read `statusItem` from an `NSStatusBarWindow` via Swift reflection,
     /// avoiding the KVC `valueForKey:` path that can raise NSException on
-    /// macOS 26.x when the private ivar is absent.
+    /// macOS 26.x when the private ivar is absent. If Mirror also fails to
+    /// find the ivar (e.g., the replicant window on a secondary display
+    /// has a differently-named ivar), fall back to KVC and tolerate nil.
     @MainActor
     private func _safeStatusItem(from window: NSWindow) -> NSStatusItem? {
-        Mirror(reflecting: window).descendant("statusItem") as? NSStatusItem
+        if let viaMirror = Mirror(reflecting: window).descendant("statusItem") as? NSStatusItem {
+            return viaMirror
+        }
+        return window.value(forKey: "statusItem") as? NSStatusItem
+    }
+
+    /// Observability: log `controller.statusItem.button.image` setter calls
+    /// to detect when SwiftUI label overrides our rendered bitmap. Pure KVO;
+    /// no production behavior change. (B40 / OpenClaw "SwiftUI can vend a
+    /// replacement status item during connection churn" hypothesis verification)
+    private var _buttonImageKVOToken: NSKeyValueObservation?
+    private var _buttonTitleKVOToken: NSKeyValueObservation?
+
+    @MainActor
+    private func observePrimaryStatusItemForImageOverwrites() {
+        // Detach any previous observers before re-attaching (idempotent across
+        // screen-configuration changes and our own item replacements).
+        _buttonImageKVOToken?.invalidate()
+        _buttonTitleKVOToken?.invalidate()
+
+        guard let item = statusBarController?.statusItem, let button = item.button else {
+            Self.observ("🔍 observability: no controller.statusItem.button yet — deferring KVO")
+            return
+        }
+        let itemAddr = String(format: "%p", item)
+        Self.observ("🔍 observability: attaching KVO to button.image / button.title on item=\(itemAddr)")
+
+        _buttonImageKVOToken = button.observe(\.image, options: [.new]) { _, change in
+            let desc = Self.describeImage(change.newValue ?? nil)
+            Self.observ("🔍 KVO button.image → \(desc)")
+        }
+
+        _buttonTitleKVOToken = button.observe(\.title, options: [.new]) { button, _ in
+            Self.observ("🔍 KVO button.title → \"\(button.title)\"")
+        }
+    }
+
+    @MainActor
+    private static func describeImage(_ image: NSImage?) -> String {
+        guard let image = image else { return "nil" }
+        if let bmp = image.representations.compactMap({ $0 as? NSBitmapImageRep }).first {
+            return "NSBitmapImageRep pixels=\(bmp.pixelsWide)x\(bmp.pixelsHigh)"
+        }
+        if let sym = image.representations.first {
+            return "rep=\(type(of: sym))"
+        }
+        return "empty"
+    }
+
+    /// Post-connect deep dump: capture who is alive right now.
+    @MainActor
+    private func dumpStatusBarLandscape(_ tag: String) {
+        let screens = NSScreen.screens
+        let wins = NSApp.windows.filter { $0.className.contains("NSStatusBarWindow") }
+        var lines: [String] = []
+        lines.append("🔍 DUMP[\(tag)] screens=\(screens.count) nsBarWindows=\(wins.count)")
+        for (i, w) in wins.enumerated() {
+            let screen = w.screen
+            let screenName = screen?.localizedName ?? "?"
+            let frame = w.frame
+            let safeItem = _safeStatusItem(from: w)
+            if let it = safeItem {
+                let itemAddr = String(format: "%p", it)
+                let btn = it.button
+                let imgDesc = Self.describeImage(btn?.image)
+                let menuCount = it.menu?.items.count ?? 0
+                lines.append("🔍   win[\(i)] screen=\(screenName) frame=(x=\(frame.origin.x),y=\(frame.origin.y),w=\(frame.width),h=\(frame.height)) item=\(itemAddr) btn.image=\(imgDesc) menuItems=\(menuCount)")
+            } else {
+                lines.append("🔍   win[\(i)] screen=\(screenName) frame=(x=\(frame.origin.x),y=\(frame.origin.y),w=\(frame.width),h=\(frame.height)) - no item (Mirror.descendant and KVC both returned nil)")
+            }
+        }
+        // File mirror — logger.info is unreadable in macOS 26.5 via `log show`.
+        Self.writeObservability(lines: lines, tag: tag)
+    }
+
+    /// Standalone file writer for observability — survives the lifetime of the
+    /// debug session independent of `logger.info` (unreadable on macOS 26.5).
+    nonisolated static func writeObservability(lines: [String], tag: String) {
+        let path = "/tmp/tk_observ.log"
+        let text = lines.joined(separator: "\n") + "\n"
+        if FileManager.default.fileExists(atPath: path) {
+            if let handle = try? FileHandle(forWritingTo: URL(fileURLWithPath: path)) {
+                try? handle.seekToEnd()
+                try? handle.write(contentsOf: Data(text.utf8))
+                try? handle.close()
+            }
+        } else {
+            try? text.write(toFile: path, atomically: true, encoding: .utf8)
+        }
+    }
+
+    /// Convenience: one-line log; also goes to os.log via logger.info.
+    nonisolated static func observ(_ msg: String) {
+        Self.writeObservability(lines: [msg], tag: "log")
+        Logger(subsystem: "com.opencodeproviders", category: "AppDelegate").info("\(msg, privacy: .public)")
     }
 
     @MainActor
@@ -103,8 +222,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
             logger.info("🌉 [Bridge] draining queued statusItem into controller")
             statusBarController?.attachTo(pending)
             pendingStatusItem = nil
+            observePrimaryStatusItemForImageOverwrites()
+            dumpStatusBarLandscape("after queue drain")
         }
         syncMenuToAllStatusWindows()
+
+        // Workaround for the `MenuBarExtraAccess` race: bridge closure may
+        // never fire if SwiftUI evaluated body before NSApp.windows contained
+        // the NSStatusBarWindow. Poll until the bridge fires OR we attach
+        // ourselves by finding the window directly.
+        scheduleBridgeAttachRetry()
 
         // B39: secondary display's NSSceneStatusItem may not exist yet at
         // launch. Wait a beat for SwiftUI's lazy scene creation, then retry.
@@ -126,11 +253,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         // Throttle: do not log or re-run if we ran in the last 60 seconds.
         let now = Date()
         if let last = _lastResyncAt, now.timeIntervalSince(last) < 60 {
+            logger.info("🌉 [Bridge] reSyncMenu: throttled (\(Int(now.timeIntervalSince(last)))s since last)")
             return
         }
         _lastResyncAt = now
-        logger.info("🌉 [Bridge] reSyncing menu after display parameter change")
+        logger.info("🌉 [Bridge] reSyncMenu fired from NSApplication.didChangeScreenParametersNotification")
+        dumpStatusBarLandscape("reSyncMenu entry")
         syncMenuToAllStatusWindows()
+        // Re-attach KVO in case the primary item was swapped
+        observePrimaryStatusItemForImageOverwrites()
+        dumpStatusBarLandscape("reSyncMenu exit")
     }
 
     /// B39 timing: schedule a one-shot 1.0s resync after launch in case
@@ -144,6 +276,48 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
             // calling syncMenu while the controller is still warming up).
             guard self.statusBarController?.menu != nil else { return }
             self.syncMenuToAllStatusWindows()
+        }
+    }
+
+    /// Workaround for `MenuBarExtraAccess` bridge race. The bridge closure
+    /// `statusItem: { ... }` only ever fires when observerSetup() is invoked
+    /// with a non-empty `MenuBarExtraUtils.statusItems` list. If body was
+    /// evaluated before that list had anything in it, observerSetup returns
+    /// silently and the closure never runs.
+    ///
+    /// We poll for up to ~15.8s (cumulative) at increasing intervals. At
+    /// each tick we check whether the bridge already fired; if so, stop. If
+    /// not, we scan `NSApp.windows` for an `NSStatusBarWindow` and pull the
+    /// `statusItem` ivar out via `Mirror` (KVC `value(forKey: "statusItem")`
+    /// crashes on macOS 26.5) and feed it to `attachStatusItem(_:)`.
+    ///
+    /// Idempotent: if the bridge eventually fires too, attachStatusItem is
+    /// called again with the same item and the controller just re-resolves.
+    @MainActor
+    private func scheduleBridgeAttachRetry() {
+        Task { @MainActor [weak self] in
+            logger.info("🌉 [Bridge] scheduleBridgeAttachRetry: starting poll loop")
+            let intervals: [Double] = [0.3, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0]
+            for delay in intervals {
+                guard let self else { return }
+                try? await Task.sleep(for: .seconds(delay))
+                if self.bridgeHasFired {
+                    logger.info("🌉 [Bridge] retry: bridge fired before \(delay)s, exiting")
+                    return
+                }
+                let barWindows = NSApp.windows.filter { $0.className.contains("NSStatusBarWindow") }
+                logger.info("🌉 [Bridge] retry +\(delay)s: NSApp.windows has \(barWindows.count) NSStatusBarWindow(s) to consider")
+                for window in barWindows {
+                    let viaMirror = Mirror(reflecting: window).descendant("statusItem") as? NSStatusItem
+                    let viaKVC = window.value(forKey: "statusItem") as? NSStatusItem
+                    if let item = viaMirror ?? viaKVC {
+                        logger.info("🌉 [Bridge] retry +\(delay)s: bridge didn't fire, attaching manually (mirror=\(viaMirror != nil) kvc=\(viaKVC != nil))")
+                        self.attachStatusItem(item)
+                        return
+                    }
+                }
+            }
+            logger.warning("🌉 [Bridge] retry gave up after \(intervals.reduce(0, +))s; bridge never fired and we couldn't find NSStatusBarWindow")
         }
     }
 
