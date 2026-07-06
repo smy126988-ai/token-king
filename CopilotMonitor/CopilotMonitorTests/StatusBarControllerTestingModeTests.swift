@@ -105,4 +105,66 @@ final class StatusBarControllerTestingModeTests: XCTestCase {
             "Production options should target UserDefaults.standard"
         )
     }
+
+    // MARK: - B44-followup followup: recover from missing anchor separator
+    //
+    // Symptom in production (2026-07-06 user feedback): after clicking a
+    // duplicate-subscription delete row, the menu's anchor separator
+    // (added in setupMenu() with no tag → tag = 0) disappears. Once missing,
+    // every subsequent updateMultiProviderMenu() early-returns with
+    // "no separator found, returning" and the menu is stuck in a stale
+    // state — user sees a permanent loading spinner and the old 1-delete
+    // line warning that never updates.
+    //
+    // This test simulates that broken state by stripping the anchor
+    // separator from a freshly-built menu and then calling
+    // injectProviderStateForTesting (which invokes updateMultiProviderMenu).
+    // The recovery path should call setupMenu() to recreate the anchor
+    // and the menu should once again have a separator at a stable index.
+
+    @MainActor
+    func testMenuRecoversWhenAnchorSeparatorIsMissing() {
+        let suiteName = "B44-followup-recover.\(UUID().uuidString)"
+        let suite = UserDefaults(suiteName: suiteName)!
+        suite.removePersistentDomain(forName: suiteName)
+        defer { suite.removePersistentDomain(forName: suiteName) }
+
+        let controller = StatusBarController(options: .testing(userDefaults: suite))
+
+        // Trigger initial menu build so the anchor is in place.
+        controller.injectProviderStateForTesting()
+        guard let initialMenu = controller.topMenuForTesting else {
+            XCTFail("Menu should be built by injectProviderStateForTesting")
+            return
+        }
+        let initialSeparatorIndex = initialMenu.items.firstIndex(where: { $0.isSeparatorItem })
+        XCTAssertNotNil(initialSeparatorIndex,
+                         "Anchor separator should exist after a fresh menu build")
+
+        // Simulate the production bug: strip the anchor separator (the
+        // only separator in the menu, at tag=0) by mutating menu.items.
+        guard let sepIndex = initialSeparatorIndex,
+              sepIndex < initialMenu.items.count else { return }
+        let anchor = initialMenu.items[sepIndex]
+        XCTAssertEqual(anchor.tag, 0,
+                       "Anchor separator should have no tag (tag=0) — that's the invariant the recovery depends on")
+        initialMenu.removeItem(at: sepIndex)
+
+        let afterStrip = initialMenu.items.firstIndex(where: { $0.isSeparatorItem })
+        XCTAssertNil(afterStrip,
+                     "After strip, no separator should exist — simulates the broken production state")
+
+        // Trigger a rebuild — the recovery path should re-add the anchor
+        // separator via setupMenu(). self.menu now points to a NEW NSMenu
+        // instance, so re-fetch topMenuForTesting.
+        controller.injectProviderStateForTesting()
+
+        guard let recoveredMenu = controller.topMenuForTesting else {
+            XCTFail("topMenuForTesting should return the recovered menu after strip+rebuild")
+            return
+        }
+        let afterRecover = recoveredMenu.items.firstIndex(where: { $0.isSeparatorItem })
+        XCTAssertNotNil(afterRecover,
+                         "After recovery, the anchor separator should be back — without this, every subsequent rebuild early-returns and the menu is stuck")
+    }
 }

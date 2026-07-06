@@ -1750,21 +1750,41 @@ final class StatusBarController: NSObject {
         return (orphaned, total)
     }
 
-      private func updateMultiProviderMenu() {
-          debugLog("updateMultiProviderMenu: started")
-          if isMainMenuTracking {
-              hasDeferredMenuRebuild = true
-              hasDeferredStatusBarRefresh = true
-              debugLog("updateMultiProviderMenu: deferred while menu is open")
-              return
-          }
-          hasDeferredMenuRebuild = false
+       private func updateMultiProviderMenu() {
+           debugLog("updateMultiProviderMenu: started")
+           if isMainMenuTracking {
+               hasDeferredMenuRebuild = true
+               hasDeferredStatusBarRefresh = true
+               debugLog("updateMultiProviderMenu: deferred while menu is open")
+               return
+           }
+           hasDeferredMenuRebuild = false
 
-          guard let separatorIndex = menu.items.firstIndex(where: { $0.isSeparatorItem }) else {
-              debugLog("updateMultiProviderMenu: no separator found, returning")
-              return
-          }
-          debugLog("updateMultiProviderMenu: separatorIndex=\(separatorIndex)")
+           // B44-followup followup: the anchor separator (added in setupMenu,
+           // no tag → tag = 0) can disappear under some edge conditions
+           // (suspected race between cancelTracking and updateMultiProviderMenu
+           // inside action handlers — see line 3532-3538 / 3566-3567 /
+           // 3605-3606). When it does, every subsequent rebuild early-returns
+           // and the menu is stuck in a stale state — user sees an old
+           // "1 delete line" warning that never updates, plus a permanent
+           // loading spinner from the in-flight fetch.
+           //
+           // Recovery: rebuild the static skeleton (which re-adds the anchor)
+           // and re-bind the statusItem so the user actually sees the new
+           // menu. After this, self.menu points to a fresh NSMenu and
+           // `topMenuForTesting` will return the new instance.
+           var locatedSeparatorIndex = menu.items.firstIndex(where: { $0.isSeparatorItem })
+           if locatedSeparatorIndex == nil {
+               debugLog("updateMultiProviderMenu: no separator found, RECOVERING via setupMenu()")
+               setupMenu()
+               statusItem?.menu = menu
+               locatedSeparatorIndex = menu.items.firstIndex(where: { $0.isSeparatorItem })
+           }
+           guard let separatorIndex = locatedSeparatorIndex else {
+               debugLog("updateMultiProviderMenu: RECOVERY FAILED, anchor still missing — bailing")
+               return
+           }
+           debugLog("updateMultiProviderMenu: separatorIndex=\(separatorIndex)")
 
           var itemsToRemove: [NSMenuItem] = []
           let startIndex = separatorIndex + 1
@@ -3532,9 +3552,16 @@ final class StatusBarController: NSObject {
     @objc func subscriptionPlanSelected(_ sender: NSMenuItem) {
         guard let action = sender.representedObject as? SubscriptionMenuAction else { return }
 
+        // B44-followup: do the rebuild BEFORE cancelTracking. Doing them in
+        // the other order posts the cancel event first, then the rebuild sees
+        // isMainMenuTracking==true and defers; the deferred rebuild runs in
+        // menuDidClose, where AppKit can race with our menu mutation and strip
+        // the anchor separator. Updating first (and letting it still defer if
+        // the menu is open) keeps the rebuild path consistent and avoids the
+        // race that loses the anchor.
         SubscriptionSettingsManager.shared.setPlan(action.plan, forKey: action.subscriptionKey)
-        menu.cancelTracking()
         updateMultiProviderMenu()
+        menu.cancelTracking()
     }
 
     @objc func customSubscriptionSelected(_ sender: NSMenuItem) {
@@ -3563,8 +3590,10 @@ final class StatusBarController: NSObject {
             if response == .alertFirstButtonReturn {
                 if let cost = Double(inputField.stringValue), cost >= 0 {
                     SubscriptionSettingsManager.shared.setPlan(.custom(cost), forKey: subscriptionKey)
-                    menu.cancelTracking()
+                    // B44-followup: rebuild first, then cancel — see
+                    // subscriptionPlanSelected for the race-condition rationale.
                     updateMultiProviderMenu()
+                    menu.cancelTracking()
                     shouldPrompt = false
                 } else {
                     let errorAlert = NSAlert()
@@ -3602,8 +3631,11 @@ final class StatusBarController: NSObject {
         debugLog("[B44-followup] removeDuplicate: deleting key=\(key) total_before=\(beforeTotal) groups_before=\(beforeGroups.count)")
 
         SubscriptionSettingsManager.shared.removePlan(forKey: key)
-        menu.cancelTracking()
+        // B44-followup: rebuild first, then cancel — see subscriptionPlanSelected
+        // for the race-condition rationale (anchor separator gets stripped if
+        // cancelTracking fires before the rebuild).
         updateMultiProviderMenu()
+        menu.cancelTracking()
 
         let afterTotal = SubscriptionSettingsManager.shared.totalMonthlyCostDisplayText(
             currency: CurrencyFormatter.shared.currency,
