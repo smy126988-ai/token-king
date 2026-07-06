@@ -252,7 +252,7 @@ final class OpenCodeZenProvider: ProviderProtocol {
         // `opencode stats` occasionally hangs and leaves a background process alive
         // forever. Reap any that have outlived a sane lifetime before spawning a new
         // one so these zombies do not pile up across refresh cycles.
-        killStaleOpenCodeStatsProcesses()
+        await killStaleOpenCodeStatsProcesses()
 
         return try await withCheckedThrowingContinuation { continuation in
             let process = Process()
@@ -399,7 +399,7 @@ final class OpenCodeZenProvider: ProviderProtocol {
     ///
     /// - Note: Uses a temporary file for stdout instead of a Pipe to avoid deadlock
     ///   when the process list is larger than the pipe buffer.
-    internal func killStaleOpenCodeStatsProcesses() {
+    internal func killStaleOpenCodeStatsProcesses() async {
         // 1 hour. Legitimate runs finish in seconds, so anything older is hung.
         let staleThresholdSeconds = 3600
 
@@ -427,8 +427,21 @@ final class OpenCodeZenProvider: ProviderProtocol {
         listing.standardError = FileHandle.nullDevice
 
         do {
-            try listing.run()
-            listing.waitUntilExit()
+            // B47: Process.waitUntilExit() blocks the cooperative thread even
+            // inside async contexts, stalling the per-provider async pipeline
+            // when /bin/ps is slow. Use withCheckedThrowingContinuation +
+            // terminationHandler so the run() call is non-blocking.
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                listing.terminationHandler = { _ in
+                    continuation.resume()
+                }
+                do {
+                    try listing.run()
+                } catch {
+                    listing.terminationHandler = nil
+                    continuation.resume(throwing: error)
+                }
+            }
         } catch {
             Self.debugLog("Stale cleanup: failed to list processes: \(error.localizedDescription)")
             return
@@ -448,10 +461,19 @@ final class OpenCodeZenProvider: ProviderProtocol {
         )
 
         for stale in stalePids {
-            // Hung processes ignore SIGTERM, so SIGKILL guarantees the reap.
-            kill(stale.pid, SIGKILL)
-            logger.info("OpenCodeZen: Killed stale 'opencode stats' process pid=\(stale.pid) (running \(stale.etimes)s)")
-            Self.debugLog("Killed stale 'opencode stats' pid=\(stale.pid) etimes=\(stale.etimes)s")
+            // Hung processes ignore SIGTERM, so SIGKILL is the only way to reap.
+            // B48: check the return value. If the process exited between `ps` and
+            // `kill`, kill() returns -1/ESRCH and the log line would lie about a
+            // kill that didn't happen.
+            let result = kill(stale.pid, SIGKILL)
+            if result == 0 {
+                logger.info("OpenCodeZen: Killed stale 'opencode stats' process pid=\(stale.pid) (running \(stale.etimes)s)")
+                Self.debugLog("Killed stale 'opencode stats' pid=\(stale.pid) etimes=\(stale.etimes)s")
+            } else {
+                let err = String(cString: strerror(errno))
+                logger.warning("OpenCodeZen: kill failed for stale pid=\(stale.pid): \(err) (likely already exited)")
+                Self.debugLog("Kill failed for stale pid=\(stale.pid): \(err)")
+            }
         }
     }
 
