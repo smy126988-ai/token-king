@@ -29,17 +29,39 @@ private enum MenuItemTag {
 }
 
 extension StatusBarController: NSMenuDelegate {
+    /// Fingerprint the menu's anchor-separator state for root-cause logging.
+    /// When this prints "anchor=nil" the menu's tag=0 separator is gone and
+    /// `updateMultiProviderMenu` will early-return — that's the symptom we
+    /// saw in production (2026-07-06 user feedback). Watch for the *first*
+    /// transition from anchor=idx:N to anchor=nil in the log.
+    private func logMenuAnchorFingerprint(_ label: String) {
+        let items = menu.items
+        let separatorIndices = items.enumerated().compactMap { $0.element.isSeparatorItem ? $0.offset : nil }
+        let firstSeparator = separatorIndices.first ?? -1
+        let tag0Separators = items.enumerated().filter { $0.element.tag == 0 && $0.element.isSeparatorItem }.map(\.offset)
+        let anchorInfo: String
+        if firstSeparator < 0 {
+            anchorInfo = "nil"
+        } else {
+            anchorInfo = "idx:\(firstSeparator) tag0-indices:\(tag0Separators) items:\(items.count)"
+        }
+        debugLog("[anchor-fp] \(label) anchor=\(anchorInfo)")
+    }
+
     func menuWillOpen(_ menu: NSMenu) {
         guard menu === self.menu else { return }
         isMainMenuTracking = true
         debugLog("menuWillOpen: tracking enabled")
+        logMenuAnchorFingerprint("menuWillOpen")
     }
 
     func menuDidClose(_ menu: NSMenu) {
         guard menu === self.menu else { return }
         isMainMenuTracking = false
         debugLog("menuDidClose: tracking disabled")
+        logMenuAnchorFingerprint("menuDidClose")
         flushDeferredUIUpdatesIfNeeded()
+        logMenuAnchorFingerprint("menuDidClose-post-flush")
     }
 }
 
@@ -509,6 +531,7 @@ final class StatusBarController: NSObject {
     private func setupMenu() {
         menu = NSMenu()
         menu.delegate = self
+        debugLog("[anchor-fp] setupMenu: fresh NSMenu created, anchor=nil")
 
         // Load cached history immediately on startup (before API fetch completes)
         loadCachedHistoryOnStartup()
@@ -1752,6 +1775,7 @@ final class StatusBarController: NSObject {
 
        private func updateMultiProviderMenu() {
            debugLog("updateMultiProviderMenu: started")
+           logMenuAnchorFingerprint("updateMultiProviderMenu-entry")
            if isMainMenuTracking {
                hasDeferredMenuRebuild = true
                hasDeferredStatusBarRefresh = true
@@ -1797,7 +1821,8 @@ final class StatusBarController: NSObject {
               }
           }
           debugLog("updateMultiProviderMenu: removing \(itemsToRemove.count) old items")
-          itemsToRemove.forEach { menu.removeItem($0) }
+           itemsToRemove.forEach { menu.removeItem($0) }
+           logMenuAnchorFingerprint("updateMultiProviderMenu-after-cleanup")
 
           debugLog("updateMultiProviderMenu: providerResults.count=\(providerResults.count)")
 
@@ -2668,8 +2693,9 @@ final class StatusBarController: NSObject {
         refreshRecentChangeCandidate()
         updateStatusBarDisplayMenuState()
         updateStatusBarText()
-        debugLog("updateMultiProviderMenu: completed successfully, totalCost=\(formatCurrencyAmountForStatusBar(totalCost))")
-        logMenuStructure()
+           debugLog("updateMultiProviderMenu: completed successfully, totalCost=\(formatCurrencyAmountForStatusBar(totalCost))")
+           logMenuAnchorFingerprint("updateMultiProviderMenu-exit")
+           logMenuStructure()
     }
 
     private func logMenuStructure() {
