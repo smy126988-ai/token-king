@@ -13,9 +13,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.11.1</string>
+	<string>2.12.0</string>
 	<key>CFBundleVersion</key>
-	<string>2.11.1</string>
+	<string>2.12.0</string>
 	<key>GitCommitHash</key>
 	<string>9a77e17d97cdb5478610cd90f6b0993e3d7f296a</string>
 	<key>LSUIElement</key>
