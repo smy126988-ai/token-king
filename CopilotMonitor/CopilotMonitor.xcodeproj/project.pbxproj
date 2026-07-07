@@ -43,6 +43,8 @@
 		CF11AA22BB33CC44DD55EE01 /* CurrencyFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF11AA22BB33CC44DD55EE02 /* CurrencyFormatter.swift */; };
 		25B8765A7AE249798F95274F /* PricingTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A6F09D053C04780AAEB8EE7 /* PricingTable.swift */; };
 		TE00100000000000000000BF1 /* TokenEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE00100000000000000000FR1 /* TokenEvent.swift */; };
+		TN00000000000000000000BF1 /* TokenNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = TN00000000000000000000FR1 /* TokenNormalizer.swift */; };
+		TN00000000000000000000BF2 /* TokenNormalizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TN00000000000000000000FR2 /* TokenNormalizerTests.swift */; };
 		87297CDD8B65F7EF0BC5D650 /* ProviderManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F40F1AC76A49A9B9DF74B0 /* ProviderManager.swift */; };
 		8EA90F9E26F29FC7938D2924 /* ProviderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BDA856BBC854D3FF310EA51 /* ProviderViewModel.swift */; };
 		A14AF9AC6A646726B7C94978 /* MenuResultBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F6CE62C58ECA852F25FEF30 /* MenuResultBuilder.swift */; };
@@ -230,6 +232,7 @@
 		CF11AA22BB33CC44DD55EE04 /* CurrencyFormatterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CurrencyFormatterTests.swift; sourceTree = "<group>"; };
 		8A1F577E5DDC41A19316CDBC /* PricingTableTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PricingTableTests.swift; sourceTree = "<group>"; };
 		TE00100000000000000000FR2 /* TokenEventTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenEventTests.swift; sourceTree = "<group>"; };
+		TN00000000000000000000FR2 /* TokenNormalizerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenNormalizerTests.swift; sourceTree = "<group>"; };
 		PRRESULTTESTFILE11111111 /* ProviderResultTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProviderResultTests.swift; sourceTree = "<group>"; };
 		SBCCTRLTESTFR111111111 /* StatusBarControllerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatusBarControllerTests.swift; sourceTree = "<group>"; };
 		SBCCTRLMODETMFR1111 /* StatusBarControllerTestingModeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatusBarControllerTestingModeTests.swift; sourceTree = "<group>"; };
@@ -241,6 +244,7 @@
 		CF11AA22BB33CC44DD55EE02 /* CurrencyFormatter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CurrencyFormatter.swift; sourceTree = "<group>"; };
 		9A6F09D053C04780AAEB8EE7 /* PricingTable.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PricingTable.swift; sourceTree = "<group>"; };
 		TE00100000000000000000FR1 /* TokenEvent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenEvent.swift; sourceTree = "<group>"; };
+		TN00000000000000000000FR1 /* TokenNormalizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenNormalizer.swift; sourceTree = "<group>"; };
 		A44444444444444444444444 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		APPMAIN22222222222222222222 /* EntryDocumentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryDocumentation.swift; sourceTree = "<group>"; };
 		A454D8C32F30548900E355E3 /* ZaiCodingPlanProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZaiCodingPlanProvider.swift; sourceTree = "<group>"; };
@@ -537,6 +541,7 @@
 				0F6CE62C58ECA852F25FEF30 /* MenuResultBuilder.swift */,
 				9A6F09D053C04780AAEB8EE7 /* PricingTable.swift */,
 				TE00100000000000000000FR1 /* TokenEvent.swift */,
+				TN00000000000000000000FR1 /* TokenNormalizer.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -606,6 +611,7 @@
 			children = (
 				8A1F577E5DDC41A19316CDBC /* PricingTableTests.swift */,
 				TE00100000000000000000FR2 /* TokenEventTests.swift */,
+				TN00000000000000000000FR2 /* TokenNormalizerTests.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -825,6 +831,7 @@
 				CF11AA22BB33CC44DD55EE01 /* CurrencyFormatter.swift in Sources */,
 				25B8765A7AE249798F95274F /* PricingTable.swift in Sources */,
 				TE00100000000000000000BF1 /* TokenEvent.swift in Sources */,
+				TN00000000000000000000BF1 /* TokenNormalizer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -924,6 +931,7 @@
 				CF11AA22BB33CC44DD55EE03 /* CurrencyFormatterTests.swift in Sources */,
 				B0B14142AFE641ACB3474246 /* PricingTableTests.swift in Sources */,
 				TE00100000000000000000BF2 /* TokenEventTests.swift in Sources */,
+				TN00000000000000000000BF2 /* TokenNormalizerTests.swift in Sources */,
 				PRRESULTTESTBUILD11111111 /* ProviderResultTests.swift in Sources */,
 				SBCCTRLTESTBF111111111 /* StatusBarControllerTests.swift in Sources */,
 				SBCCTRLMODETMBF1111 /* StatusBarControllerTestingModeTests.swift in Sources */,
