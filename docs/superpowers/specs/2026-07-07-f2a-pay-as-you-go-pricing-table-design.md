@@ -16,7 +16,7 @@ Token King 当前**没有任何"按量价 vs 订阅价"对比能力**。`Subscri
 **F2a 范围**：
 
 - ✅ quota-based provider 的"按量价"（input / output / cache token 单价 per M tokens）
-- ✅ 公开定价页查得到的 7 个 provider
+- ✅ 公开定价页查得到的 6 个 provider（+ 1 个 Copilot 标 nil）
 - ❌ 计算逻辑（→ F2b）
 - ❌ UI 展示（→ F2b / F2c）
 - ❌ 公开定价页拉取 / 用户手设 override（→ 后续）
@@ -29,7 +29,7 @@ Token King 当前**没有任何"按量价 vs 订阅价"对比能力**。`Subscri
 | 覆盖范围 | 只 quota-based provider | pay-as-you-go + quota-based 全覆盖 |
 | 数据粒度 | 每 provider 一个 `PayAsYouGoRate`（含 input/output/cache 三价） | per-provider-per-model 多价 / 单 value |
 | 硬编码源 | 编译期 Swift const in `Helpers/PricingTable.swift` | bundle plist/json / UserDefaults |
-| Provider 清单 + 查不到 | Kimi/KimiCN/Copilot/Claude/Z.AI/NanoGpt/Codex 7 个；查不到 nil；UI 由 F2b 标 N/A | 只 3 个起步 / 查不到用估算 |
+| Provider 清单 + 查不到 | Kimi/KimiCN/Claude/Z.AI/NanoGpt/Codex 6 个；Copilot/Antigravity/4 国内 nil | 只 3 个起步 / 查不到用估算 |
 | 货币单位 | **RMB**（¥/M tokens） | USD（项目"USD 是数据层唯一真值"原则） |
 
 ## 2. 偏离项目原则的说明
@@ -71,7 +71,7 @@ struct PayAsYouGoRate {
 /// 公开定价页硬编码的 quota-based provider 按量价表。
 /// 维护策略：定价页改了手动改这里。源码注释附公开页 URL + 查询日期。
 enum PricingTable {
-    /// 返回 provider 的代表 model 按量价。nil = 无公开价（Antigravity / Mimo / VolcanoArk / Hunyuan / ZhipuGLM）。
+    /// 返回 provider 的代表 model 按量价。nil = 无公开价或 Premium-request 模型（Copilot / Antigravity / Mimo / VolcanoArk / Hunyuan / ZhipuGLM 等）。
     static func rate(for provider: ProviderIdentifier) -> PayAsYouGoRate?
     
     /// 列出所有有公开价的 quota-based provider。F2b/F4 用。
@@ -79,20 +79,21 @@ enum PricingTable {
 }
 ```
 
-### 3.3 7 个 Provider 定价骨架
+### 3.3 6 个 Provider 定价骨架
 
-> 具体数字会在 implementation 时通过 subagent 并行调研各 provider 公开定价页填入。
-> 源码注释会附：定价页 URL + 查询日期 + 代表 model 选型理由。
+> 具体数字已于 2026-07-07 通过 subagent 并行调研各 provider 公开定价页填入。
+> 源码注释附：定价页 URL + 查询日期 + 代表 model 选型理由。
+> 详细调研笔记见 `docs/superpowers/research/f2a-pricing-research-2026-07-07.md`。
 
-| Provider | 代表 model | Input ¥/M | Output ¥/M | Cache ¥/M | 公开页 URL（待填）|
+| Provider | 代表 model | Input ¥/M | Output ¥/M | Cache ¥/M | 公开页 URL（已填，2026-07-07）|
 |---|---|---|---|---|---|
-| `kimi` | kimi-k2 | TBD | TBD | TBD | platform.moonshot.cn |
-| `kimiCN` | kimi-k2 (国内同价) | TBD | TBD | TBD | platform.moonshot.cn |
-| `copilot` | claude-sonnet-4 (Premium request) | TBD | TBD | TBD | docs.github.com/copilot |
-| `claude` | claude-sonnet-4-5 | TBD | TBD | TBD | anthropic.com/pricing |
-| `zaiCodingPlan` | glm-4.6 | TBD | TBD | TBD | z.ai/pricing |
-| `nanoGpt` | gpt-4o (per public pricing) | TBD | TBD | TBD | nano-gpt.com/pricing |
-| `codex` | gpt-4o | TBD | TBD | TBD | openai.com/pricing |
+| `kimi` | kimi-k2.6 | 6.50 | 27.00 | 1.10 | platform.moonshot.cn/docs/pricing/chat-k26 |
+| `kimiCN` | kimi-k2.6 (国内同价) | 6.50 | 27.00 | 1.10 | platform.moonshot.cn/docs/pricing/chat-k26 |
+| `copilot` | N/A (Premium request model) | nil | nil | nil | docs.github.com/copilot — out of scope: Copilot Premium is request-multiplier, not per-token rate |
+| `claude` | claude-sonnet-4-5 | 20.37 | 101.85 | 25.46 (write) | anthropic.com/pricing |
+| `zaiCodingPlan` | glm-4.6 | 4.07 | 14.94 | 0.75 (read) | docs.z.ai/guides/overview/pricing |
+| `nanoGpt` | gpt-4o (pass-through) | 16.98 | 67.90 | nil | nano-gpt.com/pricing (best-effort, JS-rendered) |
+| `codex` | gpt-4o | 16.98 | 67.90 | 8.49 (read) | platform.openai.com/docs/pricing |
 
 **5 个暂不覆盖**（公开定价页查不到或估算无依据）：
 
@@ -144,12 +145,12 @@ F2a 自身**不做计算**，只产数据。F2b 才会 `PricingTable.rate(for: .
 
 | 测试 | 验证 |
 |---|---|
-| `testAll7ProvidersReturnNonNilRate` | 7 个 provider 全部有 rate |
+| `testAll6CoveredProvidersReturnNonNilRate` | 6 个 provider 全部有 rate |
+| `testProvidersWithPublicPricingContainsExactly6` | 公开 API 列出的 provider 集合 = 6 个 |
+| `testCopilotReturnsNil` | Copilot Premium 是 request 倍率非按量 → 返 nil |
 | `testAntigravityReturnsNil` | 公开页查不到的 provider 返回 nil |
 | `testOtherUncoveredProvidersReturnNil` | mimo / volcanoArk / hunyuan / zhipuGLM 返回 nil |
 | `testRateValuesArePositive` | 所有 rate > 0（不出现 0/负数/NaN） |
-| `testCacheIsOptional` | cache 字段正确表达"无 cache 价"场景 |
-| `testProvidersWithPublicPricingContainsAll7` | 公开 API 列出的 provider 集合 = 7 个 |
 | `testOutputRateGreaterOrEqualToInputRate` | 业界惯例 output ≥ input（防数据录入错误） |
 | `testKimiAndKimiCNHaveSameRate` | 同一代表 model 同价（防 KimiCN 误填 Global 海外价） |
 
@@ -182,7 +183,7 @@ F2a **不需要 e2e**（无 UI / 无 IO / 无副作用）。F2b 落地时再做 
 > 详细 plan 走 `writing-plans` skill 单独产出。
 
 1. **建 file**：`Helpers/PricingTable.swift` + `Helpers/PricingTableTests.swift` + pbxproj 4+4 处注册
-2. **填数据**：7 个 provider 的 PayAsYouGoRate 调研 + 填值 + 注释
+2. **填数据**：6 个 provider 的 PayAsYouGoRate（Copilot 标 nil）调研 + 填值 + 注释
 3. **测试**：8 个单元测试全 pass
 4. **PR 验证**：`xcodebuild test` 全 414+8 = 422 测试通过
 5. **CLAUDE.md 信号 + version bump**：per 项目规则
@@ -201,7 +202,7 @@ F2a **不需要 e2e**（无 UI / 无 IO / 无副作用）。F2b 落地时再做 
 
 - [ ] 8 个单元测试全 pass
 - [ ] 总测试数从 414 涨到 422（全 pass）
-- [ ] `PricingTable.rate(for: .kimi)` 返回 `PayAsYouGoRate(input: 4.0, output: 16.0, cache: 1.0)`（具体数字调研后定）
+- [ ] `PricingTable.rate(for: .kimi)` 返回 `PayAsYouGoRate(input: 6.50, output: 27.00, cache: 1.10)`（2026-07-07 调研值）
 - [ ] `PricingTable.rate(for: .antigravity)` 返回 nil
 - [ ] 源码注释包含定价页 URL + 查询日期
 - [ ] 无新增 dead code（每个新增 type/func 在 spec 里有引用）
