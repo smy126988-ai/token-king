@@ -177,6 +177,21 @@
 		ZHIPUAPP111111111111111 /* ZhipuGLMProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = ZHIPUFILE222222222222 /* ZhipuGLMProvider.swift */; };
 		ZHIPUCLI111111111111111 /* ZhipuGLMProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = ZHIPUFILE222222222222 /* ZhipuGLMProvider.swift */; };
 		NEWPROVTESTBF1111111111 /* NewProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NEWPROVTESTFR1111111111 /* NewProviderTests.swift */; };
+		TE0000000000000000000PBF /* TokenExtractorProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0000000000000000000PFR /* TokenExtractorProtocol.swift */; };
+		OC0000000000000000000EBF /* OpenCodeExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = OC0000000000000000000EFR /* OpenCodeExtractor.swift */; };
+		CC0000000000000000000EBF /* ClaudeCodeExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000EFR /* ClaudeCodeExtractor.swift */; };
+		CE0000000000000000000XBF /* CodexExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000XFR /* CodexExtractor.swift */; };
+		KL0000000000000000000EBF /* KimiCLILegacyExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = KL0000000000000000000EFR /* KimiCLILegacyExtractor.swift */; };
+		KC0000000000000000000EBF /* KimiCodeExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = KC0000000000000000000EFR /* KimiCodeExtractor.swift */; };
+		ZA0000000000000000000EBF /* ZAIExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = ZA0000000000000000000EFR /* ZAIExtractor.swift */; };
+		NG0000000000000000000EBF /* NanoGPTExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = NG0000000000000000000EFR /* NanoGPTExtractor.swift */; };
+		OC0000000000000000000TBF /* OpenCodeExtractorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = OC0000000000000000000TFR /* OpenCodeExtractorTests.swift */; };
+		CC0000000000000000000TBF /* ClaudeCodeExtractorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000TFR /* ClaudeCodeExtractorTests.swift */; };
+		CE0000000000000000000TBF /* CodexExtractorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000TFR /* CodexExtractorTests.swift */; };
+		KL0000000000000000000TBF /* KimiCLILegacyExtractorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = KL0000000000000000000TFR /* KimiCLILegacyExtractorTests.swift */; };
+		KC0000000000000000000TBF /* KimiCodeExtractorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = KC0000000000000000000TFR /* KimiCodeExtractorTests.swift */; };
+		ZA0000000000000000000TBF /* ZAIExtractorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ZA0000000000000000000TFR /* ZAIExtractorTests.swift */; };
+		NG0000000000000000000TBF /* NanoGPTExtractorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NG0000000000000000000TFR /* NanoGPTExtractorTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -343,6 +358,21 @@
 		HUNYUANFILE22222222222 /* HunyuanProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HunyuanProvider.swift; sourceTree = "<group>"; };
 		ZHIPUFILE222222222222 /* ZhipuGLMProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZhipuGLMProvider.swift; sourceTree = "<group>"; };
 		NEWPROVTESTFR1111111111 /* NewProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewProviderTests.swift; sourceTree = "<group>"; };
+		TE0000000000000000000PFR /* TokenExtractorProtocol.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenExtractorProtocol.swift; sourceTree = "<group>"; };
+		OC0000000000000000000EFR /* OpenCodeExtractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpenCodeExtractor.swift; sourceTree = "<group>"; };
+		CC0000000000000000000EFR /* ClaudeCodeExtractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClaudeCodeExtractor.swift; sourceTree = "<group>"; };
+		CE0000000000000000000XFR /* CodexExtractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CodexExtractor.swift; sourceTree = "<group>"; };
+		KL0000000000000000000EFR /* KimiCLILegacyExtractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KimiCLILegacyExtractor.swift; sourceTree = "<group>"; };
+		KC0000000000000000000EFR /* KimiCodeExtractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KimiCodeExtractor.swift; sourceTree = "<group>"; };
+		ZA0000000000000000000EFR /* ZAIExtractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ZAIExtractor.swift; sourceTree = "<group>"; };
+		NG0000000000000000000EFR /* NanoGPTExtractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NanoGPTExtractor.swift; sourceTree = "<group>"; };
+		OC0000000000000000000TFR /* OpenCodeExtractorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpenCodeExtractorTests.swift; sourceTree = "<group>"; };
+		CC0000000000000000000TFR /* ClaudeCodeExtractorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClaudeCodeExtractorTests.swift; sourceTree = "<group>"; };
+		CE0000000000000000000TFR /* CodexExtractorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CodexExtractorTests.swift; sourceTree = "<group>"; };
+		KL0000000000000000000TFR /* KimiCLILegacyExtractorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KimiCLILegacyExtractorTests.swift; sourceTree = "<group>"; };
+		KC0000000000000000000TFR /* KimiCodeExtractorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KimiCodeExtractorTests.swift; sourceTree = "<group>"; };
+		ZA0000000000000000000TFR /* ZAIExtractorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ZAIExtractorTests.swift; sourceTree = "<group>"; };
+		NG0000000000000000000TFR /* NanoGPTExtractorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NanoGPTExtractorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -552,8 +582,24 @@
 				TN00000000000000000000FR1 /* TokenNormalizer.swift */,
 				TUS00000000000000000000FR1 /* TokenUsageStore.swift */,
 				MCST000000000000000000FR1 /* MonthCostCalculator.swift */,
+				TE0000000000000000000GRP /* TokenExtractor */,
 			);
 			path = Helpers;
+			sourceTree = "<group>";
+		};
+		TE0000000000000000000GRP /* TokenExtractor */ = {
+			isa = PBXGroup;
+			children = (
+					TE0000000000000000000PFR /* TokenExtractorProtocol.swift */,
+					OC0000000000000000000EFR /* OpenCodeExtractor.swift */,
+					CC0000000000000000000EFR /* ClaudeCodeExtractor.swift */,
+					CE0000000000000000000XFR /* CodexExtractor.swift */,
+					KL0000000000000000000EFR /* KimiCLILegacyExtractor.swift */,
+					KC0000000000000000000EFR /* KimiCodeExtractor.swift */,
+					ZA0000000000000000000EFR /* ZAIExtractor.swift */,
+					NG0000000000000000000EFR /* NanoGPTExtractor.swift */,
+			);
+			path = TokenExtractor;
 			sourceTree = "<group>";
 		};
 		SP3333333333333333333333 /* Frameworks */ = {
@@ -624,8 +670,23 @@
 				TN00000000000000000000FR2 /* TokenNormalizerTests.swift */,
 				TUS00000000000000000000FR2 /* TokenUsageStoreTests.swift */,
 				MCST000000000000000000FR2 /* MonthCostCalculatorTests.swift */,
+				TE0000000000000000000TGP /* TokenExtractor */,
 			);
 			path = Helpers;
+			sourceTree = "<group>";
+		};
+		TE0000000000000000000TGP /* TokenExtractor */ = {
+			isa = PBXGroup;
+			children = (
+					OC0000000000000000000TFR /* OpenCodeExtractorTests.swift */,
+					CC0000000000000000000TFR /* ClaudeCodeExtractorTests.swift */,
+					CE0000000000000000000TFR /* CodexExtractorTests.swift */,
+					KL0000000000000000000TFR /* KimiCLILegacyExtractorTests.swift */,
+					KC0000000000000000000TFR /* KimiCodeExtractorTests.swift */,
+					ZA0000000000000000000TFR /* ZAIExtractorTests.swift */,
+					NG0000000000000000000TFR /* NanoGPTExtractorTests.swift */,
+			);
+			path = TokenExtractor;
 			sourceTree = "<group>";
 		};
 		TOOOOOOOOOOOOOOOOOOOOOOO /* Fixtures */ = {
@@ -844,6 +905,14 @@
 				25B8765A7AE249798F95274F /* PricingTable.swift in Sources */,
 				TE00100000000000000000BF1 /* TokenEvent.swift in Sources */,
 				TN00000000000000000000BF1 /* TokenNormalizer.swift in Sources */,
+				TE0000000000000000000PBF /* TokenExtractorProtocol.swift in Sources */,
+				OC0000000000000000000EBF /* OpenCodeExtractor.swift in Sources */,
+				CC0000000000000000000EBF /* ClaudeCodeExtractor.swift in Sources */,
+				CE0000000000000000000XBF /* CodexExtractor.swift in Sources */,
+				KL0000000000000000000EBF /* KimiCLILegacyExtractor.swift in Sources */,
+				KC0000000000000000000EBF /* KimiCodeExtractor.swift in Sources */,
+				ZA0000000000000000000EBF /* ZAIExtractor.swift in Sources */,
+				NG0000000000000000000EBF /* NanoGPTExtractor.swift in Sources */,
 				TUS00000000000000000000BF1 /* TokenUsageStore.swift in Sources */,
 				MCST000000000000000000BF1 /* MonthCostCalculator.swift in Sources */,
 			);
@@ -946,6 +1015,13 @@
 				B0B14142AFE641ACB3474246 /* PricingTableTests.swift in Sources */,
 				TE00100000000000000000BF2 /* TokenEventTests.swift in Sources */,
 				TN00000000000000000000BF2 /* TokenNormalizerTests.swift in Sources */,
+				OC0000000000000000000TBF /* OpenCodeExtractorTests.swift in Sources */,
+				CC0000000000000000000TBF /* ClaudeCodeExtractorTests.swift in Sources */,
+				CE0000000000000000000TBF /* CodexExtractorTests.swift in Sources */,
+				KL0000000000000000000TBF /* KimiCLILegacyExtractorTests.swift in Sources */,
+				KC0000000000000000000TBF /* KimiCodeExtractorTests.swift in Sources */,
+				ZA0000000000000000000TBF /* ZAIExtractorTests.swift in Sources */,
+				NG0000000000000000000TBF /* NanoGPTExtractorTests.swift in Sources */,
 				TUS00000000000000000000BF2 /* TokenUsageStoreTests.swift in Sources */,
 				MCST000000000000000000BF2 /* MonthCostCalculatorTests.swift in Sources */,
 				PRRESULTTESTBUILD11111111 /* ProviderResultTests.swift in Sources */,
