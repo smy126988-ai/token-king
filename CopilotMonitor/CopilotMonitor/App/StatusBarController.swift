@@ -1251,6 +1251,23 @@ final class StatusBarController: NSObject {
         }
     }
 
+    /// F1 (token aggregation): splits .kimi / .kimiCN into distinct F2b `Provider.rawValue`
+    /// strings so the SQL filter `provider = ?` matches Kimi CN events stored separately
+    /// from Kimi Global events in `day_aggregates`. Differs from `f2bProviderRaw` which
+    /// intentionally merges them for the cost path (PricingTable treats both at the
+    /// same rate).
+    func f2bTokenProviderRaw(for identifier: ProviderIdentifier) -> String? {
+        switch identifier {
+        case .kimi:           return "kimi"
+        case .kimiCN:         return "kimiCN"
+        case .claude:         return "claude"
+        case .codex:          return "codex"
+        case .zaiCodingPlan:  return "zai"
+        case .nanoGpt:        return "nanogpt"
+        default:              return nil
+        }
+    }
+
     private func selectedPinnedProvider() -> ProviderIdentifier? {
         let visibleQuotaProviderIds = Set(
             quotaAlertCandidates(logContext: menuBarDisplayProvider == nil ? "pinned-provider-auto" : "pinned-provider").map(\.identifier)

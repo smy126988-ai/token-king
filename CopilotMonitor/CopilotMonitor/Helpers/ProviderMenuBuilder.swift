@@ -1146,7 +1146,10 @@ extension StatusBarController {
         // F1: monthly + daily token usage lists. Async fetch (TokenUsageStore is
         // actor-isolated) dispatched via Task on the main actor. The block is
         // hidden when the store has no data for this provider.
-        if let tokenUsageStore, let providerRaw = f2bProviderRaw(for: identifier) {
+        // Use f2bTokenProviderRaw (not f2bProviderRaw) to split .kimi / .kimiCN
+        // — otherwise Kimi CN events stored under provider="kimiCN" would not
+        // be matched by the SQL filter provider="kimi".
+        if let tokenUsageStore, let providerRaw = f2bTokenProviderRaw(for: identifier) {
             Task { @MainActor [weak tokenUsageStore, weak self] in
                 guard let store = tokenUsageStore, let self else { return }
                 let dayAggregates = await store.fetchDayAggregates(
@@ -1170,14 +1173,20 @@ extension StatusBarController {
     /// in `createDetailSubmenu` wrap an actor fetch in a `Task` and pass the
     /// pre-fetched `dayAggregates` here.
     ///
-    /// Renders only when the provider has a F2b row (e.g. kimi / claude / codex)
-    /// AND `dayAggregates` is non-empty.
+    /// Renders only when the provider has a F2b row (e.g. kimi / kimiCN / claude /
+    /// codex / zai / nanoGpt) AND `dayAggregates` is non-empty. Note the helper
+    /// uses `f2bTokenProviderRaw` (NOT `f2bProviderRaw`) to keep `.kimi` and
+    /// `.kimiCN` as distinct F2b buckets.
     func appendF1TokenBlocks(to submenu: NSMenu, identifier: ProviderIdentifier, dayAggregates: [DayAggregate]) {
-        guard let providerRaw = f2bProviderRaw(for: identifier) else { return }
-        guard !dayAggregates.isEmpty else { return }
+        guard let providerRaw = f2bTokenProviderRaw(for: identifier) else { return }
+        // Defensive filter: caller (createDetailSubmenu) already filters at the
+        // SQL layer via `provider = ?`, but make the helper robust to direct
+        // test calls with mismatched aggregates.
+        let filtered = dayAggregates.filter { $0.provider == providerRaw }
+        guard !filtered.isEmpty else { return }
 
         // Aggregate by model for the monthly section (sum tokens across all days for the same model).
-        let monthlyByModel: [(model: String, tokens: TokenBreakdown)] = Dictionary(grouping: dayAggregates, by: { $0.model })
+        let monthlyByModel: [(model: String, tokens: TokenBreakdown)] = Dictionary(grouping: filtered, by: { $0.model })
             .map { (model: $0.key, tokens: $0.value.reduce(TokenBreakdown.zero) { $0.adding($1.tokens) }) }
             .sorted { $0.model < $1.model }
 
@@ -1195,7 +1204,7 @@ extension StatusBarController {
         }
 
         // Aggregate by day for the daily section (sum tokens across all models on the same day).
-        let dailyByDay: [(day: String, tokens: TokenBreakdown)] = Dictionary(grouping: dayAggregates, by: { $0.day })
+        let dailyByDay: [(day: String, tokens: TokenBreakdown)] = Dictionary(grouping: filtered, by: { $0.day })
             .map { (day: $0.key, tokens: $0.value.reduce(TokenBreakdown.zero) { $0.adding($1.tokens) }) }
             .sorted { $0.day > $1.day }  // most recent first
 

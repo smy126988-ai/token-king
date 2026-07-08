@@ -68,6 +68,33 @@ final class ProviderMenuBuilderF1F3Tests: XCTestCase {
         XCTAssertFalse(texts.contains(where: { $0.contains("Token 用量") }), "F1 block should be hidden when dayAggregates is empty")
     }
 
+    /// F2b Kimi CN split: F1 block must render for .kimiCN when dayAggregates
+    /// contains rows with provider="kimiCN". Previously the helper used
+    /// `f2bProviderRaw` which collapsed both into "kimi" and missed kimiCN rows.
+    func testF1BlockRendersForKimiCNWithMatchingAggregates() {
+        let aggregates = [
+            DayAggregate(provider: "kimiCN", model: "kimi-k2.5", day: "2026-07-08", tokens: TokenBreakdown(input: 100))
+        ]
+        let menu = NSMenu()
+        controller.appendF1TokenBlocks(to: menu, identifier: .kimiCN, dayAggregates: aggregates)
+        let texts = extractText(from: menu)
+        XCTAssertTrue(texts.contains(where: { $0.contains("Token 用量 (本月)") }), "F1 monthly header missing for .kimiCN; got \(texts)")
+        XCTAssertTrue(texts.contains(where: { $0.contains("Token 用量 (本月每日)") }), "F1 daily header missing for .kimiCN; got \(texts)")
+    }
+
+    /// F2b Kimi CN split: F1 block must NOT render for .kimiCN if aggregates
+    /// only have provider="kimi" rows (Kimi Global events). This documents the
+    /// intentional split — the two buckets are kept separate.
+    func testF1BlockHiddenForKimiCNWithKimiGlobalAggregates() {
+        let aggregates = [
+            DayAggregate(provider: "kimi", model: "kimi-k2.5", day: "2026-07-08", tokens: TokenBreakdown(input: 100))
+        ]
+        let menu = NSMenu()
+        controller.appendF1TokenBlocks(to: menu, identifier: .kimiCN, dayAggregates: aggregates)
+        let texts = extractText(from: menu)
+        XCTAssertFalse(texts.contains(where: { $0.contains("Token 用量") }), "F1 block should be hidden for .kimiCN when aggregates are only kimi (Global); got \(texts)")
+    }
+
     func testF1MonthlyAndDailyAggregateByModelAndDay() {
         // 4 rows: 2 models on day1, 2 models on day2
         // - Monthly should show 2 rows (one per model, summed across days).
