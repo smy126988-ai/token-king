@@ -48,8 +48,15 @@ final class ProviderMenuBuilderF1F3Tests: XCTestCase {
     }
 
     func testF1BlockIsHiddenForProviderWithoutF2bData() async throws {
+        // .openRouter is NOT a F2b provider (no F2b Provider enum case).
+        // Pass non-empty dayAggregates so the empty-aggregates guard passes
+        // and only the f2bProviderRaw(for:) guard can hide the block.
         let menu = NSMenu()
-        controller.appendF1TokenBlocks(to: menu, identifier: .nanoGpt, dayAggregates: [])
+        let fakeAggregates = [
+            DayAggregate(provider: "kimi", model: "kimi-k2.5", day: "2026-07-08",
+                         tokens: TokenBreakdown(input: 100))
+        ]
+        controller.appendF1TokenBlocks(to: menu, identifier: .openRouter, dayAggregates: fakeAggregates)
         let texts = extractText(from: menu)
         XCTAssertFalse(texts.contains(where: { $0.contains("Token 用量") }), "Should not render F1 block without F2b data; got: \(texts)")
     }
