@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		012FFA684052927F4624305D /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63B7463DD780920A82671FE3 /* Cocoa.framework */; };
 		059C5594082971953C6B21C5 /* F2bE2ETests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D97B25E6EB0CE5E48A27A737 /* F2bE2ETests.swift */; };
+		TSUT000000000000000000BF2 /* TokenStatsE2ETests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TSUT000000000000000000FR2 /* TokenStatsE2ETests.swift */; };
 		0B6CF8BEB936A2055F19AA8C /* CodexProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76783C44AA2329AE3FA7E981 /* CodexProvider.swift */; };
 		0EA5E7A5BCD47582D6C2175B /* TokenManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF0C48368166F3AD0C79F92 /* TokenManager.swift */; };
 		11DD5CEEB9FA083728D151DD /* TavilyLiveIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A255270920EBB45B5176EFA /* TavilyLiveIntegrationTests.swift */; };
@@ -309,6 +310,7 @@
 		CURSORTSTFR11111111111 /* CursorProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorProviderTests.swift; sourceTree = "<group>"; };
 		D22222222222222222222222 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 		D97B25E6EB0CE5E48A27A737 /* F2bE2ETests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = F2bE2ETests.swift; path = F2bE2ETests.swift; sourceTree = "<group>"; };
+		TSUT000000000000000000FR2 /* TokenStatsE2ETests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TokenStatsE2ETests.swift; path = TokenStatsE2ETests.swift; sourceTree = "<group>"; };
 		DBF0C48368166F3AD0C79F92 /* TokenManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenManager.swift; sourceTree = "<group>"; };
 		DCE215EDDBE3407B8E477617B1A9D6A3 /* TimeZone+UTC.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "TimeZone+UTC.swift"; sourceTree = "<group>"; };
 		DETAILSUBOCFR1111111111 /* DetailSubmenuOpenCodeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailSubmenuOpenCodeTests.swift; sourceTree = "<group>"; };
@@ -461,6 +463,7 @@
 			isa = PBXGroup;
 			children = (
 				D97B25E6EB0CE5E48A27A737 /* F2bE2ETests.swift */,
+				TSUT000000000000000000FR2 /* TokenStatsE2ETests.swift */,
 			);
 			name = CopilotMonitorUITests;
 			path = CopilotMonitorUITests;
@@ -974,6 +977,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				059C5594082971953C6B21C5 /* F2bE2ETests.swift in Sources */,
+				TSUT000000000000000000BF2 /* TokenStatsE2ETests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
