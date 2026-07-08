@@ -16,6 +16,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
     var statusBarController: StatusBarController!
     private(set) var updaterController: SPUStandardUpdaterController!
 
+    // F2b: drives the 30s tick (extract → store → recompute month aggregates).
+    // Started from `applicationDidFinishLaunching` after the controller is up
+    // so the UI can read monthly totals via the cached accessor.
+    private var refreshActor: RefreshActor?
+    private var monthlyTotalsRefreshTask: Task<Void, Never>?
+
     // Bridge handoff: MenuBarExtraAccess calls this from ModernApp's body
     // evaluation. If `statusBarController` already exists (the normal case,
     // since `applicationDidFinishLaunching` runs first), we forward
@@ -246,6 +252,38 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
+
+        // F2b: kick off the 30s RefreshActor tick + the UI snapshot loop that
+        // pushes the latest month aggregates into the menu. Done after the
+        // controller + status item are wired so the first snapshot can render
+        // into the existing menu immediately.
+        startRefreshActor()
+    }
+
+    /// F2b: construct and start the RefreshActor, share it with the controller,
+    /// and run a periodic task that refreshes the controller's monthly-totals
+    /// cache + rebuilds the menu.
+    @MainActor
+    private func startRefreshActor() {
+        let store = TokenUsageStore()
+        let actor = RefreshActor(store: store)
+        refreshActor = actor
+        // Hand the actor to the controller so `monthlyCostRMB(for:)` and the
+        // "本月 API 折算" menu section read the same instance we are ticking.
+        statusBarController?.refreshActor = actor
+        Task { await actor.start() }
+
+        // Periodic snapshot loop: pulls the latest month aggregates into the
+        // controller's cache (populated by `refreshMonthlyTotalsCache`) so the
+        // menu can render them synchronously.
+        monthlyTotalsRefreshTask?.cancel()
+        monthlyTotalsRefreshTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                await self?.statusBarController?.refreshMonthlyTotalsCache()
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+            }
+        }
+        logger.info("🔄 [F2b] RefreshActor started; monthly totals refresh loop scheduled")
     }
 
     @MainActor

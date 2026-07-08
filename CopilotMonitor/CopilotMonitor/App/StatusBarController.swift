@@ -202,6 +202,16 @@ final class StatusBarController: NSObject {
     private var previousProviderSnapshots: [ProviderIdentifier: StatusBarProviderSnapshot] = [:]
     private var recentChangeCandidate: RecentChangeCandidate?
 
+    /// F2b: RefreshActor driving the 30s tick (extract → store → recompute month aggregates).
+    /// Optional so legacy code paths (tests, MenuBarExtra handoff) keep working without it.
+    var refreshActor: RefreshActor?
+    /// F2b: Latest snapshot of per-provider monthly totals. Populated by the
+    /// periodic Task kicked off from AppDelegate after `startRefreshActor()`.
+    /// Read synchronously by `updateMultiProviderMenu` (main-actor) so the
+    /// menu builder does not need to be async itself.
+    private var cachedMonthlyTotals: [MonthlyTotal] = []
+    private var lastMonthlyTotalsFetchAt: Date?
+
     private var usagePredictor: UsagePredictor {
         UsagePredictor(weights: predictionPeriod.weights)
     }
@@ -1059,6 +1069,76 @@ final class StatusBarController: NSObject {
             return "TK"
         }
         return formatCurrencyAmountForStatusBar(cost)
+    }
+
+    // MARK: - F2b Monthly Aggregates Access
+
+    /// F2b: total RMB across every provider for the current month. Wraps
+    /// `RefreshActor.fetchMonthlyTotals()` and sums `totalCostRMB`.
+    /// Returns `nil` when no actor is wired up (legacy/test paths).
+    func monthTotalPayAsYouGoRMB() async -> Double? {
+        guard let actor = refreshActor else { return nil }
+        let totals = await actor.fetchMonthlyTotals()
+        return totals.reduce(0) { $0 + $1.totalCostRMB }
+    }
+
+    /// F2b: pass-through to `RefreshActor.fetchMonthlyTotals()`. Returns `nil`
+    /// when no actor is wired up so call sites can early-exit without actor
+    /// isolation noise.
+    func fetchMonthlyTotals() async -> [MonthlyTotal]? {
+        guard let actor = refreshActor else { return nil }
+        return await actor.fetchMonthlyTotals()
+    }
+
+    /// F2b: fetch the latest monthly totals from the actor and update the
+    /// synchronous cache, then rebuild the menu so the new row appears.
+    /// Scheduled by AppDelegate as a periodic task after `startRefreshActor()`.
+    func refreshMonthlyTotalsCache() async {
+        guard let actor = refreshActor else { return }
+        let totals = await actor.fetchMonthlyTotals()
+        await MainActor.run {
+            self.cachedMonthlyTotals = totals
+            self.lastMonthlyTotalsFetchAt = Date()
+            debugLog("refreshMonthlyTotalsCache: \(totals.count) provider(s)")
+            self.updateMultiProviderMenu()
+        }
+    }
+
+    /// F2b: lookup helper for `ProviderMenuBuilder`. Resolves the per-provider
+    /// monthly cost-equivalent (RMB) from the synchronous cache. Returns `nil`
+    /// when the cache has not been populated yet OR the provider has no row.
+    func monthlyCostRMB(for providerRaw: String) -> Double? {
+        guard !cachedMonthlyTotals.isEmpty else { return nil }
+        return cachedMonthlyTotals.first(where: { $0.provider == providerRaw })?.totalCostRMB
+    }
+
+    /// F2b: render a token count as a compact "1.2k" / "3.4M" string.
+    private func formatTokenCount(_ n: Int) -> String {
+        if n >= 1_000_000 { return String(format: "%.1fM", Double(n) / 1_000_000) }
+        if n >= 1_000 { return String(format: "%.1fk", Double(n) / 1_000) }
+        return "\(n)"
+    }
+
+    /// F2b: render an RMB amount with two decimals (e.g. "12.34").
+    private func formatRMB(_ amount: Double) -> String {
+        String(format: "%.2f", amount)
+    }
+
+    /// F2b: bridge from F2a `ProviderIdentifier` (which carries regional
+    /// variants and snake_case raw values) to the F2b `Provider.rawValue`
+    /// strings stored in `TokenUsageStore.month_aggregates`. Returns `nil`
+    /// for providers without an F2b row (e.g. Copilot, OpenRouter — these
+    /// are real pay-as-you-go providers, not the hypothetical conversion
+    /// target F2b tracks).
+    func f2bProviderRaw(for identifier: ProviderIdentifier) -> String? {
+        switch identifier {
+        case .kimi, .kimiCN: return "kimi"
+        case .claude: return "claude"
+        case .codex: return "codex"
+        case .zaiCodingPlan: return "zai"
+        case .nanoGpt: return "nanogpt"
+        default: return nil
+        }
     }
 
     private func selectedPinnedProvider() -> ProviderIdentifier? {
@@ -1981,6 +2061,13 @@ final class StatusBarController: NSObject {
                 }
             }
 
+        // F2b: month-to-date API cost-equivalent (separate from F2a real-time
+        // pay-as-you-go above). Reads from the synchronous cache populated by
+        // `refreshMonthlyTotalsCache()`. Coexists with the F2a line — F2a is
+        // "what you spent today"; F2b is "what you WOULD have spent this month
+        // on a pay-as-you-go plan if you had no subscription".
+        insertIndex = insertMonthlyAggregatesSection(at: insertIndex)
+
         if !hasPayAsYouGo && unconfiguredItems.isEmpty {
             let noItem = NSMenuItem()
             noItem.view = createDisabledLabelView(text: "无服务商")
@@ -2439,7 +2526,10 @@ final class StatusBarController: NSObject {
                         if item.isEnabled,
                            let details = account.details,
                            details.hasAnyValue {
-                            item.submenu = createDetailSubmenu(details, identifier: identifier, accountId: account.subscriptionId)
+                            let monthlyCostRMB: Double? = f2bProviderRaw(for: identifier).flatMap { raw in
+                                self.monthlyCostRMB(for: raw)
+                            }
+                            item.submenu = createDetailSubmenu(details, identifier: identifier, accountId: account.subscriptionId, monthlyCostRMB: monthlyCostRMB)
                         }
 
                         menu.insertItem(item, at: insertIndex)
@@ -2515,7 +2605,10 @@ final class StatusBarController: NSObject {
                     item.tag = MenuItemTag.dynamic
 
                     if let details = result.details, details.hasAnyValue {
-                        item.submenu = createDetailSubmenu(details, identifier: identifier)
+                        let monthlyCostRMB: Double? = f2bProviderRaw(for: identifier).flatMap { raw in
+                            self.monthlyCostRMB(for: raw)
+                        }
+                        item.submenu = createDetailSubmenu(details, identifier: identifier, monthlyCostRMB: monthlyCostRMB)
                     }
 
                     menu.insertItem(item, at: insertIndex)
@@ -3261,7 +3354,10 @@ final class StatusBarController: NSObject {
                 systemSymbolName: "clock.arrow.circlepath",
                 accessibilityDescription: "Cached Details"
             )
-            cachedItem.submenu = createDetailSubmenu(details, identifier: identifier)
+            let monthlyCostRMB: Double? = f2bProviderRaw(for: identifier).flatMap { raw in
+                self.monthlyCostRMB(for: raw)
+            }
+            cachedItem.submenu = createDetailSubmenu(details, identifier: identifier, monthlyCostRMB: monthlyCostRMB)
             submenu.addItem(cachedItem)
         }
 
@@ -4523,6 +4619,57 @@ final class StatusBarController: NSObject {
         insertIndex += 1
 
         return insertIndex
+    }
+
+    /// F2b: insert the "本月 API 折算" header + per-provider rows under the
+    /// existing F2a pay-as-you-go section. Reads from `cachedMonthlyTotals`
+    /// (populated asynchronously by `refreshMonthlyTotalsCache`). When the
+    /// cache is empty (e.g. before the first RefreshActor tick completes)
+    /// this is a no-op so the menu does not show a stale "¥0.00" line.
+    ///
+    /// Note: the totals are already in RMB (F2a PricingTable stores RMB per
+    /// million tokens). We render with `format(amount:as:.rmb)` so we do NOT
+    /// re-convert via `format(usd:)` (that path multiplies by FX rate again).
+    private func insertMonthlyAggregatesSection(at index: Int) -> Int {
+        var insertIndex = index
+        guard !cachedMonthlyTotals.isEmpty else { return insertIndex }
+
+        let totalRMB = cachedMonthlyTotals.reduce(0) { $0 + $1.totalCostRMB }
+        // Skip the section entirely when the month has no measurable cost yet.
+        guard totalRMB > 0 else { return insertIndex }
+
+        let monthHeader = NSMenuItem()
+        let formattedTotal = currencyFormatter.format(amount: totalRMB, as: .rmb)
+        monthHeader.view = createHeaderView(title: "本月 API 折算：\(formattedTotal)")
+        monthHeader.tag = MenuItemTag.dynamic
+        menu.insertItem(monthHeader, at: insertIndex)
+        insertIndex += 1
+
+        let sortedTotals = cachedMonthlyTotals.sorted { $0.totalCostRMB > $1.totalCostRMB }
+        for total in sortedTotals where total.totalCostRMB > 0 {
+            let providerLabel = providerDisplayName(forRaw: total.provider)
+            let tokenLabel = formatTokenCount(total.totalTokens.total)
+            let costLabel = formatRMB(total.totalCostRMB)
+            let item = NSMenuItem(
+                title: "  \(providerLabel)  \(tokenLabel) token  ¥\(costLabel)",
+                action: nil, keyEquivalent: ""
+            )
+            item.tag = MenuItemTag.dynamic
+            menu.insertItem(item, at: insertIndex)
+            insertIndex += 1
+        }
+
+        return insertIndex
+    }
+
+    /// F2b: best-effort mapping from a `Provider` raw value (string from
+    /// SQLite) to a user-facing display label. Falls back to the raw value
+    /// when the provider is unknown so unknown aggregations are still shown.
+    private func providerDisplayName(forRaw raw: String) -> String {
+        if let provider = Provider(rawValue: raw) {
+            return provider.displayName
+        }
+        return raw
     }
 }
 

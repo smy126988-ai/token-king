@@ -62,7 +62,7 @@ enum ModelUsageGrouper {
 
 extension StatusBarController {
 
-    func createDetailSubmenu(_ details: DetailedUsage, identifier: ProviderIdentifier, accountId: String? = nil) -> NSMenu {
+    func createDetailSubmenu(_ details: DetailedUsage, identifier: ProviderIdentifier, accountId: String? = nil, monthlyCostRMB: Double? = nil) -> NSMenu {
         let submenu = NSMenu()
         let subscriptionAccountId = resolvedSubscriptionAccountId(details: details, fallback: accountId)
 
@@ -1050,6 +1050,19 @@ extension StatusBarController {
 
         default:
             break
+        }
+
+        // F2b: month-to-date API cost-equivalent (RMB). Lives alongside the
+        // existing per-window rows above. Only renders when the cache has
+        // produced a positive number for this provider.
+        if let monthlyCostRMB, monthlyCostRMB > 0 {
+            let item = NSMenuItem()
+            let formatted = String(format: "%.2f", monthlyCostRMB)
+            item.view = createDisabledLabelView(
+                text: "按量折算：¥\(formatted) / 月",
+                icon: NSImage(systemSymbolName: "sum", accessibilityDescription: "Monthly equivalent cost")
+            )
+            submenu.addItem(item)
         }
 
         if let daily = details.dailyUsage {
