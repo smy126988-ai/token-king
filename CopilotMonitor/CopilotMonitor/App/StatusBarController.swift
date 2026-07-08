@@ -1191,6 +1191,13 @@ final class StatusBarController: NSObject {
             self.cachedTokenStats = nil
             return
         }
+        // F2b B54: if the store failed to init, hide F1/F4 (mirrors refreshMonthlyTotalsCache
+        // which switches the cost section to "用量数据不可用").
+        if await store.initError != nil {
+            self.cachedTokenStats = nil
+            self.updateMultiProviderMenu()
+            return
+        }
         let month = await store.currentYearMonth()
         let dayAggregates = await store.fetchDayAggregates(yearMonth: month)
         let todayString = TokenUsageFormatter.todayUTCString()
