@@ -1,6 +1,17 @@
 import Foundation
 import SQLite3
 
+/// Concrete SQLite errors surfaced by `TokenUsageStore`.
+indirect enum SQLiteError: Error, Equatable {
+    case openFailed(path: String, code: Int32, message: String)
+    case execFailed(sql: String, code: Int32, message: String)
+    case prepareFailed(sql: String, code: Int32, message: String)
+    case bindFailed(index: Int32, code: Int32, message: String)
+    case stepFailed(sql: String, code: Int32, message: String)
+    case storeClosed
+    case storeUninitialized(underlying: SQLiteError)
+}
+
 /// Persistence layer (SQLite, schema 1).
 /// 3 tables:
 /// - token_events: raw event (cross-tool normalized, source_id UNIQUE for dedup)
@@ -8,22 +19,27 @@ import SQLite3
 /// - model_pricing_cache: mirrors F2a PricingTable
 actor TokenUsageStore {
     private let dbPath: String
-    private var db: OpaquePointer?
+    private var initError: SQLiteError?
+
+    // `db` is marked `nonisolated(unsafe)` because `deinit` is not isolated and
+    // must be able to close the handle without crossing actor isolation.
+    // All normal access still happens on the actor via `ensureOpen()`.
+    nonisolated(unsafe) private var db: OpaquePointer?
 
     init(dbPath: String? = nil) {
         self.dbPath = dbPath ?? "\(NSHomeDirectory())/Library/Application Support/TokenKing/f2b.sqlite"
-        try? FileManager.default.createDirectory(atPath: "\(NSHomeDirectory())/Library/Application Support/TokenKing", withIntermediateDirectories: true)
-        openDB()
-        createSchema()
-    }
+        let dir = (self.dbPath as NSString).deletingLastPathComponent
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
 
-    deinit { sqlite3_close(db) }
+        let openCode = sqlite3_open(self.dbPath, &db)
+        guard openCode == SQLITE_OK, db != nil else {
+            let message = errorMessage(at: openCode)
+            sqlite3_close(db)
+            db = nil
+            initError = .openFailed(path: self.dbPath, code: openCode, message: message)
+            return
+        }
 
-    private func openDB() {
-        sqlite3_open(dbPath, &db)
-    }
-
-    private func createSchema() {
         let sqls = [
             "CREATE TABLE IF NOT EXISTS token_events (id INTEGER PRIMARY KEY AUTOINCREMENT, provider TEXT NOT NULL, model TEXT NOT NULL, source TEXT NOT NULL, session_id TEXT NOT NULL, ts_ms INTEGER NOT NULL, input INTEGER DEFAULT 0, output INTEGER DEFAULT 0, cache_read INTEGER DEFAULT 0, cache_write INTEGER DEFAULT 0, reasoning INTEGER DEFAULT 0, source_id TEXT UNIQUE NOT NULL, inserted_at INTEGER DEFAULT (strftime('%s','now')))",
             "CREATE TABLE IF NOT EXISTS month_aggregates (provider TEXT NOT NULL, model TEXT NOT NULL, year_month TEXT NOT NULL, input INTEGER DEFAULT 0, output INTEGER DEFAULT 0, cache_read INTEGER DEFAULT 0, cache_write INTEGER DEFAULT 0, reasoning INTEGER DEFAULT 0, last_updated INTEGER, PRIMARY KEY (provider, model, year_month))",
@@ -33,59 +49,100 @@ actor TokenUsageStore {
             "CREATE INDEX IF NOT EXISTS idx_token_events_provider_ts ON token_events(provider, ts_ms)",
             "CREATE INDEX IF NOT EXISTS idx_token_events_session ON token_events(session_id)"
         ]
-        for sql in sqls { sqlite3_exec(db, sql, nil, nil, nil) }
+        for sql in sqls {
+            let rc = sqlite3_exec(db, sql, nil, nil, nil)
+            guard rc == SQLITE_OK else {
+                let message = errorMessage(at: rc)
+                sqlite3_close(db)
+                db = nil
+                initError = .execFailed(sql: sql, code: rc, message: message)
+                return
+            }
+        }
+    }
+
+    deinit {
+        sqlite3_close(db)
+        db = nil
+    }
+
+    /// Explicitly close the database. After closing, further operations throw `storeClosed`.
+    func close() throws {
+        guard initError == nil else { return }
+        guard db != nil else { return }
+        let code = sqlite3_close(db)
+        guard code == SQLITE_OK else {
+            throw SQLiteError.execFailed(sql: "sqlite3_close", code: code, message: errorMessage(at: code))
+        }
+        db = nil
     }
 
     /// Insert raw event (dedup by source_id UNIQUE).
     func upsertEvent(_ event: TokenEvent) throws {
+        try ensureOpen()
         let sql = "INSERT OR IGNORE INTO token_events (provider, model, source, session_id, ts_ms, input, output, cache_read, cache_write, reasoning, source_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
         var stmt: OpaquePointer?
-        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt = stmt else { return }
+        let prepareCode = sqlite3_prepare_v2(db, sql, -1, &stmt, nil)
+        guard prepareCode == SQLITE_OK, let stmt else {
+            throw SQLiteError.prepareFailed(sql: sql, code: prepareCode, message: errorMessage(at: prepareCode))
+        }
         defer { sqlite3_finalize(stmt) }
+
         let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
-        sqlite3_bind_text(stmt, 1, event.provider.rawValue, -1, SQLITE_TRANSIENT)
-        sqlite3_bind_text(stmt, 2, event.model, -1, SQLITE_TRANSIENT)
-        sqlite3_bind_text(stmt, 3, event.source.rawValue, -1, SQLITE_TRANSIENT)
-        sqlite3_bind_text(stmt, 4, event.sessionId, -1, SQLITE_TRANSIENT)
-        sqlite3_bind_int64(stmt, 5, Int64(event.timestamp.timeIntervalSince1970 * 1000))
-        sqlite3_bind_int64(stmt, 6, Int64(event.tokens.input))
-        sqlite3_bind_int64(stmt, 7, Int64(event.tokens.output))
-        sqlite3_bind_int64(stmt, 8, Int64(event.tokens.cacheRead))
-        sqlite3_bind_int64(stmt, 9, Int64(event.tokens.cacheWrite))
-        sqlite3_bind_int64(stmt, 10, Int64(event.tokens.reasoning))
-        sqlite3_bind_text(stmt, 11, event.sourceId, -1, SQLITE_TRANSIENT)
-        sqlite3_step(stmt)
+        try bindText(stmt, index: 1, text: event.provider.rawValue, destructor: SQLITE_TRANSIENT)
+        try bindText(stmt, index: 2, text: event.model, destructor: SQLITE_TRANSIENT)
+        try bindText(stmt, index: 3, text: event.source.rawValue, destructor: SQLITE_TRANSIENT)
+        try bindText(stmt, index: 4, text: event.sessionId, destructor: SQLITE_TRANSIENT)
+        try bindInt64(stmt, index: 5, value: Int64(event.timestamp.timeIntervalSince1970 * 1000))
+        try bindInt64(stmt, index: 6, value: Int64(event.tokens.input))
+        try bindInt64(stmt, index: 7, value: Int64(event.tokens.output))
+        try bindInt64(stmt, index: 8, value: Int64(event.tokens.cacheRead))
+        try bindInt64(stmt, index: 9, value: Int64(event.tokens.cacheWrite))
+        try bindInt64(stmt, index: 10, value: Int64(event.tokens.reasoning))
+        try bindText(stmt, index: 11, text: event.sourceId, destructor: SQLITE_TRANSIENT)
+
+        let stepCode = sqlite3_step(stmt)
+        guard stepCode == SQLITE_DONE else {
+            throw SQLiteError.stepFailed(sql: sql, code: stepCode, message: errorMessage(at: stepCode))
+        }
     }
 
-    /// Re-aggregate month_aggregates (current month).
-    func refreshMonthAggregates() throws {
-        let yearMonth = currentYearMonth()
-        sqlite3_exec(db, "DELETE FROM month_aggregates WHERE year_month = '\(yearMonth)'", nil, nil, nil)
-        let sql = """
+    /// Re-aggregate month_aggregates for the given month (defaults to current UTC month).
+    func refreshMonthAggregates(for yearMonth: String? = nil) throws {
+        try ensureOpen()
+        let ym = yearMonth ?? currentYearMonth()
+        let deleteSQL = "DELETE FROM month_aggregates WHERE year_month = ?"
+        try execute(deleteSQL, parameters: [ym])
+
+        let insertSQL = """
             INSERT INTO month_aggregates
             (provider, model, year_month, input, output, cache_read, cache_write, reasoning, last_updated)
-            SELECT provider, model, '\(yearMonth)',
+            SELECT provider, model, ?,
                    SUM(input), SUM(output), SUM(cache_read), SUM(cache_write),
                    SUM(reasoning), strftime('%s','now')
             FROM token_events
-            WHERE strftime('%Y-%m', ts_ms / 1000, 'unixepoch') = '\(yearMonth)'
+            WHERE strftime('%Y-%m', ts_ms / 1000, 'unixepoch') = ?
             GROUP BY provider, model
         """
-        sqlite3_exec(db, sql, nil, nil, nil)
+        try execute(insertSQL, parameters: [ym, ym])
     }
 
-    func currentYearMonth() -> String {
+    /// Current UTC year-month (matches the SQLite `strftime('%Y-%m', ts_ms/1000, 'unixepoch')` filter).
+    func currentYearMonth(for date: Date = Date()) -> String {
         let fmt = DateFormatter()
+        fmt.timeZone = TimeZone(identifier: "UTC")
+        fmt.locale = Locale(identifier: "en_US_POSIX")
         fmt.dateFormat = "yyyy-MM"
-        return fmt.string(from: Date())
+        return fmt.string(from: date)
     }
 
     /// Query month aggregates (for UI consumption).
     func fetchMonthAggregates(yearMonth: String? = nil) -> [MonthAggregate] {
+        guard initError == nil, let db = db else { return [] }
         let ym = yearMonth ?? currentYearMonth()
         var stmt: OpaquePointer?
         let sql = "SELECT provider, model, input, output, cache_read, cache_write, reasoning FROM month_aggregates WHERE year_month = ?"
-        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt = stmt else { return [] }
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else { return [] }
         defer { sqlite3_finalize(stmt) }
         let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
         sqlite3_bind_text(stmt, 1, ym, -1, SQLITE_TRANSIENT)
@@ -103,6 +160,67 @@ actor TokenUsageStore {
             results.append(MonthAggregate(provider: provider, model: model, tokens: tokens, yearMonth: ym))
         }
         return results
+    }
+}
+
+// MARK: - Private helpers
+
+private extension TokenUsageStore {
+    func ensureOpen() throws {
+        if let initError {
+            throw SQLiteError.storeUninitialized(underlying: initError)
+        }
+        guard db != nil else {
+            throw SQLiteError.storeClosed
+        }
+    }
+
+    nonisolated func errorMessage(at code: Int32) -> String {
+        if let msg = sqlite3_errmsg(db) {
+            return String(cString: msg)
+        }
+        if code != SQLITE_OK {
+            return String(cString: sqlite3_errstr(code))
+        }
+        return "unknown SQLite error"
+    }
+
+    func execute(_ sql: String, parameters: [String] = []) throws {
+        try ensureOpen()
+        var stmt: OpaquePointer?
+        let prepareCode = sqlite3_prepare_v2(db, sql, -1, &stmt, nil)
+        guard prepareCode == SQLITE_OK, let stmt else {
+            throw SQLiteError.prepareFailed(sql: sql, code: prepareCode, message: errorMessage(at: prepareCode))
+        }
+        defer { sqlite3_finalize(stmt) }
+
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        for (index, parameter) in parameters.enumerated() {
+            let idx = Int32(index + 1)
+            let code = sqlite3_bind_text(stmt, idx, parameter, -1, SQLITE_TRANSIENT)
+            guard code == SQLITE_OK else {
+                throw SQLiteError.bindFailed(index: idx, code: code, message: errorMessage(at: code))
+            }
+        }
+
+        let stepCode = sqlite3_step(stmt)
+        guard stepCode == SQLITE_DONE else {
+            throw SQLiteError.stepFailed(sql: sql, code: stepCode, message: errorMessage(at: stepCode))
+        }
+    }
+
+    func bindText(_ stmt: OpaquePointer, index: Int32, text: String, destructor: @convention(c) (UnsafeMutableRawPointer?) -> Void) throws {
+        let code = sqlite3_bind_text(stmt, index, text, -1, destructor)
+        guard code == SQLITE_OK else {
+            throw SQLiteError.bindFailed(index: index, code: code, message: errorMessage(at: code))
+        }
+    }
+
+    func bindInt64(_ stmt: OpaquePointer, index: Int32, value: Int64) throws {
+        let code = sqlite3_bind_int64(stmt, index, value)
+        guard code == SQLITE_OK else {
+            throw SQLiteError.bindFailed(index: index, code: code, message: errorMessage(at: code))
+        }
     }
 }
 

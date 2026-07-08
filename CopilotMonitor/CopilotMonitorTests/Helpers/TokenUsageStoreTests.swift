@@ -2,10 +2,11 @@ import XCTest
 import SQLite3
 @testable import OpenCode_Bar
 
-/// F2b Task 4 — TokenUsageStore actor + SQLite 8 tests.
+/// F2b Task 4 — TokenUsageStore actor + SQLite tests.
 final class TokenUsageStoreTests: XCTestCase {
 
     private var tempDBPath: String!
+    private var store: TokenUsageStore!
 
     override func setUp() {
         super.setUp()
@@ -13,13 +14,15 @@ final class TokenUsageStoreTests: XCTestCase {
             .appendingPathComponent("tk-tests-\(UUID().uuidString)")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         tempDBPath = dir.appendingPathComponent("f2b.sqlite").path
+        store = TokenUsageStore(dbPath: tempDBPath)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
+        try? await store?.close()
         if let path = tempDBPath {
             try? FileManager.default.removeItem(atPath: path)
         }
-        super.tearDown()
+        try await super.tearDown()
     }
 
     private func makeEvent(
@@ -44,7 +47,6 @@ final class TokenUsageStoreTests: XCTestCase {
     // MARK: - 1. dedup
 
     func testUpsertAndDedup() async throws {
-        let store = TokenUsageStore(dbPath: tempDBPath)
         let e1 = makeEvent(sourceId: "dup-1")
         let e2 = makeEvent(sourceId: "dup-1")
         try await store.upsertEvent(e1)
@@ -56,7 +58,6 @@ final class TokenUsageStoreTests: XCTestCase {
     // MARK: - 2. aggregate correctness
 
     func testMonthAggregateCorrectness() async throws {
-        let store = TokenUsageStore(dbPath: tempDBPath)
         try await store.upsertEvent(makeEvent(
             provider: .claude, model: "claude-sonnet", sourceId: "a",
             tokens: TokenBreakdown(input: 100, output: 50)
@@ -82,8 +83,7 @@ final class TokenUsageStoreTests: XCTestCase {
     // MARK: - 3. calendar month window
 
     func testCalendarMonthWindow() async throws {
-        let store = TokenUsageStore(dbPath: tempDBPath)
-        let pastDate = Date(timeIntervalSince1970: 1_577_836_800)  // 2020-01-01
+        let pastDate = Date(timeIntervalSince1970: 1_577_836_800)  // 2020-01-01 UTC
         try await store.upsertEvent(makeEvent(
             provider: .claude, sourceId: "past", timestamp: pastDate
         ))
@@ -100,7 +100,6 @@ final class TokenUsageStoreTests: XCTestCase {
     // MARK: - 4. schema version
 
     func testSchemaVersionCreated() async throws {
-        _ = TokenUsageStore(dbPath: tempDBPath)
         var db: OpaquePointer?
         sqlite3_open(tempDBPath, &db)
         defer { sqlite3_close(db) }
@@ -114,7 +113,6 @@ final class TokenUsageStoreTests: XCTestCase {
     // MARK: - 5. empty db
 
     func testNoDataReturnsEmpty() async throws {
-        let store = TokenUsageStore(dbPath: tempDBPath)
         try await store.refreshMonthAggregates()
         let aggregates = await store.fetchMonthAggregates()
         XCTAssertTrue(aggregates.isEmpty)
@@ -123,7 +121,6 @@ final class TokenUsageStoreTests: XCTestCase {
     // MARK: - 6. idempotent 10x
 
     func testIdempotentUpsert() async throws {
-        let store = TokenUsageStore(dbPath: tempDBPath)
         for _ in 0..<10 {
             try await store.upsertEvent(makeEvent(sourceId: "idempotent-1"))
         }
@@ -134,11 +131,10 @@ final class TokenUsageStoreTests: XCTestCase {
     // MARK: - 7. concurrent
 
     func testConcurrentUpsert() async throws {
-        let store = TokenUsageStore(dbPath: tempDBPath)
         await withTaskGroup(of: Void.self) { group in
             for i in 0..<10 {
                 group.addTask {
-                    try? await store.upsertEvent(
+                    try? await self.store.upsertEvent(
                         self.makeEvent(sourceId: "concurrent-\(i)")
                     )
                 }
@@ -151,17 +147,89 @@ final class TokenUsageStoreTests: XCTestCase {
     // MARK: - 8. restart persistence
 
     func testRefreshAfterRestart() async throws {
-        let store1 = TokenUsageStore(dbPath: tempDBPath)
-        try await store1.upsertEvent(makeEvent(
+        try await store.upsertEvent(makeEvent(
             provider: .codex, model: "gpt-4o", sourceId: "restart-1",
             tokens: TokenBreakdown(input: 999, output: 333)
         ))
-        try await store1.refreshMonthAggregates()
+        try await store.refreshMonthAggregates()
         let store2 = TokenUsageStore(dbPath: tempDBPath)
         let aggregates = await store2.fetchMonthAggregates()
         let codex = aggregates.first { $0.provider == "codex" && $0.model == "gpt-4o" }
         XCTAssertEqual(codex?.tokens.input, 999)
         XCTAssertEqual(codex?.tokens.output, 333)
+        try? await store2.close()
+    }
+
+    // MARK: - 9. SQLite error path
+
+    func testOpenFailureThrowsOnOperation() async throws {
+        let invalidPath = "/dev/null/this-cannot-be-a-db.sqlite"
+        let badStore = TokenUsageStore(dbPath: invalidPath)
+        do {
+            try await badStore.upsertEvent(makeEvent(sourceId: "bad"))
+            XCTFail("Expected SQLiteError due to invalid db path")
+        } catch let error as SQLiteError {
+            guard case .storeUninitialized(let underlying) = error,
+                  case .openFailed = underlying else {
+                XCTFail("Expected storeUninitialized wrapping openFailed, got \(error)")
+                return
+            }
+        }
+    }
+
+    // MARK: - 10. close then upsert throws
+
+    func testCloseThenUpsertThrows() async throws {
+        try await store.upsertEvent(makeEvent(sourceId: "before-close"))
+        try await store.close()
+        do {
+            try await store.upsertEvent(makeEvent(sourceId: "after-close"))
+            XCTFail("Expected SQLiteError.storeClosed")
+        } catch let error as SQLiteError {
+            guard case .storeClosed = error else {
+                XCTFail("Expected storeClosed, got \(error)")
+                return
+            }
+        }
+    }
+
+    // MARK: - 11. UTC month boundary consistency
+
+    func testYearMonthUTCConsistency() async throws {
+        let pst = TimeZone(identifier: "America/Los_Angeles")!
+        let original = NSTimeZone.default
+        NSTimeZone.default = pst
+        defer { NSTimeZone.default = original }
+
+        // 2021-01-01 00:00:00 UTC == 2020-12-31 16:00:00 PST.
+        let boundary = Date(timeIntervalSince1970: 1_609_459_200)
+
+        // currentYearMonth must use UTC, not the system time zone.
+        let ym = await store.currentYearMonth(for: boundary)
+        XCTAssertEqual(ym, "2021-01")
+
+        // A local-time formatter under PST classifies the same instant as 2020-12.
+        let localFormatter = DateFormatter()
+        localFormatter.timeZone = pst
+        localFormatter.locale = Locale(identifier: "en_US_POSIX")
+        localFormatter.dateFormat = "yyyy-MM"
+        XCTAssertEqual(localFormatter.string(from: boundary), "2020-12")
+
+        // Insert at the UTC boundary and aggregate for the UTC month.
+        try await store.upsertEvent(makeEvent(
+            provider: .claude,
+            sourceId: "tz-boundary",
+            timestamp: boundary
+        ))
+        try await store.refreshMonthAggregates(for: ym)
+
+        let january = await store.fetchMonthAggregates(yearMonth: ym)
+        XCTAssertTrue(january.contains { $0.provider == "claude" },
+                      "UTC boundary event must aggregate into \(ym)")
+
+        let december = await store.fetchMonthAggregates(yearMonth: "2020-12")
+        XCTAssertFalse(december.contains { $0.provider == "claude" },
+                       "UTC boundary event must not leak into local-time month 2020-12")
     }
 
     // MARK: - helpers
