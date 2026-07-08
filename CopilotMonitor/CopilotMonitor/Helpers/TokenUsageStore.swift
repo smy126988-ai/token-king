@@ -2,7 +2,7 @@ import Foundation
 import SQLite3
 
 /// Concrete SQLite errors surfaced by `TokenUsageStore`.
-indirect enum SQLiteError: Error, Equatable {
+indirect enum SQLiteError: Error, Equatable, Sendable {
     case openFailed(path: String, code: Int32, message: String)
     case execFailed(sql: String, code: Int32, message: String)
     case prepareFailed(sql: String, code: Int32, message: String)
@@ -19,7 +19,7 @@ indirect enum SQLiteError: Error, Equatable {
 /// - model_pricing_cache: mirrors F2a PricingTable
 actor TokenUsageStore {
     private let dbPath: String
-    private var initError: SQLiteError?
+    private(set) nonisolated(unsafe) var initError: SQLiteError?
 
     // `db` is marked `nonisolated(unsafe)` because `deinit` is not isolated and
     // must be able to close the handle without crossing actor isolation.
@@ -43,11 +43,14 @@ actor TokenUsageStore {
         let sqls = [
             "CREATE TABLE IF NOT EXISTS token_events (id INTEGER PRIMARY KEY AUTOINCREMENT, provider TEXT NOT NULL, model TEXT NOT NULL, source TEXT NOT NULL, session_id TEXT NOT NULL, ts_ms INTEGER NOT NULL, input INTEGER DEFAULT 0, output INTEGER DEFAULT 0, cache_read INTEGER DEFAULT 0, cache_write INTEGER DEFAULT 0, reasoning INTEGER DEFAULT 0, source_id TEXT UNIQUE NOT NULL, inserted_at INTEGER DEFAULT (strftime('%s','now')))",
             "CREATE TABLE IF NOT EXISTS month_aggregates (provider TEXT NOT NULL, model TEXT NOT NULL, year_month TEXT NOT NULL, input INTEGER DEFAULT 0, output INTEGER DEFAULT 0, cache_read INTEGER DEFAULT 0, cache_write INTEGER DEFAULT 0, reasoning INTEGER DEFAULT 0, last_updated INTEGER, PRIMARY KEY (provider, model, year_month))",
+            "CREATE TABLE IF NOT EXISTS day_aggregates (provider TEXT NOT NULL, model TEXT NOT NULL, day TEXT NOT NULL, input INTEGER DEFAULT 0, output INTEGER DEFAULT 0, cache_read INTEGER DEFAULT 0, cache_write INTEGER DEFAULT 0, reasoning INTEGER DEFAULT 0, last_updated INTEGER, PRIMARY KEY (provider, model, day))",
             "CREATE TABLE IF NOT EXISTS model_pricing_cache (provider TEXT NOT NULL, model TEXT NOT NULL, input_rate REAL, output_rate REAL, cache_read_rate REAL, source TEXT, fetched_at INTEGER, PRIMARY KEY (provider, model))",
             "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)",
             "INSERT OR IGNORE INTO schema_version VALUES (1)",
+            "INSERT OR IGNORE INTO schema_version VALUES (2)",
             "CREATE INDEX IF NOT EXISTS idx_token_events_provider_ts ON token_events(provider, ts_ms)",
-            "CREATE INDEX IF NOT EXISTS idx_token_events_session ON token_events(session_id)"
+            "CREATE INDEX IF NOT EXISTS idx_token_events_session ON token_events(session_id)",
+            "CREATE INDEX IF NOT EXISTS idx_day_aggregates_day ON day_aggregates(day)"
         ]
         for sql in sqls {
             let rc = sqlite3_exec(db, sql, nil, nil, nil)
@@ -127,6 +130,30 @@ actor TokenUsageStore {
         try execute(insertSQL, parameters: [ym, ym])
     }
 
+    /// Re-aggregate day_aggregates for the given day (defaults to today UTC).
+    func refreshDayAggregates(for day: Date? = nil) throws {
+        try ensureOpen()
+        let d = day ?? Date()
+        let dayString = dayString(for: d)
+        let ym = currentYearMonth(for: d)
+        let deleteSQL = "DELETE FROM day_aggregates WHERE day = ?"
+        try execute(deleteSQL, parameters: [dayString])
+
+        let insertSQL = """
+            INSERT INTO day_aggregates
+            (provider, model, day, input, output, cache_read, cache_write, reasoning, last_updated)
+            SELECT provider, model, ?,
+                   SUM(input), SUM(output), SUM(cache_read), SUM(cache_write),
+                   SUM(reasoning), strftime('%s','now')
+            FROM token_events
+            WHERE strftime('%Y-%m-%d', ts_ms / 1000, 'unixepoch') = ?
+            GROUP BY provider, model
+        """
+        try execute(insertSQL, parameters: [dayString, dayString])
+        // Suppress unused warning for ym (kept for future per-month cleanup)
+        _ = ym
+    }
+
     /// Current UTC year-month (matches the SQLite `strftime('%Y-%m', ts_ms/1000, 'unixepoch')` filter).
     func currentYearMonth(for date: Date = Date()) -> String {
         let fmt = DateFormatter()
@@ -161,11 +188,83 @@ actor TokenUsageStore {
         }
         return results
     }
+
+    /// Query day_aggregates (for UI consumption).
+    /// `provider` filter is optional; `yearMonth` filter (e.g. "2026-07") scopes to that month.
+    func fetchDayAggregates(provider: String? = nil, yearMonth: String? = nil) -> [DayAggregate] {
+        guard initError == nil, let db = db else { return [] }
+        var sql = "SELECT provider, model, day, input, output, cache_read, cache_write, reasoning FROM day_aggregates"
+        var conditions: [String] = []
+        if provider != nil { conditions.append("provider = ?") }
+        if yearMonth != nil { conditions.append("day LIKE ?") }
+        if !conditions.isEmpty { sql += " WHERE " + conditions.joined(separator: " AND ") }
+        sql += " ORDER BY day ASC, provider ASC, model ASC"
+
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else { return [] }
+        defer { sqlite3_finalize(stmt) }
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        var bindIndex: Int32 = 1
+        if let provider { sqlite3_bind_text(stmt, bindIndex, provider, -1, SQLITE_TRANSIENT); bindIndex += 1 }
+        if let yearMonth {
+            let pattern = "\(yearMonth)-%"
+            sqlite3_bind_text(stmt, bindIndex, pattern, -1, SQLITE_TRANSIENT)
+        }
+        var results: [DayAggregate] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            let provider = sqlite3_column_text(stmt, 0).flatMap { String(cString: $0) } ?? ""
+            let model = sqlite3_column_text(stmt, 1).flatMap { String(cString: $0) } ?? ""
+            let day = sqlite3_column_text(stmt, 2).flatMap { String(cString: $0) } ?? ""
+            let tokens = TokenBreakdown(
+                input: Int(sqlite3_column_int64(stmt, 3)),
+                output: Int(sqlite3_column_int64(stmt, 4)),
+                cacheRead: Int(sqlite3_column_int64(stmt, 5)),
+                cacheWrite: Int(sqlite3_column_int64(stmt, 6)),
+                reasoning: Int(sqlite3_column_int64(stmt, 7))
+            )
+            results.append(DayAggregate(provider: provider, model: model, day: day, tokens: tokens))
+        }
+        return results
+    }
+
+    /// Cross-provider sum of all token fields for the given month (default: current UTC month).
+    func fetchMonthTotalTokens(yearMonth: String? = nil) -> TokenBreakdown {
+        guard initError == nil, let db = db else { return TokenBreakdown.zero }
+        let ym = yearMonth ?? currentYearMonth()
+        let sql = """
+            SELECT COALESCE(SUM(input), 0), COALESCE(SUM(output), 0),
+                   COALESCE(SUM(cache_read), 0), COALESCE(SUM(cache_write), 0),
+                   COALESCE(SUM(reasoning), 0)
+            FROM day_aggregates WHERE day LIKE ?
+        """
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else { return TokenBreakdown.zero }
+        defer { sqlite3_finalize(stmt) }
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        sqlite3_bind_text(stmt, 1, "\(ym)-%", -1, SQLITE_TRANSIENT)
+        guard sqlite3_step(stmt) == SQLITE_ROW else { return TokenBreakdown.zero }
+        return TokenBreakdown(
+            input: Int(sqlite3_column_int64(stmt, 0)),
+            output: Int(sqlite3_column_int64(stmt, 1)),
+            cacheRead: Int(sqlite3_column_int64(stmt, 2)),
+            cacheWrite: Int(sqlite3_column_int64(stmt, 3)),
+            reasoning: Int(sqlite3_column_int64(stmt, 4))
+        )
+    }
 }
 
 // MARK: - Private helpers
 
 private extension TokenUsageStore {
+    /// Returns "YYYY-MM-DD" for a given Date in UTC.
+    func dayString(for date: Date) -> String {
+        let fmt = DateFormatter()
+        fmt.timeZone = .utc
+        fmt.locale = Locale(identifier: "en_US_POSIX")
+        fmt.dateFormat = "yyyy-MM-dd"
+        return fmt.string(from: date)
+    }
+
     func ensureOpen() throws {
         if let initError {
             throw SQLiteError.storeUninitialized(underlying: initError)
@@ -229,4 +328,11 @@ struct MonthAggregate {
     let model: String
     let tokens: TokenBreakdown
     let yearMonth: String
+}
+
+struct DayAggregate {
+    let provider: String
+    let model: String
+    let day: String
+    let tokens: TokenBreakdown
 }
