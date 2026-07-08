@@ -12,6 +12,10 @@ actor RefreshActor {
     private var tickTask: Task<Void, Never>?
     private let intervalSeconds: UInt64
 
+    /// Mirrors `store.initError` so callers (e.g. `StatusBarController`) can
+    /// detect a failed store without awaiting on the actor.
+    nonisolated var initError: SQLiteError? { store.initError }
+
     /// 生产路径：使用 7 个真实 extractor。
     init(store: TokenUsageStore, pricingTable: PricingTable.Type = PricingTable.self,
          intervalSeconds: UInt64 = 30) {
@@ -42,8 +46,12 @@ actor RefreshActor {
     }
 
     func start() {
+        if let error = self.initError {
+            logger.error("RefreshActor start() skipped: TokenUsageStore init failed: \(String(describing: error), privacy: .public)")
+            return
+        }
         tickTask?.cancel()
-        tickTask = Task { [weak self] in
+        tickTask = Task { [weak self, intervalSeconds] in
             while !Task.isCancelled {
                 await self?.tick()
                 try? await Task.sleep(nanoseconds: intervalSeconds * 1_000_000_000)
@@ -87,10 +95,21 @@ actor RefreshActor {
         } catch {
             logger.error("refreshMonthAggregates failed: \(error.localizedDescription, privacy: .public)")
         }
+
+        // F1: refresh day_aggregates for today (single-day incremental aggregate).
+        do {
+            try await store.refreshDayAggregates()
+        } catch {
+            logger.error("refreshDayAggregates failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     /// Manual tick trigger (for testing or on-demand refresh).
     func tickNow() async {
+        if let error = self.initError {
+            logger.error("RefreshActor tickNow() skipped: TokenUsageStore init failed: \(String(describing: error), privacy: .public)")
+            return
+        }
         await tick()
     }
 
