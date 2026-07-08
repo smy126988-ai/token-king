@@ -40,24 +40,24 @@ final class KimiCodeExtractorTests: XCTestCase {
         )
     }
 
-    func testExtractFromSampleData() {
+    func testExtractFromSampleData() async {
         writeSample(root: tmpDir)
         let extractor = KimiCodeExtractor(rootPath: tmpDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertNotNil(events)
         XCTAssertEqual(events.count, 3)
         XCTAssertEqual(events.first?.source, .kimiCode)
     }
 
-    func testEmptyDataSourceReturnsEmpty() {
+    func testEmptyDataSourceReturnsEmpty() async {
         let emptyDir = NSTemporaryDirectory() + "kimic_empty_\(UUID().uuidString)"
         defer { try? FileManager.default.removeItem(atPath: emptyDir) }
         let extractor = KimiCodeExtractor(rootPath: emptyDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertEqual(events.count, 0)
     }
 
-    func testBrokenLineSkipped() {
+    func testBrokenLineSkipped() async {
         let brokenDir = NSTemporaryDirectory() + "kimic_broken_\(UUID().uuidString)"
         try? FileManager.default.createDirectory(
             atPath: brokenDir + "/ws/sess/agents/main", withIntermediateDirectories: true
@@ -75,31 +75,31 @@ final class KimiCodeExtractorTests: XCTestCase {
         )
 
         let extractor = KimiCodeExtractor(rootPath: brokenDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertEqual(events.count, 1)
     }
 
-    func testMultiSessionAggregation() {
+    func testMultiSessionAggregation() async {
         writeSample(root: tmpDir)
         let extractor = KimiCodeExtractor(rootPath: tmpDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         let sessionIds = Set(events.map { $0.sessionId })
         XCTAssertEqual(sessionIds.count, 2)
     }
 
-    func testProviderNormalizationApplied() {
+    func testProviderNormalizationApplied() async {
         writeSample(root: tmpDir)
         let extractor = KimiCodeExtractor(rootPath: tmpDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         for event in events {
             XCTAssertEqual(event.provider, .kimi)
         }
     }
 
-    func testCamelCaseUsageFieldExtraction() {
+    func testCamelCaseUsageFieldExtraction() async {
         writeSample(root: tmpDir)
         let extractor = KimiCodeExtractor(rootPath: tmpDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         let session1 = events.first { $0.sessionId == "session1" }
         XCTAssertNotNil(session1)
         XCTAssertEqual(session1?.tokens.input, 2306)

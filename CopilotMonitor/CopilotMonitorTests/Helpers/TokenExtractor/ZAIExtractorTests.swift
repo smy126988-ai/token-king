@@ -48,7 +48,7 @@ final class ZAIExtractorTests: XCTestCase {
         StubURLProtocol.stubStatus = 200
     }
 
-    func testExtractFromSampleData() {
+    func testExtractFromSampleData() async {
         let body = """
         {"model":"glm-4.6","input_tokens":1000,"output_tokens":500,"cached_input_tokens":200,"cache_creation_tokens":50,"reasoning_tokens":30}
         """
@@ -59,7 +59,7 @@ final class ZAIExtractorTests: XCTestCase {
             session: session,
             bearerTokenProvider: { "test-token" }
         )
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertNotNil(events)
         XCTAssertEqual(events.count, 1)
         XCTAssertEqual(events.first?.source, .zaiApi)
@@ -67,16 +67,16 @@ final class ZAIExtractorTests: XCTestCase {
         XCTAssertEqual(events.first?.provider, .zai)
     }
 
-    func testMissingBearerTokenReturnsEmpty() {
+    func testMissingBearerTokenReturnsEmpty() async {
         let extractor = ZAIExtractor(
             session: session,
             bearerTokenProvider: { nil }
         )
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertEqual(events.count, 0)
     }
 
-    func testNetworkErrorReturnsEmpty() {
+    func testNetworkErrorReturnsEmpty() async {
         StubURLProtocol.stubError = NSError(
             domain: NSURLErrorDomain, code: NSURLErrorTimedOut
         )
@@ -85,11 +85,11 @@ final class ZAIExtractorTests: XCTestCase {
             session: session,
             bearerTokenProvider: { "test-token" }
         )
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertEqual(events.count, 0)
     }
 
-    func testBrokenJSONReturnsEmpty() {
+    func testBrokenJSONReturnsEmpty() async {
         StubURLProtocol.stubData = "this is not json".data(using: .utf8)
         StubURLProtocol.stubStatus = 200
 
@@ -97,11 +97,11 @@ final class ZAIExtractorTests: XCTestCase {
             session: session,
             bearerTokenProvider: { "test-token" }
         )
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertEqual(events.count, 0)
     }
 
-    func testProviderNormalizationApplied() {
+    func testProviderNormalizationApplied() async {
         let body = """
         {"model":"glm-5p","input_tokens":100,"output_tokens":50}
         """
@@ -112,11 +112,11 @@ final class ZAIExtractorTests: XCTestCase {
             session: session,
             bearerTokenProvider: { "test-token" }
         )
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertEqual(events.first?.provider, .zai)
     }
 
-    func testTokenBreakdownExtraction() {
+    func testTokenBreakdownExtraction() async {
         let body = """
         {"model":"glm-4.6","input_tokens":1000,"output_tokens":500,"cached_input_tokens":200,"cache_creation_tokens":50,"reasoning_tokens":30}
         """
@@ -126,7 +126,7 @@ final class ZAIExtractorTests: XCTestCase {
             session: session,
             bearerTokenProvider: { "test-token" }
         )
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertEqual(events.first?.tokens.input, 1000)
         XCTAssertEqual(events.first?.tokens.output, 500)
         XCTAssertEqual(events.first?.tokens.cacheRead, 200)

@@ -39,24 +39,24 @@ final class KimiCLILegacyExtractorTests: XCTestCase {
         )
     }
 
-    func testExtractFromSampleData() {
+    func testExtractFromSampleData() async {
         writeSample(root: tmpDir)
         let extractor = KimiCLILegacyExtractor(rootPath: tmpDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertNotNil(events)
         XCTAssertEqual(events.count, 3)
         XCTAssertEqual(events.first?.source, .kimiCli)
     }
 
-    func testEmptyDataSourceReturnsEmpty() {
+    func testEmptyDataSourceReturnsEmpty() async {
         let emptyDir = NSTemporaryDirectory() + "kimi_empty_\(UUID().uuidString)"
         defer { try? FileManager.default.removeItem(atPath: emptyDir) }
         let extractor = KimiCLILegacyExtractor(rootPath: emptyDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertEqual(events.count, 0)
     }
 
-    func testBrokenLineSkipped() {
+    func testBrokenLineSkipped() async {
         let brokenDir = NSTemporaryDirectory() + "kimi_broken_\(UUID().uuidString)"
         try? FileManager.default.createDirectory(
             atPath: brokenDir + "/wd/sess", withIntermediateDirectories: true
@@ -74,33 +74,33 @@ final class KimiCLILegacyExtractorTests: XCTestCase {
         )
 
         let extractor = KimiCLILegacyExtractor(rootPath: brokenDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertEqual(events.count, 2)
     }
 
-    func testMultiSessionAggregation() {
+    func testMultiSessionAggregation() async {
         writeSample(root: tmpDir)
         let extractor = KimiCLILegacyExtractor(rootPath: tmpDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         let sessionIds = Set(events.map { $0.sessionId })
         XCTAssertEqual(sessionIds.count, 2)
         XCTAssertTrue(sessionIds.contains("session1"))
         XCTAssertTrue(sessionIds.contains("session2"))
     }
 
-    func testProviderNormalizationApplied() {
+    func testProviderNormalizationApplied() async {
         writeSample(root: tmpDir)
         let extractor = KimiCLILegacyExtractor(rootPath: tmpDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         for event in events {
             XCTAssertEqual(event.provider, .kimi)
         }
     }
 
-    func testTokenCountMapsToOutput() {
+    func testTokenCountMapsToOutput() async {
         writeSample(root: tmpDir)
         let extractor = KimiCLILegacyExtractor(rootPath: tmpDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         let session1 = events.first { $0.sessionId == "session1" }
         XCTAssertNotNil(session1)
         XCTAssertEqual(session1?.tokens.output, 7426)

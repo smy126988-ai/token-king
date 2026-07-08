@@ -12,7 +12,7 @@ struct OpenCodeExtractor: TokenExtractorProtocol {
             ?? "\(NSHomeDirectory())/.local/share/opencode"
     }
 
-    func extractAll() throws -> [TokenEvent] {
+    func extractAll() async throws -> [TokenEvent] {
         let dbPath = "\(rootPath)/opencode.db"
         guard FileManager.default.fileExists(atPath: dbPath) else { return [] }
 

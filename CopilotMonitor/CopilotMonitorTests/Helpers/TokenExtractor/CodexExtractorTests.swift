@@ -71,23 +71,23 @@ final class CodexExtractorTests: XCTestCase {
         )
     }
 
-    func testExtractFromSampleData() throws {
+    func testExtractFromSampleData() async throws {
         writeSample(root: tmpDir)
         let extractor = CodexExtractor(rootPath: tmpDir)
-        let events = try extractor.extractAll()
+        let events = try await extractor.extractAll()
         XCTAssertEqual(events.count, 2)
         XCTAssertEqual(events.first?.source, .codexCli)
     }
 
-    func testEmptyDataSourceReturnsEmpty() throws {
+    func testEmptyDataSourceReturnsEmpty() async throws {
         let emptyDir = NSTemporaryDirectory() + "codex_empty_\(UUID().uuidString)"
         defer { try? FileManager.default.removeItem(atPath: emptyDir) }
         let extractor = CodexExtractor(rootPath: emptyDir)
-        let events = try extractor.extractAll()
+        let events = try await extractor.extractAll()
         XCTAssertEqual(events.count, 0)
     }
 
-    func testBrokenLineSkipped() throws {
+    func testBrokenLineSkipped() async throws {
         let brokenDir = NSTemporaryDirectory() + "codex_broken_\(UUID().uuidString)"
         try? FileManager.default.createDirectory(
             atPath: brokenDir, withIntermediateDirectories: true
@@ -104,32 +104,32 @@ final class CodexExtractorTests: XCTestCase {
         )
 
         let extractor = CodexExtractor(rootPath: brokenDir)
-        let events = try extractor.extractAll()
+        let events = try await extractor.extractAll()
         XCTAssertEqual(events.count, 1)
         XCTAssertEqual(events.first?.tokens.output, 2)
     }
 
-    func testMultiSessionAggregation() throws {
+    func testMultiSessionAggregation() async throws {
         writeSample(root: tmpDir)
         let extractor = CodexExtractor(rootPath: tmpDir)
-        let events = try extractor.extractAll()
+        let events = try await extractor.extractAll()
         let sessionIds = Set(events.map { $0.sessionId })
         XCTAssertEqual(sessionIds.count, 2)
     }
 
-    func testProviderNormalizationApplied() throws {
+    func testProviderNormalizationApplied() async throws {
         writeSample(root: tmpDir)
         let extractor = CodexExtractor(rootPath: tmpDir)
-        let events = try extractor.extractAll()
+        let events = try await extractor.extractAll()
         for event in events {
             XCTAssertEqual(event.provider, .codex)
         }
     }
 
-    func testLastTokenUsagePreferredForSingleEvent() throws {
+    func testLastTokenUsagePreferredForSingleEvent() async throws {
         writeSample(root: tmpDir)
         let extractor = CodexExtractor(rootPath: tmpDir)
-        let events = try extractor.extractAll()
+        let events = try await extractor.extractAll()
         let gpt4o = events.first { $0.model == "gpt-4o" }
         XCTAssertNotNil(gpt4o)
         XCTAssertEqual(gpt4o?.tokens.cacheRead, 100)
@@ -139,10 +139,10 @@ final class CodexExtractorTests: XCTestCase {
         XCTAssertEqual(gpt4o?.tokens.cacheWrite, 0)
     }
 
-    func testMultiTurnUsesLastTokenUsageDelta() throws {
+    func testMultiTurnUsesLastTokenUsageDelta() async throws {
         writeMultiTurnSample(root: tmpDir)
         let extractor = CodexExtractor(rootPath: tmpDir)
-        let events = try extractor.extractAll()
+        let events = try await extractor.extractAll()
         XCTAssertEqual(events.count, 2)
 
         let first = events[0]
@@ -161,10 +161,10 @@ final class CodexExtractorTests: XCTestCase {
         XCTAssertNotEqual(second.tokens.total, 2650)
     }
 
-    func testMultiTurnWithoutLastUsageUsesDeltaSplit() throws {
+    func testMultiTurnWithoutLastUsageUsesDeltaSplit() async throws {
         writeNoLastUsageSample(root: tmpDir)
         let extractor = CodexExtractor(rootPath: tmpDir)
-        let events = try extractor.extractAll()
+        let events = try await extractor.extractAll()
         XCTAssertEqual(events.count, 2)
 
         let first = events[0]
@@ -179,10 +179,10 @@ final class CodexExtractorTests: XCTestCase {
         XCTAssertEqual(second.tokens.cacheWrite, 0)
     }
 
-    func testCumulativeStallOrDropProducesZeroDelta() throws {
+    func testCumulativeStallOrDropProducesZeroDelta() async throws {
         writeStalledCumulativeSample(root: tmpDir)
         let extractor = CodexExtractor(rootPath: tmpDir)
-        let events = try extractor.extractAll()
+        let events = try await extractor.extractAll()
         XCTAssertEqual(events.count, 3)
 
         XCTAssertEqual(events[0].tokens.input, 400)

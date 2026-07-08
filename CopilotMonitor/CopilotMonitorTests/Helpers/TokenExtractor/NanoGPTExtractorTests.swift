@@ -48,7 +48,7 @@ final class NanoGPTExtractorTests: XCTestCase {
         StubURLProtocol.stubStatus = 200
     }
 
-    func testExtractFromSampleData() {
+    func testExtractFromSampleData() async {
         let body = """
         {"model":"gpt-4o","input_tokens":500,"output_tokens":250,"cached_input_tokens":100,"cache_creation_tokens":20}
         """
@@ -59,23 +59,23 @@ final class NanoGPTExtractorTests: XCTestCase {
             session: session,
             bearerTokenProvider: { "test-key" }
         )
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertNotNil(events)
         XCTAssertEqual(events.count, 1)
         XCTAssertEqual(events.first?.source, .nanoGptApi)
         XCTAssertEqual(events.first?.model, "gpt-4o")
     }
 
-    func testMissingBearerTokenReturnsEmpty() {
+    func testMissingBearerTokenReturnsEmpty() async {
         let extractor = NanoGPTExtractor(
             session: session,
             bearerTokenProvider: { nil }
         )
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertEqual(events.count, 0)
     }
 
-    func testNetworkErrorReturnsEmpty() {
+    func testNetworkErrorReturnsEmpty() async {
         StubURLProtocol.stubError = NSError(
             domain: NSURLErrorDomain, code: NSURLErrorCannotConnectToHost
         )
@@ -84,11 +84,11 @@ final class NanoGPTExtractorTests: XCTestCase {
             session: session,
             bearerTokenProvider: { "test-key" }
         )
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertEqual(events.count, 0)
     }
 
-    func testBrokenJSONReturnsEmpty() {
+    func testBrokenJSONReturnsEmpty() async {
         StubURLProtocol.stubData = "garbled response".data(using: .utf8)
         StubURLProtocol.stubStatus = 200
 
@@ -96,11 +96,11 @@ final class NanoGPTExtractorTests: XCTestCase {
             session: session,
             bearerTokenProvider: { "test-key" }
         )
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertEqual(events.count, 0)
     }
 
-    func testProviderNormalizationApplied() {
+    func testProviderNormalizationApplied() async {
         let body = """
         {"model":"gpt-4o-mini","input_tokens":100,"output_tokens":50}
         """
@@ -110,11 +110,11 @@ final class NanoGPTExtractorTests: XCTestCase {
             session: session,
             bearerTokenProvider: { "test-key" }
         )
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertEqual(events.first?.provider, .codex)
     }
 
-    func testTokenBreakdownExtraction() {
+    func testTokenBreakdownExtraction() async {
         let body = """
         {"model":"gpt-4o","input_tokens":500,"output_tokens":250,"cached_input_tokens":100,"cache_creation_tokens":20}
         """
@@ -124,7 +124,7 @@ final class NanoGPTExtractorTests: XCTestCase {
             session: session,
             bearerTokenProvider: { "test-key" }
         )
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertEqual(events.first?.tokens.input, 500)
         XCTAssertEqual(events.first?.tokens.output, 250)
         XCTAssertEqual(events.first?.tokens.cacheRead, 100)

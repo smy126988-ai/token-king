@@ -12,7 +12,7 @@ struct KimiCodeExtractor: TokenExtractorProtocol {
             ?? "\(NSHomeDirectory())/.kimi-code/sessions"
     }
 
-    func extractAll() throws -> [TokenEvent] {
+    func extractAll() async throws -> [TokenEvent] {
         let fm = FileManager.default
         guard fm.fileExists(atPath: rootPath),
               let enumerator = fm.enumerator(

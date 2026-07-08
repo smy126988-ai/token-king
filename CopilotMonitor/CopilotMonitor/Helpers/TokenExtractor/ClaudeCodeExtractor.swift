@@ -11,7 +11,7 @@ struct ClaudeCodeExtractor: TokenExtractorProtocol {
             ?? "\(NSHomeDirectory())/.claude/projects"
     }
 
-    func extractAll() throws -> [TokenEvent] {
+    func extractAll() async throws -> [TokenEvent] {
         let fm = FileManager.default
         guard fm.fileExists(atPath: rootPath),
               let enumerator = fm.enumerator(

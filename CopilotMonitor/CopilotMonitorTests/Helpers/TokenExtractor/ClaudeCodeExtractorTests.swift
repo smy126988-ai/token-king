@@ -35,10 +35,10 @@ final class ClaudeCodeExtractorTests: XCTestCase {
         try? jsonl2.write(toFile: root + "/proj2/sess2.jsonl", atomically: true, encoding: .utf8)
     }
 
-    func testExtractFromSampleData() {
+    func testExtractFromSampleData() async {
         writeSample(root: tmpDir)
         let extractor = ClaudeCodeExtractor(rootPath: tmpDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertNotNil(events)
         XCTAssertEqual(events.count, 3)
         XCTAssertTrue(events.allSatisfy { $0.source == .claudeCode })
@@ -47,15 +47,15 @@ final class ClaudeCodeExtractorTests: XCTestCase {
         XCTAssertTrue(models.contains("claude-opus-4"))
     }
 
-    func testEmptyDataSourceReturnsEmpty() {
+    func testEmptyDataSourceReturnsEmpty() async {
         let emptyDir = NSTemporaryDirectory() + "claude_empty_\(UUID().uuidString)"
         defer { try? FileManager.default.removeItem(atPath: emptyDir) }
         let extractor = ClaudeCodeExtractor(rootPath: emptyDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertEqual(events.count, 0)
     }
 
-    func testBrokenLineSkipped() {
+    func testBrokenLineSkipped() async {
         let brokenDir = NSTemporaryDirectory() + "claude_broken_\(UUID().uuidString)"
         try? FileManager.default.createDirectory(
             atPath: brokenDir, withIntermediateDirectories: true
@@ -71,32 +71,32 @@ final class ClaudeCodeExtractorTests: XCTestCase {
         try? jsonl.write(toFile: brokenDir + "/sess.jsonl", atomically: true, encoding: .utf8)
 
         let extractor = ClaudeCodeExtractor(rootPath: brokenDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertEqual(events.count, 2)
     }
 
-    func testMultiSessionAggregation() {
+    func testMultiSessionAggregation() async {
         writeSample(root: tmpDir)
         let extractor = ClaudeCodeExtractor(rootPath: tmpDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         let sessionIds = Set(events.map { $0.sessionId })
         XCTAssertTrue(sessionIds.contains("sess1"))
         XCTAssertTrue(sessionIds.contains("sess2"))
     }
 
-    func testProviderNormalizationApplied() {
+    func testProviderNormalizationApplied() async {
         writeSample(root: tmpDir)
         let extractor = ClaudeCodeExtractor(rootPath: tmpDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         for event in events {
             XCTAssertEqual(event.provider, .claude)
         }
     }
 
-    func testTokenBreakdownExtraction() {
+    func testTokenBreakdownExtraction() async {
         writeSample(root: tmpDir)
         let extractor = ClaudeCodeExtractor(rootPath: tmpDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         let sonnet = events.first { $0.model == "claude-sonnet-4-5" && $0.tokens.cacheWrite > 0 }
         XCTAssertNotNil(sonnet)
         XCTAssertEqual(sonnet?.tokens.input, 1000)

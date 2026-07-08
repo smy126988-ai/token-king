@@ -40,25 +40,25 @@ final class OpenCodeExtractorTests: XCTestCase {
         try? FileManager.default.removeItem(atPath: tmpDir)
     }
 
-    func testExtractFromSampleData() {
+    func testExtractFromSampleData() async {
         let extractor = OpenCodeExtractor(rootPath: tmpDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertNotNil(events)
         XCTAssertEqual(events.count, 4)
         XCTAssertEqual(events.first?.source, .opencode)
     }
 
-    func testEmptyDataSourceReturnsEmpty() {
+    func testEmptyDataSourceReturnsEmpty() async {
         let emptyDir = NSTemporaryDirectory() + "opencode_empty_\(UUID().uuidString)"
         try? FileManager.default.createDirectory(atPath: emptyDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(atPath: emptyDir) }
 
         let extractor = OpenCodeExtractor(rootPath: emptyDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertEqual(events.count, 0)
     }
 
-    func testBrokenJSONInDataSkipped() {
+    func testBrokenJSONInDataSkipped() async {
         let brokenDir = NSTemporaryDirectory() + "opencode_broken_\(UUID().uuidString)"
         try? FileManager.default.createDirectory(atPath: brokenDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(atPath: brokenDir) }
@@ -77,14 +77,14 @@ final class OpenCodeExtractorTests: XCTestCase {
         sqlite3_close(db)
 
         let extractor = OpenCodeExtractor(rootPath: brokenDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         XCTAssertEqual(events.count, 1)
         XCTAssertEqual(events.first?.sourceId, "opencode:ses_x:main:msg_ok")
     }
 
-    func testMultiSessionAggregation() {
+    func testMultiSessionAggregation() async {
         let extractor = OpenCodeExtractor(rootPath: tmpDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         let sessionIds = Set((events ?? []).map { $0.sessionId })
         XCTAssertEqual(sessionIds.count, 3)
         XCTAssertTrue(sessionIds.contains("ses_a"))
@@ -92,9 +92,9 @@ final class OpenCodeExtractorTests: XCTestCase {
         XCTAssertTrue(sessionIds.contains("ses_c"))
     }
 
-    func testProviderNormalizationApplied() {
+    func testProviderNormalizationApplied() async {
         let extractor = OpenCodeExtractor(rootPath: tmpDir)
-        let events = (try? extractor.extractAll()) ?? []
+        let events = (try? await extractor.extractAll()) ?? []
         let byModel = Dictionary(uniqueKeysWithValues: events.map { ($0.model, $0.provider) })
 
         XCTAssertEqual(byModel["kimi-for-coding"], .kimi)

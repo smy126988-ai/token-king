@@ -18,7 +18,7 @@ struct NanoGPTExtractor: TokenExtractorProtocol {
         self.bearerTokenProvider = bearerTokenProvider ?? NanoGPTExtractor.defaultBearerToken
     }
 
-    func extractAll() throws -> [TokenEvent] {
+    func extractAll() async throws -> [TokenEvent] {
         guard let token = bearerTokenProvider(), !token.isEmpty else { return [] }
 
         var request = URLRequest(url: endpoint)
@@ -26,25 +26,13 @@ struct NanoGPTExtractor: TokenExtractorProtocol {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = 10
 
-        let semaphore = DispatchSemaphore(value: 0)
-        var responseData: Data?
-        var responseError: Error?
+        let (data, _) = try await session.data(for: request)
 
-        let task = session.dataTask(with: request) { data, _, error in
-            responseData = data
-            responseError = error
-            semaphore.signal()
-        }
-        task.resume()
-        semaphore.wait()
-
-        guard responseError == nil,
-              let data = responseData,
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return []
         }
 
-        let sessionId = "nanogpt-api-\(Int(Date().timeIntervalSince1970))"
+        let sessionId = "nanogpt-api-monthly-snapshot"
         let input = intValue(json["input_tokens"] ?? json["inputTokens"])
         let output = intValue(json["output_tokens"] ?? json["outputTokens"])
         let cacheRead = intValue(json["cached_input_tokens"] ?? json["cachedInputTokens"])
@@ -60,7 +48,7 @@ struct NanoGPTExtractor: TokenExtractorProtocol {
             provider: provider, model: model, source: .nanoGptApi,
             sessionId: sessionId, timestamp: Date(),
             tokens: tokens,
-            sourceId: "nanogpt:\(sessionId):main:\(Int(Date().timeIntervalSince1970))"
+            sourceId: "nanogpt:api:snapshot:month"
         )]
     }
 

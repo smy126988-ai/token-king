@@ -1,18 +1,13 @@
 import XCTest
 @testable import OpenCode_Bar
 
-/// F2b Task 6 — RefreshActor 30s tick orchestrator (5 test cases).
+/// F2b Task 6 — RefreshActor 30s tick orchestrator (injection-based tests).
 ///
-/// Note on test environment: the dev machine has real OpenCode / Claude / Codex
-/// data on disk, so the 7 extractors return non-empty events. The tests are
-/// designed to verify the actor's BEHAVIOR (no-throw, concurrency, calendar
-/// month filtering) without depending on the extractors returning empty.
-/// Each test uses a per-test SQLite temp DB so refresh artifacts are isolated.
+/// All tests use stub extractors to avoid touching real session files or APIs.
 final class RefreshActorTests: XCTestCase {
 
     private var tempDBPath: String!
     private var store: TokenUsageStore!
-    private var refreshActor: RefreshActor!
 
     override func setUp() async throws {
         try await super.setUp()
@@ -21,11 +16,9 @@ final class RefreshActorTests: XCTestCase {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         tempDBPath = dir.appendingPathComponent("f2b.sqlite").path
         store = TokenUsageStore(dbPath: tempDBPath)
-        refreshActor = RefreshActor(store: store, intervalSeconds: 1)
     }
 
     override func tearDown() async throws {
-        await refreshActor?.stop()
         if let path = tempDBPath {
             try? FileManager.default.removeItem(atPath: path)
         }
@@ -35,10 +28,11 @@ final class RefreshActorTests: XCTestCase {
     // MARK: - 1. start/stop lifecycle
 
     func testStartStop() async {
+        let actor = RefreshActor(store: store, extractors: [], intervalSeconds: 1)
         let start = Date()
-        await refreshActor.start()
+        await actor.start()
         try? await Task.sleep(nanoseconds: 100_000_000)  // 100ms
-        await refreshActor.stop()
+        await actor.stop()
         let elapsed = Date().timeIntervalSince(start)
         XCTAssertLessThan(elapsed, 1.0, "start + 100ms wait + stop must complete in < 1s")
     }
@@ -46,40 +40,81 @@ final class RefreshActorTests: XCTestCase {
     // MARK: - 2. single tick completes without throwing; store remains queryable
 
     func testTickProcessesEvents() async {
-        await refreshActor.tickNow()
+        let extractor = StubExtractor(events: [
+            TokenEvent(
+                provider: .claude, model: "claude-test",
+                source: .claudeCode, sessionId: "s1",
+                timestamp: Date(),
+                tokens: TokenBreakdown(input: 10, output: 5),
+                sourceId: "tk:test:1"
+            )
+        ])
+        let actor = RefreshActor(store: store, extractors: [extractor])
+        await actor.tickNow()
+
         let aggregates = await store.fetchMonthAggregates()
         XCTAssertNotNil(aggregates, "store must remain queryable after a single tick")
+        XCTAssertEqual(aggregates.count, 1)
+        XCTAssertEqual(aggregates.first?.tokens.input, 10)
     }
 
-    // MARK: - 3. 7 extractors run concurrently (much faster than sequential)
+    // MARK: - 3. extractors run concurrently (wall time < serial time)
 
     func testConcurrentExtractors() async {
-        // Sequential baseline: 7 × single-extractor time. The actual dev-machine
-        // tick reads ~50MB of real OpenCode data so we use a generous upper bound
-        // rather than the < 2s spec target (which assumes empty data sources).
-        // The assertion still proves TaskGroup concurrency: 7 extractors run in
-        // parallel, not serially — so the wall time is bounded by the slowest
-        // extractor, not by their sum.
+        // Three extractors each sleep for 100ms. Serial execution would take ~300ms.
+        let sleepDuration: UInt64 = 100_000_000
+        let extractors: [StubExtractor] = (0..<3).map { _ in
+            StubExtractor(events: [
+                TokenEvent(
+                    provider: .kimi, model: "kimi-concurrent",
+                    source: .kimiCode, sessionId: "concurrent",
+                    timestamp: Date(),
+                    tokens: TokenBreakdown(input: 1, output: 1),
+                    sourceId: "tk:concurrent:\(UUID().uuidString)"
+                )
+            ], delayNanoseconds: sleepDuration)
+        }
+        let actor = RefreshActor(store: store, extractors: extractors)
+
         let start = Date()
-        await refreshActor.tickNow()
+        await actor.tickNow()
         let elapsed = Date().timeIntervalSince(start)
-        XCTAssertLessThan(elapsed, 120.0,
-                          "7 extractors running concurrently should finish within reasonable time")
+
+        // Concurrency proof: total wall time must be less than sum of individual sleeps.
+        // Allow a small margin for scheduling overhead.
+        let serialTime = Double(sleepDuration * UInt64(extractors.count)) / 1_000_000_000
+        XCTAssertLessThan(elapsed, serialTime,
+                          "extractors must run concurrently (elapsed \(elapsed)s < serial \(serialTime)s)")
     }
 
-    // MARK: - 4. tick does not throw even when sources are missing or empty
+    // MARK: - 4. tick does not throw even when an extractor throws
 
-    func testMissingDataSourceSilent() async {
-        // If any extractor threw, the actor would propagate. The fact that
-        // tickNow() returns at all is the assertion: silent skip semantics work.
-        // (On a fresh DB the upserts/aggregates are empty; on dev machine they
-        // contain real events — either way the actor must not crash.)
-        await refreshActor.tickNow()
+    func testExtractorErrorLoggedAndTickSurvives() async {
+        let goodExtractor = StubExtractor(events: [
+            TokenEvent(
+                provider: .codex, model: "codex-good",
+                source: .codexCli, sessionId: "good",
+                timestamp: Date(),
+                tokens: TokenBreakdown(input: 7, output: 3),
+                sourceId: "tk:good:1"
+            )
+        ])
+        let badExtractor = StubExtractor(events: [], error: NSError(domain: "tk.test", code: 1, userInfo: nil))
+        let actor = RefreshActor(store: store, extractors: [badExtractor, goodExtractor])
+
+        await actor.tickNow()
+
+        let aggregates = await store.fetchMonthAggregates()
+        XCTAssertEqual(aggregates.count, 1)
+        XCTAssertEqual(aggregates.first?.tokens.input, 7)
     }
 
     // MARK: - 5. calendar month reset — past events excluded from current month
 
     func testCalendarMonthReset() async throws {
+        let extractor = StubExtractor(events: [])
+        let actor = RefreshActor(store: store, extractors: [extractor])
+
         // Insert an event from January 2020 with a UNIQUE model name so it can
         // never collide with real data inserted by the 7 extractors during the tick.
         let pastDate = Date(timeIntervalSince1970: 1_577_836_800)  // 2020-01-01 UTC
@@ -94,15 +129,57 @@ final class RefreshActorTests: XCTestCase {
             sourceId: "tk-test-past-event-\(UUID().uuidString)"
         ))
 
-        // Run a tick — must call refreshMonthAggregates() which filters by current month.
-        await refreshActor.tickNow()
+        await actor.tickNow()
 
         let aggregates = await store.fetchMonthAggregates()
-        // If the past event leaked into current month, the .claude row would
-        // contain our unique model. Asserting by model name (not token counts)
-        // makes the test resilient to real data on the dev machine.
         let pastLeaked = aggregates.contains { $0.model == pastModel }
         XCTAssertFalse(pastLeaked,
                        "Past-month event (model=\(pastModel)) must not appear in current month aggregates")
+    }
+
+    // MARK: - 6. stable sourceId prevents duplicate inserts across ticks
+
+    func testStableSourceIdDeduplicatesAcrossTicks() async {
+        let extractor = StubExtractor(events: [
+            TokenEvent(
+                provider: .zai, model: "glm-4.6",
+                source: .zaiApi, sessionId: "zai-api-monthly-snapshot",
+                timestamp: Date(),
+                tokens: TokenBreakdown(input: 100, output: 50),
+                sourceId: "zai:api:snapshot:month"
+            )
+        ])
+        let actor = RefreshActor(store: store, extractors: [extractor])
+
+        await actor.tickNow()
+        await actor.tickNow()
+
+        let aggregates = await store.fetchMonthAggregates()
+        XCTAssertEqual(aggregates.count, 1)
+        XCTAssertEqual(aggregates.first?.tokens.input, 100, "stable sourceId must deduplicate repeated snapshots")
+    }
+}
+
+// MARK: - Test helper
+
+private actor StubExtractor: TokenExtractorProtocol {
+    private let events: [TokenEvent]
+    private let error: Error?
+    private let delayNanoseconds: UInt64
+
+    init(events: [TokenEvent], error: Error? = nil, delayNanoseconds: UInt64 = 0) {
+        self.events = events
+        self.error = error
+        self.delayNanoseconds = delayNanoseconds
+    }
+
+    func extractAll() async throws -> [TokenEvent] {
+        if delayNanoseconds > 0 {
+            try await Task.sleep(nanoseconds: delayNanoseconds)
+        }
+        if let error = error {
+            throw error
+        }
+        return events
     }
 }
