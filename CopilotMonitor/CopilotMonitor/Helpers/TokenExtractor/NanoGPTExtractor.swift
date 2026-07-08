@@ -7,15 +7,25 @@ struct NanoGPTExtractor: TokenExtractorProtocol {
     let endpoint: URL
     let session: URLSession
     let bearerTokenProvider: () -> String?
+    let defaults: UserDefaults
+
+    static var defaultEndpoint: URL {
+        guard let url = URL(string: "https://nano-gpt.com/api/v1/usage") else {
+            fatalError("Invalid default NanoGPT endpoint URL")
+        }
+        return url
+    }
 
     init(
-        endpoint: URL = URL(string: "https://nano-gpt.com/api/v1/usage")!,
+        endpoint: URL? = nil,
         session: URLSession = .shared,
-        bearerTokenProvider: (() -> String?)? = nil
+        bearerTokenProvider: (() -> String?)? = nil,
+        defaults: UserDefaults = .standard
     ) {
-        self.endpoint = endpoint
+        self.endpoint = endpoint ?? Self.defaultEndpoint
         self.session = session
-        self.bearerTokenProvider = bearerTokenProvider ?? NanoGPTExtractor.defaultBearerToken
+        self.defaults = defaults
+        self.bearerTokenProvider = bearerTokenProvider ?? { Self.defaultBearerToken(defaults: defaults) }
     }
 
     func extractAll() async throws -> [TokenEvent] {
@@ -52,11 +62,11 @@ struct NanoGPTExtractor: TokenExtractorProtocol {
         )]
     }
 
-    static func defaultBearerToken() -> String? {
+    static func defaultBearerToken(defaults: UserDefaults) -> String? {
         if let env = ProcessInfo.processInfo.environment["NANOGPT_API_KEY"], !env.isEmpty {
             return env
         }
-        if let stored = UserDefaults.standard.string(forKey: "nanogpt.apiKey"),
+        if let stored = defaults.string(forKey: "nanogpt.apiKey"),
            !stored.isEmpty {
             return stored
         }

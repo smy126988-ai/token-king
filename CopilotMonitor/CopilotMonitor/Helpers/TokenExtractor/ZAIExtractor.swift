@@ -8,12 +8,19 @@ struct ZAIExtractor: TokenExtractorProtocol {
     let session: URLSession
     let bearerTokenProvider: () -> String?
 
+    static var defaultEndpoint: URL {
+        guard let url = URL(string: "https://api.z.ai/api/coding/pa/v1/usage/quota/limit") else {
+            fatalError("Invalid default ZAI endpoint URL")
+        }
+        return url
+    }
+
     init(
-        endpoint: URL = URL(string: "https://api.z.ai/api/coding/pa/v1/usage/quota/limit")!,
+        endpoint: URL? = nil,
         session: URLSession = .shared,
         bearerTokenProvider: (() -> String?)? = nil
     ) {
-        self.endpoint = endpoint
+        self.endpoint = endpoint ?? Self.defaultEndpoint
         self.session = session
         self.bearerTokenProvider = bearerTokenProvider ?? ZAIExtractor.defaultBearerToken
     }

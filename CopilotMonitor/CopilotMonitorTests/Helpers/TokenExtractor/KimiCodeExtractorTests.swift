@@ -107,4 +107,57 @@ final class KimiCodeExtractorTests: XCTestCase {
         XCTAssertEqual(session1?.tokens.cacheRead, 5120)
         XCTAssertEqual(session1?.tokens.cacheWrite, 0)
     }
+
+    func testLookupKimiModelPrefersEnv() {
+        let extractor = KimiCodeExtractor(rootPath: tmpDir)
+        XCTAssertEqual(
+            extractor.lookupKimiModel(env: ["KIMI_MODEL_NAME": "kimi-env"], configPath: nil),
+            "kimi-env"
+        )
+    }
+
+    func testLookupKimiModelFallsBackToConfig() throws {
+        let configDir = NSTemporaryDirectory() + "kimi_config_\(UUID().uuidString)"
+        try FileManager.default.createDirectory(
+            atPath: configDir, withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(atPath: configDir) }
+        let configPath = configDir + "/config.toml"
+        try "default_model = \"kimi-config-model\"".write(
+            toFile: configPath, atomically: true, encoding: .utf8
+        )
+
+        let extractor = KimiCodeExtractor(rootPath: tmpDir)
+        XCTAssertEqual(
+            extractor.lookupKimiModel(env: [:], configPath: configPath),
+            "kimi-config-model"
+        )
+    }
+
+    func testLookupKimiModelEnvOverridesConfig() throws {
+        let configDir = NSTemporaryDirectory() + "kimi_config_\(UUID().uuidString)"
+        try FileManager.default.createDirectory(
+            atPath: configDir, withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(atPath: configDir) }
+        let configPath = configDir + "/config.toml"
+        try "default_model = \"kimi-config-model\"".write(
+            toFile: configPath, atomically: true, encoding: .utf8
+        )
+
+        let extractor = KimiCodeExtractor(rootPath: tmpDir)
+        XCTAssertEqual(
+            extractor.lookupKimiModel(env: ["KIMI_MODEL_NAME": "kimi-env-model"], configPath: configPath),
+            "kimi-env-model"
+        )
+    }
+
+    func testLookupKimiModelUsesHardcodedFallback() {
+        let extractor = KimiCodeExtractor(rootPath: tmpDir)
+        let missingPath = "/nonexistent/kimi/config.toml"
+        XCTAssertEqual(
+            extractor.lookupKimiModel(env: [:], configPath: missingPath),
+            "kimi-auto"
+        )
+    }
 }

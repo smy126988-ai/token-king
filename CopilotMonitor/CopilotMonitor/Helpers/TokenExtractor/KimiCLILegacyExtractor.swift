@@ -4,6 +4,10 @@ import CryptoKit
 /// Kimi CLI legacy JSONL scanner (老 kimi-cli `context.jsonl`).
 /// Path: ~/.kimi/sessions/<workdir-md5>/<sessionId>/context.jsonl
 /// Lines of interest: {"role": "_usage", "token_count": N}
+///
+/// Limitation: the legacy format only exposes a single `token_count` value.
+/// It cannot be split into input/output/cache/reasoning, so the whole count
+/// is recorded as `output`; input, cacheRead, cacheWrite and reasoning are 0.
 struct KimiCLILegacyExtractor: TokenExtractorProtocol {
     let rootPath: String
 
@@ -53,6 +57,7 @@ struct KimiCLILegacyExtractor: TokenExtractorProtocol {
             let timestamp = parseTimestamp(json["timestamp"]) ?? Date(timeIntervalSince1970: 0)
             let model = (json["model"] as? String) ?? ""
 
+            // Legacy schema only gives a combined token_count; treat it as output.
             let tokens = TokenBreakdown(output: tokenCount)
             let provider = TokenNormalizer.matchProvider(model: model, providerID: "moonshot")
 

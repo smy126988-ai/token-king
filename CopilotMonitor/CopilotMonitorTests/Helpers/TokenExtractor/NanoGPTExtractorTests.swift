@@ -130,4 +130,28 @@ final class NanoGPTExtractorTests: XCTestCase {
         XCTAssertEqual(events.first?.tokens.cacheRead, 100)
         XCTAssertEqual(events.first?.tokens.cacheWrite, 20)
     }
+
+    func testInjectedDefaultsProvidesBearerToken() {
+        let suiteName = "test.NanoGPT.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { UserDefaults().removePersistentDomain(forName: suiteName) }
+        defaults.set("injected-key", forKey: "nanogpt.apiKey")
+
+        let extractor = NanoGPTExtractor(session: session, defaults: defaults)
+        XCTAssertEqual(extractor.bearerTokenProvider(), "injected-key")
+    }
+
+    func testInjectedDefaultsPreventsReadingStandard() {
+        UserDefaults.standard.set("standard-key", forKey: "nanogpt.apiKey")
+        defer { UserDefaults.standard.removeObject(forKey: "nanogpt.apiKey") }
+
+        let suiteName = "test.NanoGPT.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { UserDefaults().removePersistentDomain(forName: suiteName) }
+        defaults.removeObject(forKey: "nanogpt.apiKey")
+
+        let extractor = NanoGPTExtractor(session: session, defaults: defaults)
+        XCTAssertNotEqual(extractor.bearerTokenProvider(), "standard-key")
+        XCTAssertNil(extractor.bearerTokenProvider())
+    }
 }

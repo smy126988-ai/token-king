@@ -77,12 +77,19 @@ struct KimiCodeExtractor: TokenExtractorProtocol {
         return events
     }
 
-    private func lookupKimiModel() -> String {
-        if let env = ProcessInfo.processInfo.environment["KIMI_MODEL_NAME"], !env.isEmpty {
+    private static func defaultConfigPath() -> String {
+        "\(NSHomeDirectory())/.kimi/config.toml"
+    }
+
+    func lookupKimiModel(
+        env: [String: String] = ProcessInfo.processInfo.environment,
+        configPath: String? = Self.defaultConfigPath()
+    ) -> String {
+        if let env = env["KIMI_MODEL_NAME"], !env.isEmpty {
             return env
         }
-        let configPath = "\(NSHomeDirectory())/.kimi/config.toml"
-        if let contents = try? String(contentsOfFile: configPath, encoding: .utf8) {
+        let path = configPath ?? Self.defaultConfigPath()
+        if let contents = try? String(contentsOfFile: path, encoding: .utf8) {
             for line in contents.split(separator: "\n") {
                 let trimmed = line.trimmingCharacters(in: .whitespaces)
                 if trimmed.hasPrefix("default_model") {
