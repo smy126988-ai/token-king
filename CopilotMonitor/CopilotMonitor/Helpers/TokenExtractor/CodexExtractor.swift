@@ -69,36 +69,20 @@ struct CodexExtractor: TokenExtractorProtocol {
 
                 guard let totalUsage = totalUsage else { continue }
 
-                let inputTokens = intValue(totalUsage["input_tokens"])
-                let outputTokens = intValue(totalUsage["output_tokens"])
-                let cachedTokens = intValue(totalUsage["cached_input_tokens"])
-                let reasoningTokens = intValue(totalUsage["reasoning_output_tokens"])
                 let totalTokens = intValue(totalUsage["total_tokens"])
 
                 let effectiveModel = model.isEmpty
                     ? ((lastUsage?["model"] as? String) ?? "gpt-4o")
                     : model
 
-                let nonCachedInput = max(0, inputTokens - cachedTokens)
                 let timestamp = parseTimestamp(json["timestamp"]) ?? Date(timeIntervalSince1970: 0)
                 let msgId = (json["id"] as? String) ?? "\(lineIndex)"
 
-                let deltaTokens: TokenBreakdown
-                if let prev = prevCumulativeTotal {
-                    let delta = max(0, totalTokens - prev)
-                    deltaTokens = TokenBreakdown(
-                        input: nonCachedInput, output: outputTokens,
-                        cacheRead: cachedTokens, cacheWrite: 0,
-                        reasoning: reasoningTokens
-                    )
-                    _ = delta
-                } else {
-                    deltaTokens = TokenBreakdown(
-                        input: nonCachedInput, output: outputTokens,
-                        cacheRead: cachedTokens, cacheWrite: 0,
-                        reasoning: reasoningTokens
-                    )
-                }
+                let deltaTokens = makeDeltaBreakdown(
+                    totalUsage: totalUsage,
+                    lastUsage: lastUsage,
+                    prevCumulativeTotal: prevCumulativeTotal
+                )
                 prevCumulativeTotal = totalTokens
 
                 let provider = TokenNormalizer.matchProvider(model: effectiveModel, providerID: "openai")
@@ -125,5 +109,96 @@ struct CodexExtractor: TokenExtractorProtocol {
         if let ts = any as? Double { return Date(timeIntervalSince1970: ts) }
         if let s = any as? String, let ts = Double(s) { return Date(timeIntervalSince1970: ts) }
         return nil
+    }
+
+    private func makeDeltaBreakdown(
+        totalUsage: [String: Any],
+        lastUsage: [String: Any]?,
+        prevCumulativeTotal: Int?
+    ) -> TokenBreakdown {
+        let inputTokens = intValue(totalUsage["input_tokens"])
+        let outputTokens = intValue(totalUsage["output_tokens"])
+        let cachedTokens = intValue(totalUsage["cached_input_tokens"])
+        let reasoningTokens = intValue(totalUsage["reasoning_output_tokens"])
+        let totalTokens = intValue(totalUsage["total_tokens"])
+
+        let nonCachedInput = max(0, inputTokens - cachedTokens)
+
+        // Prefer last_token_usage (per-turn delta) when fully present.
+        if isCompleteLastUsage(lastUsage) {
+            let li = intValue(lastUsage?["input_tokens"])
+            let lo = intValue(lastUsage?["output_tokens"])
+            let lc = intValue(lastUsage?["cached_input_tokens"])
+            let lr = intValue(lastUsage?["reasoning_output_tokens"])
+            return TokenBreakdown(
+                input: max(0, li - lc),
+                output: lo,
+                cacheRead: lc,
+                cacheWrite: 0,
+                reasoning: lr
+            )
+        }
+
+        guard let prev = prevCumulativeTotal else {
+            // First token_count in this rollout: treat cumulative total as the
+            // first turn's usage because no delta is available.
+            return TokenBreakdown(
+                input: nonCachedInput,
+                output: outputTokens,
+                cacheRead: cachedTokens,
+                cacheWrite: 0,
+                reasoning: reasoningTokens
+            )
+        }
+
+        let delta = max(0, totalTokens - prev)
+        return proportionalDelta(
+            totalDelta: delta,
+            nonCachedInput: nonCachedInput,
+            output: outputTokens,
+            cacheRead: cachedTokens,
+            reasoning: reasoningTokens,
+            total: totalTokens
+        )
+    }
+
+    private func isCompleteLastUsage(_ lastUsage: [String: Any]?) -> Bool {
+        guard let lastUsage = lastUsage else { return false }
+        let required = [
+            "input_tokens",
+            "output_tokens",
+            "cached_input_tokens",
+            "reasoning_output_tokens",
+            "total_tokens",
+        ]
+        return required.allSatisfy { lastUsage[$0] != nil }
+    }
+
+    private func proportionalDelta(
+        totalDelta: Int,
+        nonCachedInput: Int,
+        output: Int,
+        cacheRead: Int,
+        reasoning: Int,
+        total: Int
+    ) -> TokenBreakdown {
+        guard totalDelta > 0, total > 0 else {
+            return TokenBreakdown(input: 0, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0)
+        }
+
+        let inputDelta = Int(Double(totalDelta) * Double(nonCachedInput) / Double(total))
+        let outputDelta = Int(Double(totalDelta) * Double(output) / Double(total))
+        let cacheReadDelta = Int(Double(totalDelta) * Double(cacheRead) / Double(total))
+        let reasoningDelta = Int(Double(totalDelta) * Double(reasoning) / Double(total))
+
+        let remainder = totalDelta - (inputDelta + outputDelta + cacheReadDelta + reasoningDelta)
+
+        return TokenBreakdown(
+            input: inputDelta + remainder,
+            output: outputDelta,
+            cacheRead: cacheReadDelta,
+            cacheWrite: 0,
+            reasoning: reasoningDelta
+        )
     }
 }
