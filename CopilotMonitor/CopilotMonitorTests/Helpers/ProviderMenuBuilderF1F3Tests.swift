@@ -68,6 +68,38 @@ final class ProviderMenuBuilderF1F3Tests: XCTestCase {
         XCTAssertFalse(texts.contains(where: { $0.contains("Token 用量") }), "F1 block should be hidden when dayAggregates is empty")
     }
 
+    func testF1MonthlyAndDailyAggregateByModelAndDay() {
+        // 4 rows: 2 models on day1, 2 models on day2
+        // - Monthly should show 2 rows (one per model, summed across days).
+        //   The implementation renders `tokens.total` (sum of all 5 fields),
+        //   so kimi-k2.5 monthly = (100+50) + (200+100) = 450
+        //   and kimi-k2.6 monthly = (300+150) + (400+200) = 1050 → "1.1k"
+        // - Daily should show 2 rows (one per day, summed across models).
+        //   2026-07-08 daily = (100+50) + (300+150) = 600
+        //   2026-07-09 daily = (200+100) + (400+200) = 900
+        let aggregates = [
+            DayAggregate(provider: "kimi", model: "kimi-k2.5", day: "2026-07-08", tokens: TokenBreakdown(input: 100, output: 50)),
+            DayAggregate(provider: "kimi", model: "kimi-k2.5", day: "2026-07-09", tokens: TokenBreakdown(input: 200, output: 100)),
+            DayAggregate(provider: "kimi", model: "kimi-k2.6", day: "2026-07-08", tokens: TokenBreakdown(input: 300, output: 150)),
+            DayAggregate(provider: "kimi", model: "kimi-k2.6", day: "2026-07-09", tokens: TokenBreakdown(input: 400, output: 200)),
+        ]
+        let menu = NSMenu()
+        controller.appendF1TokenBlocks(to: menu, identifier: .kimi, dayAggregates: aggregates)
+        let texts = extractText(from: menu)
+        let itemCount = menu.items.count
+
+        // Expected items: 1 monthly header + 2 monthly rows + 1 separator + 1 daily header + 2 daily rows = 7 items
+        XCTAssertEqual(itemCount, 7, "Expected 7 items (1 monthly header + 2 monthly rows + 1 sep + 1 daily header + 2 daily rows); got \(itemCount)")
+
+        // Monthly per-model sums (total tokens, formatted)
+        XCTAssertTrue(texts.contains(where: { $0.contains("kimi-k2.5") && $0.contains("450") }), "kimi-k2.5 monthly should sum 100+50+200+100=450 total tokens; got \(texts)")
+        XCTAssertTrue(texts.contains(where: { $0.contains("kimi-k2.6") && $0.contains("1.1k") }), "kimi-k2.6 monthly should sum 300+150+400+200=1050 → format '1.1k'; got \(texts)")
+
+        // Daily per-day sums
+        XCTAssertTrue(texts.contains(where: { $0.contains("2026-07-08") && $0.contains("600") }), "2026-07-08 daily should sum 100+50+300+150=600 total; got \(texts)")
+        XCTAssertTrue(texts.contains(where: { $0.contains("2026-07-09") && $0.contains("900") }), "2026-07-09 daily should sum 200+100+400+200=900 total; got \(texts)")
+    }
+
     // MARK: - F3 5h + weekly block
 
     func testF3BlockRenders5hAndWeekly() {

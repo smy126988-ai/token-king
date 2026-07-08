@@ -1176,32 +1176,40 @@ extension StatusBarController {
         guard let providerRaw = f2bProviderRaw(for: identifier) else { return }
         guard !dayAggregates.isEmpty else { return }
 
-        // Monthly header + per-model rows.
+        // Aggregate by model for the monthly section (sum tokens across all days for the same model).
+        let monthlyByModel: [(model: String, tokens: TokenBreakdown)] = Dictionary(grouping: dayAggregates, by: { $0.model })
+            .map { (model: $0.key, tokens: $0.value.reduce(TokenBreakdown.zero) { $0.adding($1.tokens) }) }
+            .sorted { $0.model < $1.model }
+
         let monthlyHeader = NSMenuItem()
         monthlyHeader.view = createHeaderView(title: "Token 用量 (本月)")
         monthlyHeader.identifier = NSUserInterfaceItemIdentifier("f1-monthly-header-\(providerRaw)")
         submenu.addItem(monthlyHeader)
 
-        for agg in dayAggregates {
+        for entry in monthlyByModel {
             let row = NSMenuItem()
-            let text = "  \(agg.model): \(TokenUsageFormatter.format(tokens: agg.tokens.total))"
+            let text = "  \(entry.model): \(TokenUsageFormatter.format(tokens: entry.tokens.total))"
             row.view = createDisabledLabelView(text: text)
-            row.identifier = NSUserInterfaceItemIdentifier("f1-monthly-\(providerRaw)-\(agg.model)")
+            row.identifier = NSUserInterfaceItemIdentifier("f1-monthly-\(providerRaw)-\(entry.model)")
             submenu.addItem(row)
         }
 
-        // Separator + daily header + per-day rows.
+        // Aggregate by day for the daily section (sum tokens across all models on the same day).
+        let dailyByDay: [(day: String, tokens: TokenBreakdown)] = Dictionary(grouping: dayAggregates, by: { $0.day })
+            .map { (day: $0.key, tokens: $0.value.reduce(TokenBreakdown.zero) { $0.adding($1.tokens) }) }
+            .sorted { $0.day > $1.day }  // most recent first
+
         submenu.addItem(NSMenuItem.separator())
         let dailyHeader = NSMenuItem()
         dailyHeader.view = createHeaderView(title: "Token 用量 (本月每日)")
         dailyHeader.identifier = NSUserInterfaceItemIdentifier("f1-daily-header-\(providerRaw)")
         submenu.addItem(dailyHeader)
 
-        for agg in dayAggregates.reversed() {
+        for entry in dailyByDay {
             let row = NSMenuItem()
-            let text = "  \(agg.day): \(TokenUsageFormatter.format(tokens: agg.tokens.total))"
+            let text = "  \(entry.day): \(TokenUsageFormatter.format(tokens: entry.tokens.total))"
             row.view = createDisabledLabelView(text: text)
-            row.identifier = NSUserInterfaceItemIdentifier("f1-daily-\(providerRaw)-\(agg.day)")
+            row.identifier = NSUserInterfaceItemIdentifier("f1-daily-\(providerRaw)-\(entry.day)")
             submenu.addItem(row)
         }
     }
