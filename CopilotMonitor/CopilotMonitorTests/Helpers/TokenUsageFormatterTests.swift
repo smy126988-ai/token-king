@@ -21,7 +21,7 @@ final class TokenUsageFormatterTests: XCTestCase {
     func testFormatTokensThousandToMillionShowsKWithDecimals() {
         XCTAssertEqual(TokenUsageFormatter.format(tokens: 1_000), "1.0k")
         XCTAssertEqual(TokenUsageFormatter.format(tokens: 12_345), "12.3k")
-        XCTAssertEqual(TokenUsageFormatter.format(tokens: 1_000_000).replacingOccurrences(of: ".0", with: ""), "1M")
+        XCTAssertEqual(TokenUsageFormatter.format(tokens: 1_000_000), "1.0M")
     }
 
     func testFormatTokensAboveMillionShowsMWithDecimals() {
