@@ -36,6 +36,7 @@
 		6E20731420660405A73659A3 /* ModernApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6279E48B0F50E99C3B23C4F3 /* ModernApp.swift */; };
 		7023538D2C1FD2C142C4D0C6 /* tavily_usage_response.json in Resources */ = {isa = PBXBuildFile; fileRef = 08AE97C415017492D0809041 /* tavily_usage_response.json */; };
 		7872BE2A2B8897BD2440E57B /* TimeZone+UTC.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCE215EDDBE3407B8E477617B1A9D6A3 /* TimeZone+UTC.swift */; };
+		TUF000000000000000000BF2 /* TokenUsageFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = TUF000000000000000000FR2 /* TokenUsageFormatter.swift */; };
 		7C7800B96DEE77EBE9DAD5E8 /* KeySource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2E141A81879AD0D9434ED6 /* KeySource.swift */; };
 		87297CDD8B65F7EF0BC5D650 /* ProviderManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F40F1AC76A49A9B9DF74B0 /* ProviderManager.swift */; };
 		8EA90F9E26F29FC7938D2924 /* ProviderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BDA856BBC854D3FF310EA51 /* ProviderViewModel.swift */; };
@@ -365,6 +366,9 @@
 		RA00100000000000000000FR1 /* RefreshActor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RefreshActor.swift; sourceTree = "<group>"; };
 		RA00100000000000000000FR2 /* RefreshActorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RefreshActorTests.swift; sourceTree = "<group>"; };
 		TRD000000000000000000FR2 /* RefreshActorDayAggregatesTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RefreshActorDayAggregatesTests.swift; sourceTree = "<group>"; };
+		TUFT00000000000000000BF2 /* TokenUsageFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TUFT00000000000000000FR2 /* TokenUsageFormatterTests.swift */; };
+		TUF000000000000000000FR2 /* TokenUsageFormatter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenUsageFormatter.swift; sourceTree = "<group>"; };
+		TUFT00000000000000000FR2 /* TokenUsageFormatterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenUsageFormatterTests.swift; sourceTree = "<group>"; };
 		SBCCTRLMODETMFR1111 /* StatusBarControllerTestingModeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatusBarControllerTestingModeTests.swift; sourceTree = "<group>"; };
 		SBCCTRLTESTFR111111111 /* StatusBarControllerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatusBarControllerTests.swift; sourceTree = "<group>"; };
 		APPDELEGATEB39TESTSFR111 /* AppDelegateB39Tests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppDelegateB39Tests.swift; sourceTree = "<group>"; };
@@ -474,6 +478,7 @@
 				RA00100000000000000000FR2 /* RefreshActorTests.swift */,
 				TRD000000000000000000FR2 /* RefreshActorDayAggregatesTests.swift */,
 				447C5D12B4E04EC9A89ECAD71741968A /* TimeZoneUTCTests.swift */,
+				TUFT00000000000000000FR2 /* TokenUsageFormatterTests.swift */,
 				TE0000000000000000000TGP /* TokenExtractor */,
 			);
 			path = Helpers;
@@ -655,6 +660,7 @@
 				MCST000000000000000000FR1 /* MonthCostCalculator.swift */,
 				RA00100000000000000000FR1 /* RefreshActor.swift */,
 				DCE215EDDBE3407B8E477617B1A9D6A3 /* TimeZone+UTC.swift */,
+				TUF000000000000000000FR2 /* TokenUsageFormatter.swift */,
 				TE0000000000000000000GRP /* TokenExtractor */,
 			);
 			path = Helpers;
@@ -1035,6 +1041,7 @@
 				MCST000000000000000000BF1 /* MonthCostCalculator.swift in Sources */,
 				RA00100000000000000000BF1 /* RefreshActor.swift in Sources */,
 				7872BE2A2B8897BD2440E57B /* TimeZone+UTC.swift in Sources */,
+				TUF000000000000000000BF2 /* TokenUsageFormatter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1150,6 +1157,7 @@
 				RA00100000000000000000BF2 /* RefreshActorTests.swift in Sources */,
 				TRD000000000000000000BF2 /* RefreshActorDayAggregatesTests.swift in Sources */,
 				BA1D5B2614A9475EB4AF48282FFE4FFE /* TimeZoneUTCTests.swift in Sources */,
+				TUFT00000000000000000BF2 /* TokenUsageFormatterTests.swift in Sources */,
 				PRRESULTTESTBUILD11111111 /* ProviderResultTests.swift in Sources */,
 				SBCCTRLTESTBF111111111 /* StatusBarControllerTests.swift in Sources */,
 				APPDELEGATEB39TESTSBF111 /* AppDelegateB39Tests.swift in Sources */,
