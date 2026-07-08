@@ -12,10 +12,11 @@ indirect enum SQLiteError: Error, Equatable, Sendable {
     case storeUninitialized(underlying: SQLiteError)
 }
 
-/// Persistence layer (SQLite, schema 1).
-/// 3 tables:
+/// Persistence layer (SQLite, schema 2).
+/// 4 tables:
 /// - token_events: raw event (cross-tool normalized, source_id UNIQUE for dedup)
 /// - month_aggregates: per provider x model x year_month, materialized
+/// - day_aggregates: per provider x model x day (UTC), materialized (F1)
 /// - model_pricing_cache: mirrors F2a PricingTable
 actor TokenUsageStore {
     private let dbPath: String
@@ -135,7 +136,6 @@ actor TokenUsageStore {
         try ensureOpen()
         let d = day ?? Date()
         let dayString = dayString(for: d)
-        let ym = currentYearMonth(for: d)
         let deleteSQL = "DELETE FROM day_aggregates WHERE day = ?"
         try execute(deleteSQL, parameters: [dayString])
 
@@ -150,8 +150,6 @@ actor TokenUsageStore {
             GROUP BY provider, model
         """
         try execute(insertSQL, parameters: [dayString, dayString])
-        // Suppress unused warning for ym (kept for future per-month cleanup)
-        _ = ym
     }
 
     /// Current UTC year-month (matches the SQLite `strftime('%Y-%m', ts_ms/1000, 'unixepoch')` filter).
