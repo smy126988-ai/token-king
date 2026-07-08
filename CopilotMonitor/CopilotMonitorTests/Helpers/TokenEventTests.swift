@@ -54,7 +54,8 @@ final class TokenEventTests: XCTestCase {
     }
 
     func testProviderDisplayName() {
-        XCTAssertEqual(Provider.kimi.displayName, "Kimi")
+        XCTAssertEqual(Provider.kimi.displayName, "Kimi Global")
+        XCTAssertEqual(Provider.kimiCN.displayName, "Kimi CN")
         XCTAssertEqual(Provider.claude.displayName, "Claude")
         XCTAssertEqual(Provider.codex.displayName, "Codex")
         XCTAssertEqual(Provider.zai.displayName, "Z.AI")

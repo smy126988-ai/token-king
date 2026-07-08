@@ -76,6 +76,7 @@ struct MonthCostCalculator {
     private func providerStringToIdentifier(_ s: String) -> ProviderIdentifier? {
         switch s.lowercased() {
         case "kimi":    return .kimi
+        case "kimicn":  return .kimiCN
         case "claude":  return .claude
         case "codex":   return .codex
         case "zai":     return .zaiCodingPlan

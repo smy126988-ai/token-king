@@ -1,7 +1,11 @@
 import Foundation
+import os.log
+
+private let tokenNormalizerLogger = Logger(subsystem: "com.opencodeproviders", category: "TokenNormalizer")
 
 /// Provider 归一化 (5 reference 共识: model 字段为主 + providerID 辅助).
 /// 决策: model 优先, 匹配不到再用 providerID, 都失败 → .nanoGpt 兜底 + logger.warning.
+/// Kimi Global / CN 区分: providerID 含 'cn' / 'kimi-cn' → .kimiCN, 否则 .kimi.
 struct TokenNormalizer {
     /// 把 raw event 的 model + providerID 归一化到 Provider enum.
     /// - Parameters:
@@ -14,6 +18,10 @@ struct TokenNormalizer {
 
         // model 字段为主
         if m.contains("kimi") || m.hasPrefix("k2p") {
+            // Kimi CN 识别: providerID 含 cn / kimi-cn
+            if p.contains("cn") || p.contains("kimi-cn") {
+                return .kimiCN
+            }
             return .kimi
         }
         if m.hasPrefix("claude-") {
@@ -27,6 +35,9 @@ struct TokenNormalizer {
         }
 
         // providerID 辅助
+        if p.contains("kimi-cn") || (p.contains("kimi") && p.contains("cn")) {
+            return .kimiCN
+        }
         if p.contains("kimi") || p.contains("moonshot") {
             return .kimi
         }
@@ -41,7 +52,7 @@ struct TokenNormalizer {
         }
 
         // 兜底 (5 reference 共识: 不 panic, logger warning + 默认值)
-        print("F2b: unknown model '\(model)' providerID '\(providerID)', fallback to .nanoGpt")
+        tokenNormalizerLogger.warning("F2b: unknown model '\(model, privacy: .public)' providerID '\(providerID, privacy: .public)', fallback to .nanoGpt")
         return .nanoGpt
     }
 }

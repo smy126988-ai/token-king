@@ -1,12 +1,19 @@
 import Foundation
 
-/// Provider 归一化后枚举 (F2b 主视角).
+/// Provider 归一化后枚举 (F2b 主视角, F1/F3/F4 扩展).
+/// - `.kimi`:    kimi Global — kimi-for-coding / k2p* / "moonshot" providerID
+/// - `.kimiCN`:  kimi CN — kimi 模型但 providerID 含 'cn' / 'kimi-cn'
+/// - `.claude`:  claude-* / anthropic providerID
+/// - `.codex`:   gpt-* / o3-* / o4-* / openai providerID
+/// - `.zai`:     glm-* / z-ai providerID
+/// - `.nanoGpt`: 兜底 (任何未识别的 model + providerID)
 enum Provider: String, Codable, CaseIterable, Hashable {
-    case kimi, claude, codex, zai, nanoGpt
+    case kimi, kimiCN, claude, codex, zai, nanoGpt
 
     var displayName: String {
         switch self {
-        case .kimi:    return "Kimi"
+        case .kimi:    return "Kimi Global"
+        case .kimiCN:  return "Kimi CN"
         case .claude:  return "Claude"
         case .codex:   return "Codex"
         case .zai:     return "Z.AI"
