@@ -167,6 +167,7 @@
 		TRD000000000000000000BF2 /* RefreshActorDayAggregatesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TRD000000000000000000FR2 /* RefreshActorDayAggregatesTests.swift */; };
 		SBCCTRLMODETMBF1111 /* StatusBarControllerTestingModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SBCCTRLMODETMFR1111 /* StatusBarControllerTestingModeTests.swift */; };
 		SBCCTRLTESTBF111111111 /* StatusBarControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SBCCTRLTESTFR111111111 /* StatusBarControllerTests.swift */; };
+		PMBF1F3TESTBF1000000000 /* ProviderMenuBuilderF1F3Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = PMBF1F3TESTFR1000000000 /* ProviderMenuBuilderF1F3Tests.swift */; };
 		SP1111111111111111111111 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = SP2222222222222222222222 /* Sparkle */; };
 		SS1111111111111111111111 /* SubscriptionSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = SS2222222222222222222222 /* SubscriptionSettings.swift */; };
 		SUBMGRIOSOBF11111111111 /* SubscriptionSettingsManagerIsolationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SUBMGRIOSOFR11111111111 /* SubscriptionSettingsManagerIsolationTests.swift */; };
@@ -371,6 +372,7 @@
 		TUFT00000000000000000FR2 /* TokenUsageFormatterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenUsageFormatterTests.swift; sourceTree = "<group>"; };
 		SBCCTRLMODETMFR1111 /* StatusBarControllerTestingModeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatusBarControllerTestingModeTests.swift; sourceTree = "<group>"; };
 		SBCCTRLTESTFR111111111 /* StatusBarControllerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatusBarControllerTests.swift; sourceTree = "<group>"; };
+		PMBF1F3TESTFR1000000000 /* ProviderMenuBuilderF1F3Tests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProviderMenuBuilderF1F3Tests.swift; sourceTree = "<group>"; };
 		APPDELEGATEB39TESTSFR111 /* AppDelegateB39Tests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppDelegateB39Tests.swift; sourceTree = "<group>"; };
 		SS2222222222222222222222 /* SubscriptionSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionSettings.swift; sourceTree = "<group>"; };
 		SUBMGRIOSOFR11111111111 /* SubscriptionSettingsManagerIsolationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionSettingsManagerIsolationTests.swift; sourceTree = "<group>"; };
@@ -479,6 +481,7 @@
 				TRD000000000000000000FR2 /* RefreshActorDayAggregatesTests.swift */,
 				447C5D12B4E04EC9A89ECAD71741968A /* TimeZoneUTCTests.swift */,
 				TUFT00000000000000000FR2 /* TokenUsageFormatterTests.swift */,
+				PMBF1F3TESTFR1000000000 /* ProviderMenuBuilderF1F3Tests.swift */,
 				TE0000000000000000000TGP /* TokenExtractor */,
 			);
 			path = Helpers;
@@ -1162,6 +1165,7 @@
 				SBCCTRLTESTBF111111111 /* StatusBarControllerTests.swift in Sources */,
 				APPDELEGATEB39TESTSBF111 /* AppDelegateB39Tests.swift in Sources */,
 				SBCCTRLMODETMBF1111 /* StatusBarControllerTestingModeTests.swift in Sources */,
+				PMBF1F3TESTBF1000000000 /* ProviderMenuBuilderF1F3Tests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

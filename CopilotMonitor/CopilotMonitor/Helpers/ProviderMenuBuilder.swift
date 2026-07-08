@@ -62,7 +62,7 @@ enum ModelUsageGrouper {
 
 extension StatusBarController {
 
-    func createDetailSubmenu(_ details: DetailedUsage, identifier: ProviderIdentifier, accountId: String? = nil, monthlyCostRMB: Double? = nil) -> NSMenu {
+    func createDetailSubmenu(_ details: DetailedUsage, identifier: ProviderIdentifier, accountId: String? = nil, monthlyCostRMB: Double? = nil, tokenUsageStore: TokenUsageStore? = nil) -> NSMenu {
         let submenu = NSMenu()
         let subscriptionAccountId = resolvedSubscriptionAccountId(details: details, fallback: accountId)
 
@@ -203,7 +203,7 @@ extension StatusBarController {
                     label: "Weekly",
                     usagePercent: sevenDay,
                     resetDate: details.sevenDayReset,
-                    windowHours: 168
+                    windowHours: TimeWindow.hoursPerWeek
                 )
                 items.forEach { submenu.addItem($0) }
             }
@@ -222,7 +222,7 @@ extension StatusBarController {
                     label: "Sonnet (Weekly)",
                     usagePercent: sonnet,
                     resetDate: sonnetReset,
-                    windowHours: 168
+                    windowHours: TimeWindow.hoursPerWeek
                 )
                 items.forEach { submenu.addItem($0) }
             }
@@ -238,7 +238,7 @@ extension StatusBarController {
                     label: "Opus (Weekly)",
                     usagePercent: opus,
                     resetDate: opusReset,
-                    windowHours: 168
+                    windowHours: TimeWindow.hoursPerWeek
                 )
                 items.forEach { submenu.addItem($0) }
             }
@@ -313,7 +313,7 @@ extension StatusBarController {
                 baseUsageRows.append((label: label, usage: primary, resetDate: details.primaryReset, windowHours: hours))
             }
             if let secondary = details.secondaryUsage {
-                let hours = details.codexSecondaryWindowHours ?? 168
+                let hours = details.codexSecondaryWindowHours ?? TimeWindow.hoursPerWeek
                 let label = details.codexSecondaryWindowLabel ?? CodexProvider.windowLabel(forHours: hours)
                 baseUsageRows.append((label: label, usage: secondary, resetDate: details.secondaryReset, windowHours: hours))
             }
@@ -338,7 +338,7 @@ extension StatusBarController {
                 sparkUsageRows.append((label: "\(primaryLabel) (\(sparkLabel))", usage: sparkPrimary, resetDate: details.sparkReset, windowHours: primaryHours))
             }
             if let sparkSecondary = details.sparkSecondaryUsage {
-                let secondaryHours = details.sparkSecondaryWindowHours ?? 168
+                let secondaryHours = details.sparkSecondaryWindowHours ?? TimeWindow.hoursPerWeek
                 let secondaryLabel = details.sparkSecondaryWindowLabel ?? CodexProvider.windowLabel(forHours: secondaryHours)
                 sparkUsageRows.append((label: "\(secondaryLabel) (\(sparkLabel))", usage: sparkSecondary, resetDate: details.sparkSecondaryReset, windowHours: secondaryHours))
             }
@@ -531,7 +531,7 @@ extension StatusBarController {
                     label: "Weekly",
                     usagePercent: weekly,
                     resetDate: details.sevenDayReset,
-                    windowHours: 168
+                    windowHours: TimeWindow.hoursPerWeek
                 )
                 items.forEach { submenu.addItem($0) }
             }
@@ -583,7 +583,7 @@ extension StatusBarController {
                     label: "Weekly",
                     usagePercent: weekly,
                     resetDate: details.sevenDayReset,
-                    windowHours: 168
+                    windowHours: TimeWindow.hoursPerWeek
                 )
                 items.forEach { submenu.addItem($0) }
             }
@@ -608,7 +608,7 @@ extension StatusBarController {
                     label: "Weekly",
                     usagePercent: weekly,
                     resetDate: details.sevenDayReset,
-                    windowHours: 168
+                    windowHours: TimeWindow.hoursPerWeek
                 )
                 items.forEach { submenu.addItem($0) }
             }
@@ -641,7 +641,7 @@ extension StatusBarController {
                     label: "Weekly",
                     usagePercent: weekly,
                     resetDate: details.sevenDayReset,
-                    windowHours: 168
+                    windowHours: TimeWindow.hoursPerWeek
                 )
                 items.forEach { submenu.addItem($0) }
             }
@@ -847,7 +847,7 @@ extension StatusBarController {
                     label: "Weekly Input Tokens",
                     usagePercent: weeklyUsage,
                     resetDate: details.sevenDayReset,
-                    windowHours: 24 * 7
+                    windowHours: TimeWindow.hoursPerWeek
                 )
                 rows.forEach { submenu.addItem($0) }
             }
@@ -1143,7 +1143,104 @@ extension StatusBarController {
             submenu.addItem(usageItem)
         }
 
+        // F1: monthly + daily token usage lists. Async fetch (TokenUsageStore is
+        // actor-isolated) dispatched via Task on the main actor. The block is
+        // hidden when the store has no data for this provider.
+        if let tokenUsageStore, let providerRaw = f2bProviderRaw(for: identifier) {
+            Task { @MainActor [weak tokenUsageStore, weak self] in
+                guard let store = tokenUsageStore, let self else { return }
+                let dayAggregates = await store.fetchDayAggregates(
+                    provider: providerRaw,
+                    yearMonth: store.currentYearMonth()
+                )
+                self.appendF1TokenBlocks(to: submenu, identifier: identifier, dayAggregates: dayAggregates)
+            }
+        }
+
+        // F3: 5h bucket + weekly cumulative (sync; no async data fetch needed).
+        appendF3UsageRecordBlock(to: submenu, details: details)
+
         return submenu
+    }
+
+    // MARK: - F1: Token usage lists (per provider)
+
+    /// Append F1 monthly + daily token blocks to a submenu. Synchronous API so
+    /// the UI logic can be unit-tested without awaiting an actor fetch — callers
+    /// in `createDetailSubmenu` wrap an actor fetch in a `Task` and pass the
+    /// pre-fetched `dayAggregates` here.
+    ///
+    /// Renders only when the provider has a F2b row (e.g. kimi / claude / codex)
+    /// AND `dayAggregates` is non-empty.
+    func appendF1TokenBlocks(to submenu: NSMenu, identifier: ProviderIdentifier, dayAggregates: [DayAggregate]) {
+        guard let providerRaw = f2bProviderRaw(for: identifier) else { return }
+        guard !dayAggregates.isEmpty else { return }
+
+        // Monthly header + per-model rows.
+        let monthlyHeader = NSMenuItem()
+        monthlyHeader.view = createHeaderView(title: "Token 用量 (本月)")
+        monthlyHeader.identifier = NSUserInterfaceItemIdentifier("f1-monthly-header-\(providerRaw)")
+        submenu.addItem(monthlyHeader)
+
+        for agg in dayAggregates {
+            let row = NSMenuItem()
+            let text = "  \(agg.model): \(TokenUsageFormatter.format(tokens: agg.tokens.total))"
+            row.view = createDisabledLabelView(text: text)
+            row.identifier = NSUserInterfaceItemIdentifier("f1-monthly-\(providerRaw)-\(agg.model)")
+            submenu.addItem(row)
+        }
+
+        // Separator + daily header + per-day rows.
+        submenu.addItem(NSMenuItem.separator())
+        let dailyHeader = NSMenuItem()
+        dailyHeader.view = createHeaderView(title: "Token 用量 (本月每日)")
+        dailyHeader.identifier = NSUserInterfaceItemIdentifier("f1-daily-header-\(providerRaw)")
+        submenu.addItem(dailyHeader)
+
+        for agg in dayAggregates.reversed() {
+            let row = NSMenuItem()
+            let text = "  \(agg.day): \(TokenUsageFormatter.format(tokens: agg.tokens.total))"
+            row.view = createDisabledLabelView(text: text)
+            row.identifier = NSUserInterfaceItemIdentifier("f1-daily-\(providerRaw)-\(agg.day)")
+            submenu.addItem(row)
+        }
+    }
+
+    // MARK: - F3: 5h bucket + weekly cumulative (per provider)
+
+    /// Append F3 5h + weekly usage record block. Renders only when the
+    /// `DetailedUsage` has either `fiveHourUsage` or `sevenDayUsage` set.
+    func appendF3UsageRecordBlock(to submenu: NSMenu, details: DetailedUsage) {
+        guard details.fiveHourUsage != nil || details.sevenDayUsage != nil else { return }
+
+        submenu.addItem(NSMenuItem.separator())
+        let header = NSMenuItem()
+        header.view = createHeaderView(title: "使用记录")
+        header.identifier = NSUserInterfaceItemIdentifier("f3-header")
+        submenu.addItem(header)
+
+        if let fiveHour = details.fiveHourUsage {
+            let resetText = TokenUsageFormatter.format(resetTime: details.fiveHourReset)
+            let row = NSMenuItem()
+            let text = "  5h: \(Int(fiveHour))% used (reset at \(resetText))"
+            row.view = createDisabledLabelView(
+                text: text,
+                icon: NSImage(systemSymbolName: "clock.arrow.circlepath", accessibilityDescription: "5h bucket")
+            )
+            row.identifier = NSUserInterfaceItemIdentifier("f3-fivehour")
+            submenu.addItem(row)
+        }
+
+        if let sevenDay = details.sevenDayUsage {
+            let row = NSMenuItem()
+            let text = "  本周：\(Int(sevenDay))% used"
+            row.view = createDisabledLabelView(
+                text: text,
+                icon: NSImage(systemSymbolName: "calendar.badge.clock", accessibilityDescription: "This week")
+            )
+            row.identifier = NSUserInterfaceItemIdentifier("f3-weekly")
+            submenu.addItem(row)
+        }
     }
 
     private func resolvedSubscriptionAccountId(details: DetailedUsage, fallback accountId: String?) -> String? {
@@ -1430,10 +1527,10 @@ extension StatusBarController {
             debugLog("createCopilotHistorySubmenu: history exists, processing \(history.recentDays.count) days")
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "MMM d"
-            dateFormatter.timeZone = TimeZone(identifier: "UTC")
+            dateFormatter.timeZone = .utc
 
             var utcCalendar = Calendar(identifier: .gregorian)
-            utcCalendar.timeZone = TimeZone(identifier: "UTC")!
+            utcCalendar.timeZone = .utc
             let today = utcCalendar.startOfDay(for: Date())
 
             let numberFormatter = NumberFormatter()
@@ -1506,7 +1603,7 @@ extension StatusBarController {
 
         private var paceUnitSuffix: String {
             // 5d+ => per day, otherwise per hour.
-            if totalSeconds >= (5.0 * 24.0 * 3600.0) {
+            if totalSeconds >= (5 * TimeWindow.secondsPerDay) {
                 return "d"
             }
             return "h"
@@ -1515,7 +1612,7 @@ extension StatusBarController {
         var paceRateText: String {
             guard totalSeconds > 0 else { return "Unavailable" }
 
-            let unitSeconds: Double = paceUnitSuffix == "d" ? 86400.0 : 3600.0
+            let unitSeconds: TimeInterval = paceUnitSuffix == "d" ? TimeWindow.secondsPerDay : TimeWindow.secondsPerHour
             let totalUnits = totalSeconds / unitSeconds
             guard totalUnits > 0 else { return "Unavailable" }
 
@@ -1557,7 +1654,7 @@ extension StatusBarController {
     }
 
     func calculatePace(usage: Double, resetTime: Date, windowHours: Int) -> PaceInfo {
-        let windowSeconds = Double(windowHours) * 3600.0
+        let windowSeconds = Double(windowHours) * TimeWindow.secondsPerHour
         let now = Date()
         let remainingSeconds = resetTime.timeIntervalSince(now)
         let rawElapsedSeconds = windowSeconds - remainingSeconds
@@ -1566,7 +1663,7 @@ extension StatusBarController {
         // Rolling windows (especially weekly) can show extreme spikes right after usage starts.
         // Use a stability floor so Speed/Predict are less noisy in very early phases.
         let minElapsedRatioForForecast: Double
-        if windowHours >= 168 {
+        if windowHours >= TimeWindow.hoursPerWeek {
             minElapsedRatioForForecast = 0.5
         } else if windowHours >= 24 {
             minElapsedRatioForForecast = 0.25
@@ -1601,9 +1698,7 @@ extension StatusBarController {
     func calculateMonthlyPace(usagePercent: Double, resetDate: Date) -> PaceInfo {
         let now = Date()
         var calendar = Calendar(identifier: .gregorian)
-        if let utc = TimeZone(identifier: "UTC") {
-            calendar.timeZone = utc
-        }
+        calendar.timeZone = .utc
 
         let remainingSeconds = resetDate.timeIntervalSince(now)
         let isExhausted = usagePercent >= 100 && remainingSeconds > 0
