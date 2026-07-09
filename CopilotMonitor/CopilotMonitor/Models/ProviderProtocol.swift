@@ -13,6 +13,7 @@ enum ProviderFamily: String, CaseIterable {
     case copilot, claude, codex, commandCode, cursor, geminiCLI
     case openRouter, openCode, openCodeZen, openCodeGo, antigravity, kiro, grok
     case kimi, minimax, zai, nanoGpt, synthetic, chutes
+    case xiaomi
     case tavily, brave
     case mimo, volcanoArk, hunyuan, zhipuGLM
 }
@@ -41,6 +42,14 @@ enum ProviderIdentifier: String, CaseIterable {
     case kimiCN = "kimi_cn"
     case minimaxCodingPlan = "minimax_coding_plan"
     case minimaxCodingPlanCN = "minimax_coding_plan_cn"
+    // F2b-routing placeholders for the new MiniMax + Xiaomi buckets
+    // (see TokenEvent.swift `Provider` enum and da2b3cb migration). These
+    // cases are F2b-data-only: no F2a quota fetch exists — `PricingTable.rate(for:)`
+    // returns nil and the cost column shows the "unknown" badge.
+    case minimax
+    case minimaxCN = "minimax_cn"
+    case xiaomi
+    case xiaomiTokenPlanCN = "xiaomi_token_plan_cn"
     case zaiCodingPlan = "zai_coding_plan"
     case nanoGpt = "nano_gpt"
     case synthetic
@@ -69,6 +78,8 @@ enum ProviderIdentifier: String, CaseIterable {
         case .grok: return .grok
         case .kimi, .kimiCN: return .kimi
         case .minimaxCodingPlan, .minimaxCodingPlanCN: return .minimax
+        case .minimax, .minimaxCN: return .minimax
+        case .xiaomi, .xiaomiTokenPlanCN: return .xiaomi
         case .zaiCodingPlan: return .zai
         case .nanoGpt: return .nanoGpt
         case .synthetic: return .synthetic
@@ -84,7 +95,7 @@ enum ProviderIdentifier: String, CaseIterable {
 
     var region: ProviderRegion {
         switch self {
-        case .kimiCN, .minimaxCodingPlanCN, .mimo, .volcanoArk, .hunyuan, .zhipuGLM: return .china
+        case .kimiCN, .minimaxCodingPlanCN, .minimaxCN, .xiaomiTokenPlanCN, .mimo, .volcanoArk, .hunyuan, .zhipuGLM: return .china
         default: return .global
         }
     }
@@ -125,6 +136,14 @@ enum ProviderIdentifier: String, CaseIterable {
             return "MiniMax Coding Plan"
         case .minimaxCodingPlanCN:
             return "MiniMax Coding Plan（国内）"
+        case .minimax:
+            return "MiniMax Global"
+        case .minimaxCN:
+            return "MiniMax CN"
+        case .xiaomi:
+            return "Xiaomi Global"
+        case .xiaomiTokenPlanCN:
+            return "Xiaomi Token Plan CN"
         case .zaiCodingPlan:
             return "Z.AI Coding Plan"
         case .nanoGpt:
@@ -184,6 +203,10 @@ enum ProviderIdentifier: String, CaseIterable {
             return "MiniMax"
         case .minimaxCodingPlanCN:
             return "MiniMax"
+        case .minimax, .minimaxCN:
+            return "MiniMax"
+        case .xiaomi, .xiaomiTokenPlanCN:
+            return "Xiaomi"
         case .zaiCodingPlan:
             return "Z.AI"
         case .nanoGpt:
@@ -243,6 +266,10 @@ enum ProviderIdentifier: String, CaseIterable {
             return "MinimaxIcon"
         case .minimaxCodingPlanCN:
             return "MinimaxIcon"
+        case .minimax, .minimaxCN:
+            return "m.circle"
+        case .xiaomi, .xiaomiTokenPlanCN:
+            return "x.circle"
         case .zaiCodingPlan:
             return "globe"
         case .nanoGpt:

@@ -95,6 +95,72 @@ final class ProviderMenuBuilderF1F3Tests: XCTestCase {
         XCTAssertFalse(texts.contains(where: { $0.contains("Token 用量") }), "F1 block should be hidden for .kimiCN when aggregates are only kimi (Global); got \(texts)")
     }
 
+    /// F2b MiniMax + Xiaomi split (commit da2b3cb): F1 block must render for
+    /// `.minimax` when dayAggregates contains matching rows. The helper now
+    /// resolves `.minimax` → "minimax" via `f2bTokenProviderRaw`.
+    func testF1BlockRendersForMiniMax() {
+        let aggregates = [
+            DayAggregate(provider: "minimax", model: "minimax-m3", day: "2026-07-08",
+                         tokens: TokenBreakdown(input: 100, output: 50, cacheRead: 30, cacheWrite: 20))
+        ]
+        let menu = NSMenu()
+        controller.appendF1TokenBlocks(to: menu, identifier: .minimax, dayAggregates: aggregates)
+        let texts = extractText(from: menu)
+        XCTAssertTrue(texts.contains(where: { $0.contains("Token 用量 (本月)") }), "F1 monthly header missing for .minimax; got \(texts)")
+        XCTAssertTrue(texts.contains(where: { $0.contains("minimax-m3") }), "F1 model row for minimax-m3 missing; got \(texts)")
+    }
+
+    /// F2b MiniMax CN split: F1 block must render for `.minimaxCN` when dayAggregates
+    /// contains rows with provider="minimaxCN" (separate bucket from `.minimax`).
+    func testF1BlockRendersForMiniMaxCN() {
+        let aggregates = [
+            DayAggregate(provider: "minimaxCN", model: "minimax-m3", day: "2026-07-08",
+                         tokens: TokenBreakdown(input: 100, output: 50, cacheRead: 30, cacheWrite: 20))
+        ]
+        let menu = NSMenu()
+        controller.appendF1TokenBlocks(to: menu, identifier: .minimaxCN, dayAggregates: aggregates)
+        let texts = extractText(from: menu)
+        XCTAssertTrue(texts.contains(where: { $0.contains("Token 用量 (本月)") }), "F1 monthly header missing for .minimaxCN; got \(texts)")
+    }
+
+    /// F2b Xiaomi: F1 block must render for `.xiaomi` when aggregates match.
+    func testF1BlockRendersForXiaomi() {
+        let aggregates = [
+            DayAggregate(provider: "xiaomi", model: "qwen3.7-max", day: "2026-07-08",
+                         tokens: TokenBreakdown(input: 100, output: 50))
+        ]
+        let menu = NSMenu()
+        controller.appendF1TokenBlocks(to: menu, identifier: .xiaomi, dayAggregates: aggregates)
+        let texts = extractText(from: menu)
+        XCTAssertTrue(texts.contains(where: { $0.contains("Token 用量 (本月)") }), "F1 monthly header missing for .xiaomi; got \(texts)")
+    }
+
+    /// F2b Xiaomi Token Plan CN: F1 block must render for `.xiaomiTokenPlanCN`
+    /// when aggregates match — the bucket is distinct from `.xiaomi` Global.
+    func testF1BlockRendersForXiaomiTokenPlanCN() {
+        let aggregates = [
+            DayAggregate(provider: "xiaomiTokenPlanCN", model: "qwen3.7-max", day: "2026-07-08",
+                         tokens: TokenBreakdown(input: 100, output: 50))
+        ]
+        let menu = NSMenu()
+        controller.appendF1TokenBlocks(to: menu, identifier: .xiaomiTokenPlanCN, dayAggregates: aggregates)
+        let texts = extractText(from: menu)
+        XCTAssertTrue(texts.contains(where: { $0.contains("Token 用量 (本月)") }), "F1 monthly header missing for .xiaomiTokenPlanCN; got \(texts)")
+    }
+
+    /// F2b sanity check: passing `.xiaomi` with only `.minimax` aggregates
+    /// (or vice versa) must NOT render the F1 block. The two buckets are
+    /// independent and must not cross-pollute.
+    func testF1BlockHiddenForXiaomiWithMiniMaxAggregates() {
+        let aggregates = [
+            DayAggregate(provider: "minimax", model: "minimax-m3", day: "2026-07-08", tokens: TokenBreakdown(input: 100))
+        ]
+        let menu = NSMenu()
+        controller.appendF1TokenBlocks(to: menu, identifier: .xiaomi, dayAggregates: aggregates)
+        let texts = extractText(from: menu)
+        XCTAssertFalse(texts.contains(where: { $0.contains("Token 用量") }), "F1 block should be hidden for .xiaomi when aggregates only have minimax; got \(texts)")
+    }
+
     func testF1MonthlyAndDailyAggregateByModelAndDay() {
         // 4 rows: 2 models on day1, 2 models on day2
         // - Monthly should show 2 rows (one per model, summed across days).

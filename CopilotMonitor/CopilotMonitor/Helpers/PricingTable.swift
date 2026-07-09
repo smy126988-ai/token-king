@@ -99,7 +99,9 @@ enum PricingTable {
              .zhipuGLM, .grok, .commandCode, .cursor, .kiro,
              .synthetic, .chutes, .geminiCLI, .openRouter, .openCode,
              .openCodeZen, .openCodeGo, .minimaxCodingPlan,
-             .minimaxCodingPlanCN, .tavilySearch, .braveSearch:
+             .minimaxCodingPlanCN, .minimax, .minimaxCN,
+             .xiaomi, .xiaomiTokenPlanCN,
+             .tavilySearch, .braveSearch:
             // No public per-token pricing available, or out of F2a scope.
             return nil
         }

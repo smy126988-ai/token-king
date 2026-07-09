@@ -201,6 +201,7 @@
 		TKN00000000000000000000BF2 /* TokenEventKimiCNTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TKN00000000000000000000FR2 /* TokenEventKimiCNTests.swift */; };
 		MMA00000000000000000000BF2 /* TokenEventMiniMaxXiaomiTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MMA00000000000000000000FR2 /* TokenEventMiniMaxXiaomiTests.swift */; };
 		MMA00000000000000000001BF2 /* TokenUsageStoreOpenCodeMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MMA00000000000000000001FR2 /* TokenUsageStoreOpenCodeMigrationTests.swift */; };
+		MPI00000000000000000000BF2 /* ProviderIdentifierMiniMaxXiaomiTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MPI00000000000000000000FR2 /* ProviderIdentifierMiniMaxXiaomiTests.swift */; };
 		USAGEPCTBF1111111111 /* UsagePercentCandidatesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = USAGEPCTFR1111111111 /* UsagePercentCandidatesTests.swift */; };
 		VOLCANOPROVAPP111111111111 /* VolcanoArkProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = VOLCANOPROVFILE22222222222 /* VolcanoArkProvider.swift */; };
 		VOLCANOPROVCLI111111111111 /* VolcanoArkProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = VOLCANOPROVFILE22222222222 /* VolcanoArkProvider.swift */; };
@@ -417,6 +418,7 @@
 		TKN00000000000000000000FR2 /* TokenEventKimiCNTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenEventKimiCNTests.swift; sourceTree = "<group>"; };
 		MMA00000000000000000000FR2 /* TokenEventMiniMaxXiaomiTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenEventMiniMaxXiaomiTests.swift; sourceTree = "<group>"; };
 		MMA00000000000000000001FR2 /* TokenUsageStoreOpenCodeMigrationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenUsageStoreOpenCodeMigrationTests.swift; sourceTree = "<group>"; };
+		MPI00000000000000000000FR2 /* ProviderIdentifierMiniMaxXiaomiTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProviderIdentifierMiniMaxXiaomiTests.swift; sourceTree = "<group>"; };
 		USAGEPCTFR1111111111 /* UsagePercentCandidatesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsagePercentCandidatesTests.swift; sourceTree = "<group>"; };
 		VOLCANOPROVFILE22222222222 /* VolcanoArkProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VolcanoArkProvider.swift; sourceTree = "<group>"; };
 		VOLCANOSIGNERFILE222222222 /* VolcanoArkSigner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VolcanoArkSigner.swift; sourceTree = "<group>"; };
@@ -501,6 +503,7 @@
 				TKN00000000000000000000FR2 /* TokenEventKimiCNTests.swift */,
 				MMA00000000000000000000FR2 /* TokenEventMiniMaxXiaomiTests.swift */,
 				MMA00000000000000000001FR2 /* TokenUsageStoreOpenCodeMigrationTests.swift */,
+				MPI00000000000000000000FR2 /* ProviderIdentifierMiniMaxXiaomiTests.swift */,
 				RA00100000000000000000FR2 /* RefreshActorTests.swift */,
 				TRD000000000000000000FR2 /* RefreshActorDayAggregatesTests.swift */,
 				447C5D12B4E04EC9A89ECAD71741968A /* TimeZoneUTCTests.swift */,
@@ -1195,6 +1198,7 @@
 				TKN00000000000000000000BF2 /* TokenEventKimiCNTests.swift in Sources */,
 				MMA00000000000000000000BF2 /* TokenEventMiniMaxXiaomiTests.swift in Sources */,
 				MMA00000000000000000001BF2 /* TokenUsageStoreOpenCodeMigrationTests.swift in Sources */,
+				MPI00000000000000000000BF2 /* ProviderIdentifierMiniMaxXiaomiTests.swift in Sources */,
 				RA00100000000000000000BF2 /* RefreshActorTests.swift in Sources */,
 				TRD000000000000000000BF2 /* RefreshActorDayAggregatesTests.swift in Sources */,
 				BA1D5B2614A9475EB4AF48282FFE4FFE /* TimeZoneUTCTests.swift in Sources */,

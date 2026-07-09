@@ -312,6 +312,7 @@ struct ProviderSubscriptionPresets {
         case (.volcanoArk, _): return volcanoArk
         case (.hunyuan, _): return hunyuan
         case (.zhipuGLM, _): return zhipuGLM
+        case (.xiaomi, _): return []
         }
     }
 

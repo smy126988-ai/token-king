@@ -1377,6 +1377,8 @@ final class StatusBarController: NSObject {
     func f2bProviderRaw(for identifier: ProviderIdentifier) -> String? {
         switch identifier {
         case .kimi, .kimiCN: return "kimi"
+        case .minimax, .minimaxCN: return "minimax"
+        case .xiaomi, .xiaomiTokenPlanCN: return "xiaomi"
         case .claude: return "claude"
         case .codex: return "codex"
         case .zaiCodingPlan: return "zai"
@@ -1394,6 +1396,10 @@ final class StatusBarController: NSObject {
         switch identifier {
         case .kimi:           return "kimi"
         case .kimiCN:         return "kimiCN"
+        case .minimax:        return "minimax"
+        case .minimaxCN:      return "minimaxCN"
+        case .xiaomi:         return "xiaomi"
+        case .xiaomiTokenPlanCN: return "xiaomiTokenPlanCN"
         case .claude:         return "claude"
         case .codex:          return "codex"
         case .zaiCodingPlan:  return "zai"
@@ -1550,7 +1556,8 @@ final class StatusBarController: NSObject {
             add(details?.fiveHourUsage, priority: .hourly)
         case .tavilySearch, .braveSearch:
             add(details?.mcpUsagePercent, priority: .monthly)
-        case .antigravity, .geminiCLI, .openRouter, .openCode, .openCodeZen:
+        case .antigravity, .geminiCLI, .openRouter, .openCode, .openCodeZen,
+             .minimax, .minimaxCN, .xiaomi, .xiaomiTokenPlanCN:
             break
         }
 
@@ -3933,7 +3940,8 @@ final class StatusBarController: NSObject {
             image = NSImage(named: "TavilyIcon")
         case .braveSearch:
             image = NSImage(named: "BraveSearchIcon")
-        case .mimo, .volcanoArk, .hunyuan, .zhipuGLM:
+        case .mimo, .volcanoArk, .hunyuan, .zhipuGLM,
+             .minimax, .minimaxCN, .xiaomi, .xiaomiTokenPlanCN:
             image = NSImage(systemSymbolName: identifier.iconName, accessibilityDescription: identifier.displayName)
         }
 
