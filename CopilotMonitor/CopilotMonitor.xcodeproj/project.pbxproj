@@ -199,6 +199,8 @@
 		TDA000000000000000000BF2 /* TokenUsageStoreDayAggregatesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TDA000000000000000000FR2 /* TokenUsageStoreDayAggregatesTests.swift */; };
 		QSS000000000000000000BF2 /* TokenUsageStoreQuotaSnapshotsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = QSS000000000000000000FR2 /* TokenUsageStoreQuotaSnapshotsTests.swift */; };
 		TKN00000000000000000000BF2 /* TokenEventKimiCNTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TKN00000000000000000000FR2 /* TokenEventKimiCNTests.swift */; };
+		MMA00000000000000000000BF2 /* TokenEventMiniMaxXiaomiTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MMA00000000000000000000FR2 /* TokenEventMiniMaxXiaomiTests.swift */; };
+		MMA00000000000000000001BF2 /* TokenUsageStoreOpenCodeMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MMA00000000000000000001FR2 /* TokenUsageStoreOpenCodeMigrationTests.swift */; };
 		USAGEPCTBF1111111111 /* UsagePercentCandidatesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = USAGEPCTFR1111111111 /* UsagePercentCandidatesTests.swift */; };
 		VOLCANOPROVAPP111111111111 /* VolcanoArkProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = VOLCANOPROVFILE22222222222 /* VolcanoArkProvider.swift */; };
 		VOLCANOPROVCLI111111111111 /* VolcanoArkProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = VOLCANOPROVFILE22222222222 /* VolcanoArkProvider.swift */; };
@@ -413,6 +415,8 @@
 		TDA000000000000000000FR2 /* TokenUsageStoreDayAggregatesTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenUsageStoreDayAggregatesTests.swift; sourceTree = "<group>"; };
 		QSS000000000000000000FR2 /* TokenUsageStoreQuotaSnapshotsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenUsageStoreQuotaSnapshotsTests.swift; sourceTree = "<group>"; };
 		TKN00000000000000000000FR2 /* TokenEventKimiCNTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenEventKimiCNTests.swift; sourceTree = "<group>"; };
+		MMA00000000000000000000FR2 /* TokenEventMiniMaxXiaomiTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenEventMiniMaxXiaomiTests.swift; sourceTree = "<group>"; };
+		MMA00000000000000000001FR2 /* TokenUsageStoreOpenCodeMigrationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenUsageStoreOpenCodeMigrationTests.swift; sourceTree = "<group>"; };
 		USAGEPCTFR1111111111 /* UsagePercentCandidatesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsagePercentCandidatesTests.swift; sourceTree = "<group>"; };
 		VOLCANOPROVFILE22222222222 /* VolcanoArkProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VolcanoArkProvider.swift; sourceTree = "<group>"; };
 		VOLCANOSIGNERFILE222222222 /* VolcanoArkSigner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VolcanoArkSigner.swift; sourceTree = "<group>"; };
@@ -495,6 +499,8 @@
 				QSS000000000000000000FR2 /* TokenUsageStoreQuotaSnapshotsTests.swift */,
 				MCST000000000000000000FR2 /* MonthCostCalculatorTests.swift */,
 				TKN00000000000000000000FR2 /* TokenEventKimiCNTests.swift */,
+				MMA00000000000000000000FR2 /* TokenEventMiniMaxXiaomiTests.swift */,
+				MMA00000000000000000001FR2 /* TokenUsageStoreOpenCodeMigrationTests.swift */,
 				RA00100000000000000000FR2 /* RefreshActorTests.swift */,
 				TRD000000000000000000FR2 /* RefreshActorDayAggregatesTests.swift */,
 				447C5D12B4E04EC9A89ECAD71741968A /* TimeZoneUTCTests.swift */,
@@ -1187,6 +1193,8 @@
 				PPTAT00000000000000000BF2 /* PerPeriodTokenAggregatorTests.swift in Sources */,
 				SBCRD000000000000000000BF2 /* StatusBarControllerRedesignTests.swift in Sources */,
 				TKN00000000000000000000BF2 /* TokenEventKimiCNTests.swift in Sources */,
+				MMA00000000000000000000BF2 /* TokenEventMiniMaxXiaomiTests.swift in Sources */,
+				MMA00000000000000000001BF2 /* TokenUsageStoreOpenCodeMigrationTests.swift in Sources */,
 				RA00100000000000000000BF2 /* RefreshActorTests.swift in Sources */,
 				TRD000000000000000000BF2 /* RefreshActorDayAggregatesTests.swift in Sources */,
 				BA1D5B2614A9475EB4AF48282FFE4FFE /* TimeZoneUTCTests.swift in Sources */,

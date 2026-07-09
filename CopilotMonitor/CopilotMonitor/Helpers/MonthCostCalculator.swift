@@ -75,13 +75,17 @@ struct MonthCostCalculator {
     /// `ProviderIdentifier.zaiCodingPlan` — they are distinct enums.
     private func providerStringToIdentifier(_ s: String) -> ProviderIdentifier? {
         switch s.lowercased() {
-        case "kimi":    return .kimi
-        case "kimicn":  return .kimiCN
-        case "claude":  return .claude
-        case "codex":   return .codex
-        case "zai":     return .zaiCodingPlan
-        case "nanogpt": return .nanoGpt
-        default:        return nil
+        case "kimi":                return .kimi
+        case "kimicn":              return .kimiCN
+        case "claude":              return .claude
+        case "codex":               return .codex
+        case "zai":                 return .zaiCodingPlan
+        case "nanogpt":             return .nanoGpt
+        case "minimax",
+             "minimaxcn",
+             "xiaomi",
+             "xiaomittokenplancn":  return nil
+        default:                    return nil
         }
     }
 

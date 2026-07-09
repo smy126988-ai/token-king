@@ -1,5 +1,8 @@
 import Foundation
 import SQLite3
+import os.log
+
+private let tokenUsageStoreLogger = Logger(subsystem: "com.opencodeproviders", category: "TokenUsageStore")
 
 /// Concrete SQLite errors surfaced by `TokenUsageStore`.
 indirect enum SQLiteError: Error, Equatable, Sendable {
@@ -308,6 +311,187 @@ actor TokenUsageStore {
             ))
         }
         return results
+    }
+
+    /// One-shot migration: re-classify OpenCode events whose original
+    /// message providerID is one of the new targets
+    /// (`minimax` / `minimax-cn` / `xiaomi` / `xiaomi-token-plan-cn`).
+    ///
+    /// Before this migration the `TokenNormalizer` did not recognize those
+    /// providerIDs, so the events were stored under `.nanoGpt`. The migration
+    /// re-reads the source OpenCode SQLite, classifies each affected message
+    /// with the updated normalizer, and `UPDATE`s the F2b row.
+    ///
+    /// Idempotent: the `provider != ?` predicate skips rows already correctly
+    /// classified. Safe to call repeatedly.
+    ///
+    /// Side effect: rebuilds `month_aggregates` and `day_aggregates` for every
+    /// distinct (year_month, day) present in `token_events` so the per-provider
+    /// monthly rollup reflects the new classification.
+    ///
+    /// - Returns: number of rows updated. Returns 0 when the OpenCode DB is
+    ///   missing or contains no migration-target messages.
+    func migrateOpenCodeProviderIDs(openCodeDBPath: String) async throws -> Int {
+        guard initError == nil else {
+            throw SQLiteError.storeUninitialized(underlying: initError!)
+        }
+        guard FileManager.default.fileExists(atPath: openCodeDBPath) else {
+            tokenUsageStoreLogger.info("OpenCode DB not found at \(openCodeDBPath, privacy: .public); migration is a no-op")
+            return 0
+        }
+
+        let migrations = try loadOpenCodeMigrations(openCodeDBPath: openCodeDBPath)
+        guard !migrations.isEmpty else {
+            tokenUsageStoreLogger.info("No OpenCode messages match migration targets; skipping")
+            return 0
+        }
+
+        let totalUpdated = try applyProviderUpdates(migrations: migrations)
+        tokenUsageStoreLogger.info("Migrated \(totalUpdated) OpenCode token_events to new provider classification")
+
+        try refreshAllAggregates()
+        return totalUpdated
+    }
+
+    /// Read `~/.local/share/opencode/opencode.db` (or the provided path) and
+    /// return one `(msgId, newProviderRaw)` tuple per message whose
+    /// `data.model.providerID` is one of the new targets. Messages whose
+    /// re-classification still falls back to `.nanoGpt` are excluded.
+    private func loadOpenCodeMigrations(openCodeDBPath: String) throws -> [(msgId: String, providerRaw: String)] {
+        var db: OpaquePointer?
+        let openFlags = SQLITE_OPEN_READONLY
+        let openCode = sqlite3_open_v2(openCodeDBPath, &db, openFlags, nil)
+        guard openCode == SQLITE_OK, let db else {
+            tokenUsageStoreLogger.warning("Failed to open OpenCode DB read-only at \(openCodeDBPath, privacy: .public)")
+            return []
+        }
+        defer { sqlite3_close(db) }
+
+        let sql = """
+            SELECT id, json_extract(data, '$.model.providerID')
+            FROM message
+            WHERE json_valid(data)
+              AND json_extract(data, '$.model.providerID') IS NOT NULL
+              AND (json_extract(data, '$.model.providerID') LIKE '%minimax%'
+                   OR json_extract(data, '$.model.providerID') LIKE '%xiaomi%')
+        """
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else {
+            tokenUsageStoreLogger.warning("Failed to prepare OpenCode providerID scan")
+            return []
+        }
+        defer { sqlite3_finalize(stmt) }
+
+        var results: [(msgId: String, providerRaw: String)] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            guard let msgIdC = sqlite3_column_text(stmt, 0),
+                  let providerIDC = sqlite3_column_text(stmt, 1) else { continue }
+            let msgId = String(cString: msgIdC)
+            let providerID = String(cString: providerIDC)
+            // Model field is not stored alongside the providerID in the
+            // OpenCode schema; pass an empty model string. The new
+            // providerID-only fallback rules in TokenNormalizer cover
+            // minimax / xiaomi targets so this still classifies correctly.
+            let normalized = TokenNormalizer.matchProvider(model: "", providerID: providerID)
+            if normalized == .nanoGpt { continue }
+            results.append((msgId: msgId, providerRaw: normalized.rawValue))
+        }
+        return results
+    }
+
+    /// Apply one `UPDATE token_events SET provider = ? WHERE source = 'opencode' AND source_id LIKE '%:<msgId>' AND provider != ?`
+    /// per migration tuple. The `provider != ?` predicate is what makes the
+    /// whole migration idempotent: re-running it leaves correctly classified
+    /// rows untouched.
+    private func applyProviderUpdates(migrations: [(msgId: String, providerRaw: String)]) throws -> Int {
+        try ensureOpen()
+        guard let db else { return 0 }
+        let sql = """
+            UPDATE token_events
+            SET provider = ?
+            WHERE source = 'opencode'
+              AND source_id LIKE ?
+              AND provider != ?
+        """
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        var totalUpdated = 0
+        for migration in migrations {
+            var stmt: OpaquePointer?
+            let prepareCode = sqlite3_prepare_v2(db, sql, -1, &stmt, nil)
+            guard prepareCode == SQLITE_OK, let stmt else { continue }
+            defer { sqlite3_finalize(stmt) }
+            sqlite3_bind_text(stmt, 1, migration.providerRaw, -1, SQLITE_TRANSIENT)
+            sqlite3_bind_text(stmt, 2, "%:\(migration.msgId)", -1, SQLITE_TRANSIENT)
+            sqlite3_bind_text(stmt, 3, migration.providerRaw, -1, SQLITE_TRANSIENT)
+            let stepCode = sqlite3_step(stmt)
+            guard stepCode == SQLITE_DONE else {
+                throw SQLiteError.stepFailed(sql: sql, code: stepCode, message: errorMessage(at: stepCode))
+            }
+            totalUpdated += Int(sqlite3_changes(db))
+        }
+        return totalUpdated
+    }
+
+    /// Re-derive `month_aggregates` and `day_aggregates` for every distinct
+    /// (year_month, day) present in `token_events`. Used by the OpenCode
+    /// providerID migration so the per-provider rollup reflects reclassified
+    /// rows across history, not just the current UTC month.
+    private func refreshAllAggregates() throws {
+        try ensureOpen()
+        guard let db else { return }
+
+        let months = try collectDistinctMonths(db: db)
+        for ym in months {
+            try refreshMonthAggregates(for: ym)
+        }
+
+        let days = try collectDistinctDays(db: db)
+        let dayFormatter = DateFormatter()
+        dayFormatter.timeZone = .utc
+        dayFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dayFormatter.dateFormat = "yyyy-MM-dd"
+        for day in days {
+            guard let date = dayFormatter.date(from: day) else { continue }
+            try refreshDayAggregates(for: date)
+        }
+    }
+
+    private func collectDistinctMonths(db: OpaquePointer) throws -> [String] {
+        let sql = """
+            SELECT DISTINCT strftime('%Y-%m', ts_ms / 1000, 'unixepoch') AS ym
+            FROM token_events
+            WHERE ts_ms IS NOT NULL
+            ORDER BY ym
+        """
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else { return [] }
+        defer { sqlite3_finalize(stmt) }
+        var months: [String] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            if let ymC = sqlite3_column_text(stmt, 0) {
+                months.append(String(cString: ymC))
+            }
+        }
+        return months
+    }
+
+    private func collectDistinctDays(db: OpaquePointer) throws -> [String] {
+        let sql = """
+            SELECT DISTINCT strftime('%Y-%m-%d', ts_ms / 1000, 'unixepoch') AS d
+            FROM token_events
+            WHERE ts_ms IS NOT NULL
+            ORDER BY d
+        """
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else { return [] }
+        defer { sqlite3_finalize(stmt) }
+        var days: [String] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            if let dC = sqlite3_column_text(stmt, 0) {
+                days.append(String(cString: dC))
+            }
+        }
+        return days
     }
 }
 

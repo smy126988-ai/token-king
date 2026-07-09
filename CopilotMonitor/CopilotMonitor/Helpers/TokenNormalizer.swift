@@ -33,6 +33,22 @@ struct TokenNormalizer {
         if m.hasPrefix("glm-") {
             return .zai
         }
+        // MiniMax family — model field check first (catches both current
+        // "minimax-m3" naming and legacy "mimo-v2.5-pro" model IDs).
+        if m.contains("minimax") || m.hasPrefix("mimo-") {
+            if p.contains("cn") || p.contains("minimax-cn") {
+                return .minimaxCN
+            }
+            return .minimax
+        }
+        // Xiaomi family — qwen3.7-max / xiaomi-prefixed models.
+        // "mimo" historical Xiaomi model names also match here.
+        if m.contains("xiaomi") || m.contains("mimo") {
+            if p.contains("token-plan") || p.contains("cn") {
+                return .xiaomiTokenPlanCN
+            }
+            return .xiaomi
+        }
 
         // providerID 辅助
         if p.contains("kimi-cn") || (p.contains("kimi") && p.contains("cn")) {
@@ -49,6 +65,18 @@ struct TokenNormalizer {
         }
         if p.contains("z-ai") || p.contains("zai") {
             return .zai
+        }
+        if p.contains("minimax-cn") || (p.contains("minimax") && p.contains("cn")) {
+            return .minimaxCN
+        }
+        if p.contains("minimax") {
+            return .minimax
+        }
+        if p.contains("xiaomi-token-plan") || (p.contains("xiaomi") && p.contains("cn")) {
+            return .xiaomiTokenPlanCN
+        }
+        if p.contains("xiaomi") {
+            return .xiaomi
         }
 
         // 兜底 (5 reference 共识: 不 panic, logger warning + 默认值)
