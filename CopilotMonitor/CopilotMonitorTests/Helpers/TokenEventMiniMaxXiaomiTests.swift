@@ -53,6 +53,19 @@ final class TokenEventMiniMaxXiaomiTests: XCTestCase {
         XCTAssertEqual(p, .minimaxCN)
     }
 
+    func testModelMiniMaxM3CapitalizedWithCNProviderID() {
+        // F2b: New schema events use camelCase "MiniMax-M3" model name.
+        // Lowercased coercion already matches, but explicit check is defense-in-depth.
+        let p = TokenNormalizer.matchProvider(model: "MiniMax-M3", providerID: "minimax-cn")
+        XCTAssertEqual(p, .minimaxCN)
+    }
+
+    func testModelMiniMaxM3CapitalizedWithGlobalProviderID() {
+        // Global variant of the capitalized MiniMax model.
+        let p = TokenNormalizer.matchProvider(model: "MiniMax-M3", providerID: "minimax")
+        XCTAssertEqual(p, .minimax)
+    }
+
     // MARK: - TokenNormalizer (providerID-only fallback)
 
     func testProviderIDAloneMiniMaxCN() {

@@ -1,8 +1,16 @@
 import Foundation
 import SQLite3
+import os.log
+
+private let openCodeExtractorLogger = Logger(subsystem: "com.opencodeproviders", category: "OpenCodeExtractor")
 
 /// OpenCode SQLite reader (per-message.data JSON blob).
 /// Path: ~/.local/share/opencode/opencode.db (overridable via $OPENCODE_DATA_DIR).
+///
+/// F2b: handles both JSON schemas emitted by OpenCode:
+///   - Old schema: data.model.providerID + data.model.modelID nested object
+///   - New schema: data.modelID (top-level, camelCase) + providerID looked up
+///     via parentID -> user message's data.model.providerID
 struct OpenCodeExtractor: TokenExtractorProtocol {
     let rootPath: String
 
@@ -20,6 +28,15 @@ struct OpenCodeExtractor: TokenExtractorProtocol {
         guard sqlite3_open(dbPath, &db) == SQLITE_OK, let db = db else { return [] }
         defer { sqlite3_close(db) }
 
+        var events: [TokenEvent] = []
+        events.append(contentsOf: extractOldSchema(from: db))
+        events.append(contentsOf: extractNewSchema(from: db))
+        return events
+    }
+
+    /// Old schema: `data.model.providerID` and `data.model.modelID` live on the
+    /// assistant message itself.
+    private func extractOldSchema(from db: OpaquePointer) -> [TokenEvent] {
         let sql = """
             SELECT id,
                    json_extract(data, '$.tokens.input')      AS input,
@@ -35,11 +52,53 @@ struct OpenCodeExtractor: TokenExtractorProtocol {
             WHERE json_valid(data)
               AND json_extract(data, '$.role') = 'assistant'
               AND json_extract(data, '$.tokens') IS NOT NULL
+              AND json_extract(data, '$.model.providerID') IS NOT NULL
         """
         var stmt: OpaquePointer?
-        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt = stmt else { return [] }
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt = stmt else {
+            openCodeExtractorLogger.warning("F2b: failed to prepare old-schema statement")
+            return []
+        }
         defer { sqlite3_finalize(stmt) }
+        return Self.iterateRows(stmt: stmt)
+    }
 
+    /// New schema: `data.modelID` is camelCase top-level, `data.model.providerID`
+    /// is absent on the assistant message. We join to the parent (user-role) message
+    /// via `data.parentID` to recover the provider ID.
+    private func extractNewSchema(from db: OpaquePointer) -> [TokenEvent] {
+        let sql = """
+            SELECT a.id,
+                   json_extract(a.data, '$.tokens.input')      AS input,
+                   json_extract(a.data, '$.tokens.output')     AS output,
+                   json_extract(a.data, '$.tokens.reasoning')  AS reasoning,
+                   json_extract(a.data, '$.tokens.cache.read') AS cache_read,
+                   json_extract(a.data, '$.tokens.cache.write') AS cache_write,
+                   json_extract(u.data, '$.model.providerID')  AS provider_id,
+                   json_extract(a.data, '$.modelID')           AS model_id,
+                   json_extract(a.data, '$.sessionID')         AS session_id,
+                   json_extract(a.data, '$.time.created')      AS ts_ms
+            FROM message a
+            LEFT JOIN message u ON u.id = json_extract(a.data, '$.parentID')
+            WHERE json_valid(a.data)
+              AND json_extract(a.data, '$.role') = 'assistant'
+              AND json_extract(a.data, '$.tokens') IS NOT NULL
+              AND json_extract(a.data, '$.model.providerID') IS NULL
+              AND json_extract(a.data, '$.modelID') IS NOT NULL
+              AND u.id IS NOT NULL
+              AND json_extract(u.data, '$.model.providerID') IS NOT NULL
+        """
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt = stmt else {
+            openCodeExtractorLogger.warning("F2b: failed to prepare new-schema statement")
+            return []
+        }
+        defer { sqlite3_finalize(stmt) }
+        return Self.iterateRows(stmt: stmt)
+    }
+
+    /// Iterate a prepared statement and build TokenEvent objects.
+    private static func iterateRows(stmt: OpaquePointer) -> [TokenEvent] {
         var events: [TokenEvent] = []
         while sqlite3_step(stmt) == SQLITE_ROW {
             let id = sqlite3_column_text(stmt, 0).flatMap { String(cString: $0) } ?? ""

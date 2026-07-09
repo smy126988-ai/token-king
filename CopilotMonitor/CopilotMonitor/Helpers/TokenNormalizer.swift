@@ -34,8 +34,9 @@ struct TokenNormalizer {
             return .zai
         }
         // MiniMax family — model field check first (catches both current
-        // "minimax-m3" naming and legacy "mimo-v2.5-pro" model IDs).
-        if m.contains("minimax") || m.hasPrefix("mimo-") {
+        // "minimax-m3" naming, legacy "mimo-v2.5-pro" model IDs, and the
+        // F2b camelCase "MiniMax-M3" emitted by the new OpenCode schema).
+        if m.contains("minimax") || m.hasPrefix("mimo-") || m.hasPrefix("minimax-") {
             if p.contains("cn") || p.contains("minimax-cn") {
                 return .minimaxCN
             }
