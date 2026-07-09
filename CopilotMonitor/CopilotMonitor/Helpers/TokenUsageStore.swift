@@ -12,11 +12,12 @@ indirect enum SQLiteError: Error, Equatable, Sendable {
     case storeUninitialized(underlying: SQLiteError)
 }
 
-/// Persistence layer (SQLite, schema 2).
-/// 4 tables:
+/// Persistence layer (SQLite, schema 3).
+/// 5 tables:
 /// - token_events: raw event (cross-tool normalized, source_id UNIQUE for dedup)
 /// - month_aggregates: per provider x model x year_month, materialized
 /// - day_aggregates: per provider x model x day (UTC), materialized (F1)
+/// - quota_snapshots: 5h/7d quota state snapshots (F4 redesign), per provider x window x ts
 /// - model_pricing_cache: mirrors F2a PricingTable
 actor TokenUsageStore {
     private let dbPath: String
@@ -46,12 +47,15 @@ actor TokenUsageStore {
             "CREATE TABLE IF NOT EXISTS month_aggregates (provider TEXT NOT NULL, model TEXT NOT NULL, year_month TEXT NOT NULL, input INTEGER DEFAULT 0, output INTEGER DEFAULT 0, cache_read INTEGER DEFAULT 0, cache_write INTEGER DEFAULT 0, reasoning INTEGER DEFAULT 0, last_updated INTEGER, PRIMARY KEY (provider, model, year_month))",
             "CREATE TABLE IF NOT EXISTS day_aggregates (provider TEXT NOT NULL, model TEXT NOT NULL, day TEXT NOT NULL, input INTEGER DEFAULT 0, output INTEGER DEFAULT 0, cache_read INTEGER DEFAULT 0, cache_write INTEGER DEFAULT 0, reasoning INTEGER DEFAULT 0, last_updated INTEGER, PRIMARY KEY (provider, model, day))",
             "CREATE TABLE IF NOT EXISTS model_pricing_cache (provider TEXT NOT NULL, model TEXT NOT NULL, input_rate REAL, output_rate REAL, cache_read_rate REAL, source TEXT, fetched_at INTEGER, PRIMARY KEY (provider, model))",
+            "CREATE TABLE IF NOT EXISTS quota_snapshots (provider TEXT NOT NULL, window TEXT NOT NULL, usage_percent REAL NOT NULL, reset_at INTEGER, snapshot_ts INTEGER NOT NULL, PRIMARY KEY (provider, window, snapshot_ts))",
             "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)",
             "INSERT OR IGNORE INTO schema_version VALUES (1)",
             "INSERT OR IGNORE INTO schema_version VALUES (2)",
+            "INSERT OR IGNORE INTO schema_version VALUES (3)",
             "CREATE INDEX IF NOT EXISTS idx_token_events_provider_ts ON token_events(provider, ts_ms)",
             "CREATE INDEX IF NOT EXISTS idx_token_events_session ON token_events(session_id)",
-            "CREATE INDEX IF NOT EXISTS idx_day_aggregates_day ON day_aggregates(day)"
+            "CREATE INDEX IF NOT EXISTS idx_day_aggregates_day ON day_aggregates(day)",
+            "CREATE INDEX IF NOT EXISTS idx_quota_snapshots_pw_ts ON quota_snapshots(provider, window, snapshot_ts DESC)"
         ]
         for sql in sqls {
             let rc = sqlite3_exec(db, sql, nil, nil, nil)
@@ -249,6 +253,62 @@ actor TokenUsageStore {
             reasoning: Int(sqlite3_column_int64(stmt, 4))
         )
     }
+
+    /// Insert or ignore a quota snapshot (5h or 7d usage state).
+    /// Idempotent on PK collision (provider, window, snapshot_ts) — first one wins.
+    func upsertQuotaSnapshot(_ snapshot: QuotaSnapshot) throws {
+        try ensureOpen()
+        guard let db else { return }
+        let sql = "INSERT OR IGNORE INTO quota_snapshots (provider, window, usage_percent, reset_at, snapshot_ts) VALUES (?, ?, ?, ?, ?)"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else {
+            throw SQLiteError.execFailed(sql: sql, code: 0, message: errorMessage(at: 0))
+        }
+        defer { sqlite3_finalize(stmt) }
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        sqlite3_bind_text(stmt, 1, snapshot.provider, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_text(stmt, 2, snapshot.window, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_double(stmt, 3, snapshot.usagePercent)
+        if let resetAt = snapshot.resetAt {
+            sqlite3_bind_int64(stmt, 4, Int64(resetAt.timeIntervalSince1970))
+        } else {
+            sqlite3_bind_null(stmt, 4)
+        }
+        sqlite3_bind_int64(stmt, 5, Int64(snapshot.snapshotTs.timeIntervalSince1970))
+        guard sqlite3_step(stmt) == SQLITE_DONE else {
+            throw SQLiteError.stepFailed(sql: sql, code: 0, message: errorMessage(at: 0))
+        }
+    }
+
+    /// Query quota snapshots for a (provider, window) pair since a cutoff time.
+    /// Returns most recent first (DESC). Optional `limit` caps the result count.
+    func fetchQuotaSnapshots(provider: String, window: String, since: Date, limit: Int = 200) -> [QuotaSnapshot] {
+        guard initError == nil, let db = db else { return [] }
+        let sql = "SELECT provider, window, usage_percent, reset_at, snapshot_ts FROM quota_snapshots WHERE provider = ? AND window = ? AND snapshot_ts >= ? ORDER BY snapshot_ts DESC LIMIT ?"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else { return [] }
+        defer { sqlite3_finalize(stmt) }
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        sqlite3_bind_text(stmt, 1, provider, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_text(stmt, 2, window, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_int64(stmt, 3, Int64(since.timeIntervalSince1970))
+        sqlite3_bind_int(stmt, 4, Int32(limit))
+        var results: [QuotaSnapshot] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            let provider = sqlite3_column_text(stmt, 0).flatMap { String(cString: $0) } ?? ""
+            let window = sqlite3_column_text(stmt, 1).flatMap { String(cString: $0) } ?? ""
+            let usagePercent = sqlite3_column_double(stmt, 2)
+            let resetAt: Date? = sqlite3_column_type(stmt, 3) == SQLITE_NULL
+                ? nil
+                : Date(timeIntervalSince1970: TimeInterval(sqlite3_column_int64(stmt, 3)))
+            let snapshotTs = Date(timeIntervalSince1970: TimeInterval(sqlite3_column_int64(stmt, 4)))
+            results.append(QuotaSnapshot(
+                provider: provider, window: window, usagePercent: usagePercent,
+                resetAt: resetAt, snapshotTs: snapshotTs
+            ))
+        }
+        return results
+    }
 }
 
 // MARK: - Private helpers
@@ -333,4 +393,12 @@ struct DayAggregate {
     let model: String
     let day: String
     let tokens: TokenBreakdown
+}
+
+struct QuotaSnapshot: Hashable, Sendable {
+    let provider: String
+    let window: String         // "5h" or "7d"
+    let usagePercent: Double
+    let resetAt: Date?
+    let snapshotTs: Date
 }
