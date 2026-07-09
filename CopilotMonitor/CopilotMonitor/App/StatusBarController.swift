@@ -218,12 +218,18 @@ final class StatusBarController: NSObject {
     /// F2b: when the `RefreshActor`'s store fails to initialize, surface the
     /// error in the "本月 API 折算" section instead of leaving it blank.
     private var refreshActorInitError: SQLiteError?
-    /// F1 / F4: latest token snapshot for the "本月 Token" header and the
-    /// "全局统计" submenu. Populated by `refreshTokenStatsCache` on the same
-    /// periodic loop as `refreshMonthlyTotalsCache`. Read synchronously by
-    /// `updateMultiProviderMenu` (main-actor).
-    private var cachedTokenStats: TokenStatsAggregator.Snapshot?
+    /// F4 redesign: per-period per-provider token totals for the 3 top-level
+    /// "今日 Token: X.Xk" / "本周 Token: X.Xk" / "本月 Token: X.Xk" items and
+    /// the "本月 Token" cross-provider header. Populated by
+    /// `refreshTopLevelTokenCache` on the same periodic loop as
+    /// `refreshMonthlyTotalsCache`. Read synchronously by `updateMultiProviderMenu`
+    /// (main-actor).
+    private var cachedPerPeriodTokens: [TokenPeriod: [PerPeriodTokenAggregator.ProviderTotal]] = [:]
     private var lastTokenStatsFetchAt: Date?
+    /// F4 redesign: in-memory snapshot cache keyed by F2b `Provider.rawValue`.
+    /// Populated by `refreshQuotaSnapshotCache` so the per-provider quota
+    /// history submenu can render synchronously without awaiting an actor.
+    private var cachedQuotaSnapshots: [String: (fiveHour: [QuotaSnapshot], sevenDay: [QuotaSnapshot])] = [:]
 
     private var usagePredictor: UsagePredictor {
         UsagePredictor(weights: predictionPeriod.weights)
@@ -1182,19 +1188,19 @@ final class StatusBarController: NSObject {
         return cachedMonthlyTotals.first(where: { $0.provider == providerRaw })?.totalCostRMB
     }
 
-    /// F1 / F4: fetch the latest `day_aggregates` from the store and recompute
-    /// today / week / month totals into the sync cache. Scheduled by
-    /// `AppDelegate` on the same periodic loop as `refreshMonthlyTotalsCache`.
+    /// F4 redesign: fetch the latest `day_aggregates` from the store and
+    /// recompute per-period per-provider totals into the sync cache. Scheduled
+    /// by `AppDelegate` on the same periodic loop as `refreshMonthlyTotalsCache`.
     /// Returns silently when no `tokenUsageStore` is wired up.
-    func refreshTokenStatsCache() async {
+    func refreshTopLevelTokenCache() async {
         guard let store = tokenUsageStore else {
-            self.cachedTokenStats = nil
+            self.cachedPerPeriodTokens = [:]
             return
         }
-        // F2b B54: if the store failed to init, hide F1/F4 (mirrors refreshMonthlyTotalsCache
+        // F2b B54: if the store failed to init, hide F4 (mirrors refreshMonthlyTotalsCache
         // which switches the cost section to "用量数据不可用").
         if await store.initError != nil {
-            self.cachedTokenStats = nil
+            self.cachedPerPeriodTokens = [:]
             self.updateMultiProviderMenu()
             return
         }
@@ -1202,29 +1208,157 @@ final class StatusBarController: NSObject {
         let dayAggregates = await store.fetchDayAggregates(yearMonth: month)
         let todayString = TokenUsageFormatter.todayUTCString()
         let (weekStart, weekEnd) = TokenUsageFormatter.currentISOWeekRange()
-        self.cachedTokenStats = TokenStatsAggregator.snapshot(
-            dayAggregates: dayAggregates,
-            todayString: todayString,
-            weekStart: weekStart,
-            weekEnd: weekEnd,
-            monthPrefix: month
+        let utcDayParser = Self.utcDayParser()
+        let displayName: (String) -> String = { rawProvider in
+            Self.providerRawToDisplayName(rawProvider)
+        }
+        let monthFilter = PerPeriodFilter(
+            kind: .month, todayString: todayString,
+            weekStart: weekStart, weekEnd: weekEnd,
+            monthPrefix: month, dayParser: utcDayParser
         )
+        let weekFilter = PerPeriodFilter(
+            kind: .week, todayString: todayString,
+            weekStart: weekStart, weekEnd: weekEnd,
+            monthPrefix: month, dayParser: utcDayParser
+        )
+        let todayFilter = PerPeriodFilter(
+            kind: .today, todayString: todayString,
+            weekStart: weekStart, weekEnd: weekEnd,
+            monthPrefix: month, dayParser: utcDayParser
+        )
+        self.cachedPerPeriodTokens = [
+            .today: PerPeriodTokenAggregator.aggregate(
+                dayAggregates: dayAggregates, for: todayFilter, displayNameForProviderRaw: displayName
+            ),
+            .week: PerPeriodTokenAggregator.aggregate(
+                dayAggregates: dayAggregates, for: weekFilter, displayNameForProviderRaw: displayName
+            ),
+            .month: PerPeriodTokenAggregator.aggregate(
+                dayAggregates: dayAggregates, for: monthFilter, displayNameForProviderRaw: displayName
+            ),
+        ]
         self.lastTokenStatsFetchAt = Date()
         self.updateMultiProviderMenu()
     }
 
-    /// F1 / F4: synchronous accessor for the latest token snapshot. Returns
-    /// `nil` when the cache has not been populated yet (e.g. before the first
-    /// periodic tick) or no store is wired up.
-    func tokenStatsSnapshot() -> TokenStatsAggregator.Snapshot? {
-        cachedTokenStats
+    /// F4 redesign: synchronous accessor for the per-period per-provider totals
+    /// for a given period. Returns `[]` when the cache has not been populated
+    /// yet or no store is wired up.
+    func topLevelTokenTotals(for period: TokenPeriod) -> [PerPeriodTokenAggregator.ProviderTotal] {
+        cachedPerPeriodTokens[period] ?? []
     }
 
-    /// F1: synchronous accessor for the current month's total token count.
-    /// Returns 0 when the cache is empty (so the caller can decide whether
-    /// to render the header — the F1 section is hidden at 0 by the menu builder).
+    /// F1 / F4 redesign: synchronous accessor for the current month's total
+    /// token count (summed across all providers). Returns 0 when the cache is
+    /// empty (so the caller can decide whether to render the header — the
+    /// header is hidden at 0 by the menu builder).
     func currentMonthTotalTokens() -> TokenBreakdown {
-        cachedTokenStats?.monthTotal ?? TokenBreakdown.zero
+        let totals = cachedPerPeriodTokens[.month] ?? []
+        guard !totals.isEmpty else { return TokenBreakdown.zero }
+        return TokenBreakdown(
+            input: totals.reduce(0) { $0 + $1.input },
+            output: totals.reduce(0) { $0 + $1.output },
+            cacheRead: totals.reduce(0) { $0 + $1.cacheRead },
+            cacheWrite: totals.reduce(0) { $0 + $1.cacheWrite },
+            reasoning: totals.reduce(0) { $0 + $1.reasoning }
+        )
+    }
+
+    /// F4 redesign: quota snapshot sampling. Iterates the latest
+    /// `providerResults` and writes a `QuotaSnapshot` row for every provider
+    /// with `fiveHourUsage` (window="5h") or `sevenDayUsage` (window="7d").
+    /// Also refreshes the in-memory `cachedQuotaSnapshots` so the per-provider
+    /// quota history submenu can render synchronously. Best-effort persistence:
+    /// store I/O failures are logged at `.error` and do NOT crash or block the
+    /// menu rebuild. Silent on `initError` (mirrors the `refreshTokenStatsCache`
+    /// guard).
+    func refreshQuotaSnapshotCache() async {
+        guard let store = tokenUsageStore else { return }
+        if await store.initError != nil { return }
+        let now = Date()
+        var newCache: [String: (fiveHour: [QuotaSnapshot], sevenDay: [QuotaSnapshot])] = [:]
+        for (identifier, result) in providerResults {
+            guard let rawProvider = f2bTokenProviderRaw(for: identifier),
+                  let details = result.details else { continue }
+            if let fiveHour = details.fiveHourUsage {
+                let snap = QuotaSnapshot(
+                    provider: rawProvider,
+                    window: "5h",
+                    usagePercent: fiveHour,
+                    resetAt: details.fiveHourReset,
+                    snapshotTs: now
+                )
+                do {
+                    try await store.upsertQuotaSnapshot(snap)
+                } catch {
+                    logger.error("refreshQuotaSnapshotCache: failed to upsert 5h snapshot for \(rawProvider, privacy: .public): \(String(describing: error), privacy: .public)")
+                }
+            }
+            if let sevenDay = details.sevenDayUsage {
+                let snap = QuotaSnapshot(
+                    provider: rawProvider,
+                    window: "7d",
+                    usagePercent: sevenDay,
+                    resetAt: details.sevenDayReset,
+                    snapshotTs: now
+                )
+                do {
+                    try await store.upsertQuotaSnapshot(snap)
+                } catch {
+                    logger.error("refreshQuotaSnapshotCache: failed to upsert 7d snapshot for \(rawProvider, privacy: .public): \(String(describing: error), privacy: .public)")
+                }
+            }
+            // Fetch recent snapshots for the in-memory cache. Best-effort:
+            // if the read fails we keep the previous cache entry (or empty).
+            do {
+                let sinceCutoff = now.addingTimeInterval(-7 * 24 * 3600)
+                let weeklyCutoff = now.addingTimeInterval(-4 * 7 * 24 * 3600)
+                let fiveHourRecent = await store.fetchQuotaSnapshots(provider: rawProvider, window: "5h", since: sinceCutoff, limit: 50)
+                let sevenDayRecent = await store.fetchQuotaSnapshots(provider: rawProvider, window: "7d", since: weeklyCutoff, limit: 50)
+                newCache[rawProvider] = (fiveHour: fiveHourRecent, sevenDay: sevenDayRecent)
+            }
+        }
+        self.cachedQuotaSnapshots = newCache
+        self.updateMultiProviderMenu()
+    }
+
+    /// F4 redesign: synchronous accessor for the in-memory quota snapshot cache
+    /// keyed by F2b `Provider.rawValue`. Returns empty arrays for unknown
+    /// providers (so the submenu still renders a "暂无记录" placeholder).
+    func quotaSnapshots(for providerRaw: String) -> (fiveHour: [QuotaSnapshot], sevenDay: [QuotaSnapshot]) {
+        cachedQuotaSnapshots[providerRaw] ?? (fiveHour: [], sevenDay: [])
+    }
+
+    /// F4 redesign: build the day-string → UTC-Date parser used by
+    /// `PerPeriodFilter.includes(day:)` for week-range comparisons. Centralized
+    /// so production code and tests use the exact same formatter (matching
+    /// `TokenUsageStore.dayString` / `TokenUsageFormatter.todayUTCString`).
+    private static func utcDayParser() -> (String) -> Date? {
+        let fmt = DateFormatter()
+        fmt.timeZone = TimeZone.utc
+        fmt.locale = Locale(identifier: "en_US_POSIX")
+        fmt.dateFormat = "yyyy-MM-dd"
+        return { fmt.date(from: $0) }
+    }
+
+    /// F4 redesign: maps an F2b `Provider.rawValue` (e.g. "kimi" / "kimiCN" /
+    /// "claude") to the user-facing display name shown in the per-provider
+    /// submenu. Unknown values fall back to the raw string so a new provider
+    /// added to the F2b table can still render without an explicit enum case.
+    private static func providerRawToDisplayName(_ rawProvider: String) -> String {
+        // Kimi is the only F2b provider with two regional raw values (.kimi
+        // / .kimiCN); look it up first so both surface with their user-facing
+        // display labels.
+        switch rawProvider {
+        case "kimi": return ProviderIdentifier.kimi.displayName
+        case "kimiCN": return ProviderIdentifier.kimiCN.displayName
+        case "claude": return ProviderIdentifier.claude.displayName
+        case "codex": return ProviderIdentifier.codex.displayName
+        case "zai": return ProviderIdentifier.zaiCodingPlan.displayName
+        case "nanogpt": return ProviderIdentifier.nanoGpt.displayName
+        default: return rawProvider
+        }
     }
 
     /// F2b: render a token count as a compact "1.2k" / "3.4M" string.
@@ -2065,17 +2199,22 @@ final class StatusBarController: NSObject {
                insertIndex += 1
            }
 
-           // F4: "全局统计" submenu (above pay-as-you-go segment)
-           if let snapshot = tokenStatsSnapshot() {
-               let f4Item = NSMenuItem()
-               f4Item.title = "全局统计"
-               f4Item.image = NSImage(systemSymbolName: "chart.bar.xaxis", accessibilityDescription: "Global Statistics")
-               f4Item.tag = MenuItemTag.dynamic
-               f4Item.identifier = NSUserInterfaceItemIdentifier("f4-global-stats")
-               f4Item.submenu = StatusBarController.createGlobalStatsSubmenu(snapshot: snapshot)
-               menu.insertItem(f4Item, at: insertIndex)
-               insertIndex += 1
-           }
+            // F4 redesign: 3 top-level NSMenuItems (今日 Token / 本周 Token / 本月 Token),
+            // each with a per-provider Input/Output/Cache submenu. Hidden when
+            // no provider has any data for the period.
+            for period in [TokenPeriod.today, .week, .month] {
+                let totals = topLevelTokenTotals(for: period)
+                guard !totals.isEmpty else { continue }
+                let totalTokens = totals.reduce(0) { $0 + $1.total }
+                let item = NSMenuItem()
+                item.title = "\(period.headerText)：\(TokenUsageFormatter.format(tokens: totalTokens))"
+                item.image = NSImage(systemSymbolName: period.symbolName, accessibilityDescription: period.headerText)
+                item.tag = MenuItemTag.dynamic
+                item.identifier = NSUserInterfaceItemIdentifier("f4-period-top-\(period.rawValue)")
+                item.submenu = buildPerProviderTokenSubmenu(period: period, totals: totals)
+                menu.insertItem(item, at: insertIndex)
+                insertIndex += 1
+            }
 
            let payAsYouGoTotal = calculatePayAsYouGoTotal(providerResults: providerResults, copilotUsage: currentUsage)
 
@@ -5103,102 +5242,10 @@ extension StatusBarController {
 }
 
 extension StatusBarController {
-    /// F4: build the "全局统计" submenu from a precomputed snapshot.
-    /// Live data path (in production) calls `TokenUsageStore.fetchDayAggregates`
-    /// + `TokenStatsAggregator.snapshot` then passes the result here. Static so
-    /// the rendering can be unit-tested without constructing a controller.
-    static func createGlobalStatsSubmenu(snapshot: TokenStatsAggregator.Snapshot) -> NSMenu {
-        let menu = NSMenu()
-        let formatter = CurrencyFormatter.shared
-
-        let tokenHeader = NSMenuItem()
-        tokenHeader.view = f4HeaderView(title: "Token 用量汇总")
-        tokenHeader.identifier = NSUserInterfaceItemIdentifier("f4-token-header")
-        menu.addItem(tokenHeader)
-
-        let todayItem = NSMenuItem()
-        todayItem.view = f4RowView(
-            text: "  今日：\(TokenUsageFormatter.format(tokens: snapshot.todayTotal.total))",
-            icon: NSImage(systemSymbolName: "sun.max", accessibilityDescription: "Today")
-        )
-        todayItem.identifier = NSUserInterfaceItemIdentifier("f4-today")
-        menu.addItem(todayItem)
-
-        let weekItem = NSMenuItem()
-        weekItem.view = f4RowView(
-            text: "  本周：\(TokenUsageFormatter.format(tokens: snapshot.weekTotal.total))",
-            icon: NSImage(systemSymbolName: "calendar", accessibilityDescription: "This week")
-        )
-        weekItem.identifier = NSUserInterfaceItemIdentifier("f4-week")
-        menu.addItem(weekItem)
-
-        let monthItem = NSMenuItem()
-        monthItem.view = f4RowView(
-            text: "  本月：\(TokenUsageFormatter.format(tokens: snapshot.monthTotal.total))",
-            icon: NSImage(systemSymbolName: "calendar.badge.checkmark", accessibilityDescription: "This month")
-        )
-        monthItem.identifier = NSUserInterfaceItemIdentifier("f4-month")
-        menu.addItem(monthItem)
-
-        menu.addItem(NSMenuItem.separator())
-
-        let quotaHeader = NSMenuItem()
-        quotaHeader.view = f4HeaderView(title: "额度状态")
-        quotaHeader.identifier = NSUserInterfaceItemIdentifier("f4-quota-header")
-        menu.addItem(quotaHeader)
-
-        let total = SubscriptionSettingsManager.shared.totalMonthlyCost(
-            inCurrency: formatter.currency, formatter: formatter
-        )
-        let displayText = total > 0
-            ? "  订阅参考：\(SubscriptionSettingsManager.shared.totalMonthlyCostDisplayText(currency: formatter.currency, formatter: formatter))/月"
-            : "  订阅参考：—/月"
-        let quotaItem = NSMenuItem()
-        quotaItem.view = f4RowView(text: displayText)
-        quotaItem.identifier = NSUserInterfaceItemIdentifier("f4-quota")
-        menu.addItem(quotaItem)
-
-        return menu
-    }
-
-    /// F4 helper: bold secondary-label header view used inside the submenu.
-    private static func f4HeaderView(title: String) -> NSView {
-        let view = NSView(frame: NSRect(x: 0, y: 0, width: MenuDesignToken.Dimension.menuWidth, height: 23))
-        let label = NSTextField(labelWithString: title)
-        label.font = NSFont.systemFont(ofSize: 11, weight: .bold)
-        label.textColor = NSColor.secondaryLabelColor
-        label.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(label)
-        NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: MenuDesignToken.Spacing.leadingOffset),
-            label.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-        ])
-        return view
-    }
-
-    /// F4 helper: disabled-label row view (optionally with a leading icon).
-    private static func f4RowView(text: String, icon: NSImage? = nil) -> NSView {
-        let menuWidth: CGFloat = MenuDesignToken.Dimension.menuWidth
-        let hasIcon = icon != nil
-        let leadingOffset: CGFloat = (hasIcon ? MenuDesignToken.Spacing.leadingWithIcon : MenuDesignToken.Spacing.leadingOffset)
-        let view = NSView(frame: NSRect(x: 0, y: 0, width: menuWidth, height: MenuDesignToken.Dimension.itemHeight))
-
-        if let icon = icon {
-            let imageView = NSImageView(frame: NSRect(x: 14, y: 3, width: 16, height: 16))
-            imageView.image = icon
-            imageView.imageScaling = .scaleProportionallyUpOrDown
-            view.addSubview(imageView)
-        }
-
-        let label = NSTextField(labelWithString: text)
-        label.font = NSFont.systemFont(ofSize: MenuDesignToken.Dimension.fontSize)
-        label.textColor = NSColor.secondaryLabelColor
-        label.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(label)
-        NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: leadingOffset),
-            label.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-        ])
-        return view
-    }
+    // F4 redesign: the cross-provider "全局统计" submenu has been removed in
+    // favor of three top-level NSMenuItems ("今日 Token: X.Xk" / "本周 Token"
+    // / "本月 Token") each with its own per-provider Input/Output/Cache submenu.
+    // The single snapshot aggregator (`TokenStatsAggregator`) is also gone;
+    // per-period per-provider totals are now built by `PerPeriodTokenAggregator`
+    // in `StatusBarController.refreshTopLevelTokenCache`.
 }

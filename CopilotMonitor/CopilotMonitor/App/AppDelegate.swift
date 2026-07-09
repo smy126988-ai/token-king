@@ -317,14 +317,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         monthlyTotalsRefreshTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 await self?.statusBarController?.refreshMonthlyTotalsCache()
-                await self?.statusBarController?.refreshTokenStatsCache()
+                await self?.statusBarController?.refreshTopLevelTokenCache()
+                await self?.statusBarController?.refreshQuotaSnapshotCache()
                 try? await Task.sleep(nanoseconds: 5_000_000_000)
             }
         }
         // Prime the cache immediately so a store init error is reflected in the
         // menu without waiting for the first 5 s loop iteration.
         Task { await statusBarController?.refreshMonthlyTotalsCache() }
-        Task { await statusBarController?.refreshTokenStatsCache() }
+        Task { await statusBarController?.refreshTopLevelTokenCache() }
+        Task { await statusBarController?.refreshQuotaSnapshotCache() }
         logger.info("🔄 [F2b] RefreshActor started; monthly totals refresh loop scheduled")
     }
 

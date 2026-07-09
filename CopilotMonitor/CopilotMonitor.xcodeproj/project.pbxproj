@@ -130,6 +130,9 @@
 		TSA000000000000000000BF2 /* TokenStatsAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = TSA000000000000000000FR2 /* TokenStatsAggregator.swift */; };
 		MCST000000000000000000BF2 /* MonthCostCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MCST000000000000000000FR2 /* MonthCostCalculatorTests.swift */; };
 		TSAT000000000000000000BF2 /* TokenStatsAggregatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TSAT000000000000000000FR2 /* TokenStatsAggregatorTests.swift */; };
+		PPTA00000000000000000BF1 /* PerPeriodTokenAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = PPTA00000000000000000FR1 /* PerPeriodTokenAggregator.swift */; };
+		PPTAT00000000000000000BF2 /* PerPeriodTokenAggregatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = PPTAT00000000000000000FR2 /* PerPeriodTokenAggregatorTests.swift */; };
+		SBCRD000000000000000000BF2 /* StatusBarControllerRedesignTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SBCRD000000000000000000FR2 /* StatusBarControllerRedesignTests.swift */; };
 		ME1111111111111111111111 /* MenuEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = ME2222222222222222222222 /* MenuEnums.swift */; };
 		MIGRATIONPSTESTBF1111111111 /* MigrationPresetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MIGRATIONPSTESTFR1111111111 /* MigrationPresetTests.swift */; };
 		MIMOAPP1111111111111111 /* MimoProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = MIMOFILE22222222222222 /* MimoProvider.swift */; };
@@ -171,7 +174,7 @@
 		SBCCTRLMODETMBF1111 /* StatusBarControllerTestingModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SBCCTRLMODETMFR1111 /* StatusBarControllerTestingModeTests.swift */; };
 		SBCCTRLTESTBF111111111 /* StatusBarControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SBCCTRLTESTFR111111111 /* StatusBarControllerTests.swift */; };
 		PMBF1F3TESTBF1000000000 /* ProviderMenuBuilderF1F3Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = PMBF1F3TESTFR1000000000 /* ProviderMenuBuilderF1F3Tests.swift */; };
-		SBCF000000000000000000BF2 /* StatusBarControllerF4Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SBCF000000000000000000FR2 /* StatusBarControllerF4Tests.swift */; };
+		/* StatusBarControllerF4Tests.swift removed in F4 redesign: see StatusBarControllerRedesignTests */
 		SP1111111111111111111111 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = SP2222222222222222222222 /* Sparkle */; };
 		SS1111111111111111111111 /* SubscriptionSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = SS2222222222222222222222 /* SubscriptionSettings.swift */; };
 		SUBMGRIOSOBF11111111111 /* SubscriptionSettingsManagerIsolationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SUBMGRIOSOFR11111111111 /* SubscriptionSettingsManagerIsolationTests.swift */; };
@@ -343,6 +346,9 @@
 		TSA000000000000000000FR2 /* TokenStatsAggregator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenStatsAggregator.swift; sourceTree = "<group>"; };
 		MCST000000000000000000FR2 /* MonthCostCalculatorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MonthCostCalculatorTests.swift; sourceTree = "<group>"; };
 		TSAT000000000000000000FR2 /* TokenStatsAggregatorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenStatsAggregatorTests.swift; sourceTree = "<group>"; };
+		PPTA00000000000000000FR1 /* PerPeriodTokenAggregator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PerPeriodTokenAggregator.swift; sourceTree = "<group>"; };
+		PPTAT00000000000000000FR2 /* PerPeriodTokenAggregatorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PerPeriodTokenAggregatorTests.swift; sourceTree = "<group>"; };
+		SBCRD000000000000000000FR2 /* StatusBarControllerRedesignTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatusBarControllerRedesignTests.swift; sourceTree = "<group>"; };
 		ME2222222222222222222222 /* MenuEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuEnums.swift; sourceTree = "<group>"; };
 		MIGRATIONPSTESTFR1111111111 /* MigrationPresetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationPresetTests.swift; sourceTree = "<group>"; };
 		MIMOFILE22222222222222 /* MimoProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MimoProvider.swift; sourceTree = "<group>"; };
@@ -381,7 +387,7 @@
 		SBCCTRLMODETMFR1111 /* StatusBarControllerTestingModeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatusBarControllerTestingModeTests.swift; sourceTree = "<group>"; };
 		SBCCTRLTESTFR111111111 /* StatusBarControllerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatusBarControllerTests.swift; sourceTree = "<group>"; };
 		PMBF1F3TESTFR1000000000 /* ProviderMenuBuilderF1F3Tests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProviderMenuBuilderF1F3Tests.swift; sourceTree = "<group>"; };
-		SBCF000000000000000000FR2 /* StatusBarControllerF4Tests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatusBarControllerF4Tests.swift; sourceTree = "<group>"; };
+		/* SBCF000000000000000000FR2 StatusBarControllerF4Tests.swift removed in F4 redesign: see StatusBarControllerRedesignTests */
 		APPDELEGATEB39TESTSFR111 /* AppDelegateB39Tests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppDelegateB39Tests.swift; sourceTree = "<group>"; };
 		SS2222222222222222222222 /* SubscriptionSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionSettings.swift; sourceTree = "<group>"; };
 		SUBMGRIOSOFR11111111111 /* SubscriptionSettingsManagerIsolationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionSettingsManagerIsolationTests.swift; sourceTree = "<group>"; };
@@ -494,8 +500,9 @@
 				447C5D12B4E04EC9A89ECAD71741968A /* TimeZoneUTCTests.swift */,
 				TUFT00000000000000000FR2 /* TokenUsageFormatterTests.swift */,
 				PMBF1F3TESTFR1000000000 /* ProviderMenuBuilderF1F3Tests.swift */,
-				SBCF000000000000000000FR2 /* StatusBarControllerF4Tests.swift */,
 				TSAT000000000000000000FR2 /* TokenStatsAggregatorTests.swift */,
+				PPTAT00000000000000000FR2 /* PerPeriodTokenAggregatorTests.swift */,
+				SBCRD000000000000000000FR2 /* StatusBarControllerRedesignTests.swift */,
 				TE0000000000000000000TGP /* TokenExtractor */,
 			);
 			path = Helpers;
@@ -676,6 +683,7 @@
 				TUS00000000000000000000FR1 /* TokenUsageStore.swift */,
 				MCST000000000000000000FR1 /* MonthCostCalculator.swift */,
 				TSA000000000000000000FR2 /* TokenStatsAggregator.swift */,
+				PPTA00000000000000000FR1 /* PerPeriodTokenAggregator.swift */,
 				RA00100000000000000000FR1 /* RefreshActor.swift */,
 				DCE215EDDBE3407B8E477617B1A9D6A3 /* TimeZone+UTC.swift */,
 				TUF000000000000000000FR2 /* TokenUsageFormatter.swift */,
@@ -1059,6 +1067,7 @@
 				TUS00000000000000000000BF1 /* TokenUsageStore.swift in Sources */,
 				MCST000000000000000000BF1 /* MonthCostCalculator.swift in Sources */,
 				TSA000000000000000000BF2 /* TokenStatsAggregator.swift in Sources */,
+				PPTA00000000000000000BF1 /* PerPeriodTokenAggregator.swift in Sources */,
 				RA00100000000000000000BF1 /* RefreshActor.swift in Sources */,
 				7872BE2A2B8897BD2440E57B /* TimeZone+UTC.swift in Sources */,
 				TUF000000000000000000BF2 /* TokenUsageFormatter.swift in Sources */,
@@ -1175,6 +1184,8 @@
 				QSS000000000000000000BF2 /* TokenUsageStoreQuotaSnapshotsTests.swift in Sources */,
 				MCST000000000000000000BF2 /* MonthCostCalculatorTests.swift in Sources */,
 				TSAT000000000000000000BF2 /* TokenStatsAggregatorTests.swift in Sources */,
+				PPTAT00000000000000000BF2 /* PerPeriodTokenAggregatorTests.swift in Sources */,
+				SBCRD000000000000000000BF2 /* StatusBarControllerRedesignTests.swift in Sources */,
 				TKN00000000000000000000BF2 /* TokenEventKimiCNTests.swift in Sources */,
 				RA00100000000000000000BF2 /* RefreshActorTests.swift in Sources */,
 				TRD000000000000000000BF2 /* RefreshActorDayAggregatesTests.swift in Sources */,
@@ -1185,7 +1196,6 @@
 				APPDELEGATEB39TESTSBF111 /* AppDelegateB39Tests.swift in Sources */,
 				SBCCTRLMODETMBF1111 /* StatusBarControllerTestingModeTests.swift in Sources */,
 				PMBF1F3TESTBF1000000000 /* ProviderMenuBuilderF1F3Tests.swift in Sources */,
-				SBCF000000000000000000BF2 /* StatusBarControllerF4Tests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

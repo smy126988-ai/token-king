@@ -1163,7 +1163,46 @@ extension StatusBarController {
         // F3: 5h bucket + weekly cumulative (sync; no async data fetch needed).
         appendF3UsageRecordBlock(to: submenu, details: details)
 
+        // F4 redesign: append "每日记录" / "每周记录" submenus at the bottom of
+        // the per-provider detail submenu so the user can drill into historical
+        // quota snapshots sampled by `refreshQuotaSnapshotCache`.
+        if let providerRaw = f2bTokenProviderRaw(for: identifier) {
+            let cache = self.quotaSnapshots(for: providerRaw)
+            appendQuotaHistoryItems(to: submenu, providerRaw: providerRaw, cache: cache)
+        }
+
         return submenu
+    }
+
+    // MARK: - F4 redesign: per-provider quota history submenus
+
+    /// Append two submenu items ("每日记录" / "每周记录") at the bottom of the
+    /// per-provider detail submenu. Each item has its own submenu showing the
+    /// recent `QuotaSnapshot` rows for that window. When the cache for the
+    /// given window is empty, the inner submenu shows a "暂无记录" placeholder
+    /// (see `createProviderQuotaHistorySubmenu`).
+    func appendQuotaHistoryItems(
+        to submenu: NSMenu,
+        providerRaw: String,
+        cache: (fiveHour: [QuotaSnapshot], sevenDay: [QuotaSnapshot])
+    ) {
+        submenu.addItem(NSMenuItem.separator())
+
+        let dailyItem = NSMenuItem(title: "每日记录", action: nil, keyEquivalent: "")
+        dailyItem.image = NSImage(systemSymbolName: "clock.arrow.circlepath", accessibilityDescription: "5h history")
+        dailyItem.identifier = NSUserInterfaceItemIdentifier("quota-history-daily-\(providerRaw)")
+        dailyItem.submenu = createProviderQuotaHistorySubmenu(
+            title: "每日记录", symbolName: "clock.arrow.circlepath", snapshots: cache.fiveHour
+        )
+        submenu.addItem(dailyItem)
+
+        let weeklyItem = NSMenuItem(title: "每周记录", action: nil, keyEquivalent: "")
+        weeklyItem.image = NSImage(systemSymbolName: "calendar.badge.clock", accessibilityDescription: "7d history")
+        weeklyItem.identifier = NSUserInterfaceItemIdentifier("quota-history-weekly-\(providerRaw)")
+        weeklyItem.submenu = createProviderQuotaHistorySubmenu(
+            title: "每周记录", symbolName: "calendar.badge.clock", snapshots: cache.sevenDay
+        )
+        submenu.addItem(weeklyItem)
     }
 
     // MARK: - F1: Token usage lists (per provider)
@@ -1258,6 +1297,129 @@ extension StatusBarController {
             row.identifier = NSUserInterfaceItemIdentifier("f3-weekly")
             submenu.addItem(row)
         }
+    }
+
+    // MARK: - F4 redesign: top-level per-period token submenu
+
+    /// Period the F4 top-level submenu item represents. Maps to a `PerPeriodFilter.Kind`
+    /// and a user-facing label prefix.
+    enum TokenPeriod: String {
+        case today, week, month
+
+        /// User-facing label prefix shown on the top-level NSMenuItem title
+        /// (e.g. "今日 Token: 12.3k").
+        var headerText: String {
+            switch self {
+            case .today: return "今日 Token"
+            case .week:  return "本周 Token"
+            case .month: return "本月 Token"
+            }
+        }
+
+        /// SF Symbol shown on the top-level NSMenuItem (next to the title).
+        var symbolName: String {
+            switch self {
+            case .today: return "sun.max"
+            case .week:  return "calendar"
+            case .month: return "calendar.badge.checkmark"
+            }
+        }
+    }
+
+    /// Build the per-provider Input/Output/Cache submenu rendered when the user
+    /// clicks the top-level "今日 Token: X.Xk" / "本周 Token: X.Xk" / "本月 Token: X.Xk"
+    /// item. Synchronous — caller passes precomputed `[ProviderTokenTotal]`
+    /// (from `PerPeriodTokenAggregator.aggregate`) so the test can drive the
+    /// view without an actor.
+    ///
+    /// Returns an empty `NSMenu` when `totals` is empty (the caller is expected
+    /// to hide the top-level item in that case).
+    func buildPerProviderTokenSubmenu(period: TokenPeriod, totals: [PerPeriodTokenAggregator.ProviderTotal]) -> NSMenu {
+        let menu = NSMenu()
+        guard !totals.isEmpty else { return menu }
+        for entry in totals {
+            let headerItem = NSMenuItem()
+            headerItem.view = createDisabledLabelView(text: "  \(entry.displayName)", indent: 0)
+            headerItem.identifier = NSUserInterfaceItemIdentifier("f4-period-provider-header-\(period.rawValue)-\(entry.providerRaw)")
+            menu.addItem(headerItem)
+
+            addFieldRow(to: menu, label: "Input:", value: entry.input, identifier: "f4-period-input-\(period.rawValue)-\(entry.providerRaw)")
+            addFieldRow(to: menu, label: "Output:", value: entry.output, identifier: "f4-period-output-\(period.rawValue)-\(entry.providerRaw)")
+            addFieldRow(to: menu, label: "Cache:", value: entry.cacheRead + entry.cacheWrite, identifier: "f4-period-cache-\(period.rawValue)-\(entry.providerRaw)")
+            addFieldRow(to: menu, label: "Total:", value: entry.total, identifier: "f4-period-total-\(period.rawValue)-\(entry.providerRaw)")
+            menu.addItem(NSMenuItem.separator())
+        }
+        return menu
+    }
+
+    /// Render one row inside the per-provider token submenu, e.g.
+    /// "    Input: 5.0k". Uses the existing `createDisabledLabelView` for
+    /// visual consistency with F1 / F3 rows.
+    private func addFieldRow(to menu: NSMenu, label: String, value: Int, identifier: String) {
+        let item = NSMenuItem()
+        let text = "    \(label) \(TokenUsageFormatter.format(tokens: value))"
+        item.view = createDisabledLabelView(text: text, indent: 0)
+        item.identifier = NSUserInterfaceItemIdentifier(identifier)
+        menu.addItem(item)
+    }
+
+    // MARK: - F4 redesign: per-provider quota history submenu
+
+    /// Build the submenu for one "每日记录" / "每周记录" entry under a provider
+    /// quota item. When `snapshots` is empty, renders a single "暂无记录"
+    /// placeholder so the user can still see the entry exists.
+    func createProviderQuotaHistorySubmenu(
+        title: String,
+        symbolName: String,
+        snapshots: [QuotaSnapshot]
+    ) -> NSMenu {
+        let menu = NSMenu()
+        if snapshots.isEmpty {
+            let placeholder = NSMenuItem()
+            placeholder.view = createDisabledLabelView(text: "  暂无记录", indent: 0)
+            placeholder.identifier = NSUserInterfaceItemIdentifier("quota-history-empty")
+            menu.addItem(placeholder)
+            return menu
+        }
+
+        // Cache the date formatters across the loop — both are pure `DateFormatter`
+        // constructions with no per-call state, so reusing them is safe.
+        let utcDayTimeFormatter = Self.utcDayTimeFormatter()
+        let localTimeFormatter = Self.localTimeFormatter()
+
+        for snap in snapshots {
+            let item = NSMenuItem()
+            let tsString = utcDayTimeFormatter.string(from: snap.snapshotTs)
+            let resetText: String = {
+                guard let resetAt = snap.resetAt else { return "" }
+                return " (reset \(localTimeFormatter.string(from: resetAt)))"
+            }()
+            let text = "  \(tsString) \(snap.window): \(Int(snap.usagePercent))%\(resetText)"
+            item.view = createDisabledLabelView(text: text, indent: 0)
+            item.identifier = NSUserInterfaceItemIdentifier("quota-history-\(snap.provider)-\(snap.window)-\(tsString)")
+            menu.addItem(item)
+        }
+        return menu
+    }
+
+    /// "yyyy-MM-dd HH:mm" formatter pinned to UTC (matches the snapshot_ts
+    /// storage convention in `TokenUsageStore`).
+    private static func utcDayTimeFormatter() -> DateFormatter {
+        let fmt = DateFormatter()
+        fmt.timeZone = TimeZone.utc
+        fmt.locale = Locale(identifier: "en_US_POSIX")
+        fmt.dateFormat = "yyyy-MM-dd HH:mm"
+        return fmt
+    }
+
+    /// "HH:mm" formatter in the user's local timezone (used for the reset
+    /// time, which the spec says should display in local time).
+    private static func localTimeFormatter() -> DateFormatter {
+        let fmt = DateFormatter()
+        fmt.timeZone = .current
+        fmt.locale = Locale(identifier: "en_US_POSIX")
+        fmt.dateFormat = "HH:mm"
+        return fmt
     }
 
     private func resolvedSubscriptionAccountId(details: DetailedUsage, fallback accountId: String?) -> String? {
