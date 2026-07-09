@@ -11,22 +11,35 @@ import XCTest
 /// F1/F4 unit tests for token formatting and time-window helpers.
 final class TokenUsageFormatterTests: XCTestCase {
 
-    // MARK: - formatTokens
+    // MARK: - formatTokens (Chinese units: 万 / 千万 / 亿, no "M")
 
     func testFormatTokensUnderThousandShowsPlainNumber() {
         XCTAssertEqual(TokenUsageFormatter.format(tokens: 0), "0")
         XCTAssertEqual(TokenUsageFormatter.format(tokens: 999), "999")
     }
 
-    func testFormatTokensThousandToMillionShowsKWithDecimals() {
+    func testFormatTokensThousandToTenThousandShowsKWithDecimals() {
         XCTAssertEqual(TokenUsageFormatter.format(tokens: 1_000), "1.0k")
-        XCTAssertEqual(TokenUsageFormatter.format(tokens: 12_345), "12.3k")
-        XCTAssertEqual(TokenUsageFormatter.format(tokens: 1_000_000), "1.0M")
+        XCTAssertEqual(TokenUsageFormatter.format(tokens: 9_999), "10.0k")
     }
 
-    func testFormatTokensAboveMillionShowsMWithDecimals() {
-        XCTAssertEqual(TokenUsageFormatter.format(tokens: 2_500_000), "2.5M")
-        XCTAssertEqual(TokenUsageFormatter.format(tokens: 12_345_678), "12.3M")
+    func testFormatTokensTenThousandToTenMillionShowsWan() {
+        XCTAssertEqual(TokenUsageFormatter.format(tokens: 10_000), "1.0万")
+        XCTAssertEqual(TokenUsageFormatter.format(tokens: 12_345), "1.2万")
+        XCTAssertEqual(TokenUsageFormatter.format(tokens: 1_000_000), "100.0万")
+        XCTAssertEqual(TokenUsageFormatter.format(tokens: 9_999_999), "1000.0万")
+    }
+
+    func testFormatTokensTenMillionToHundredMillionShowsQianWan() {
+        XCTAssertEqual(TokenUsageFormatter.format(tokens: 10_000_000), "1.0千万")
+        XCTAssertEqual(TokenUsageFormatter.format(tokens: 25_700_000), "2.6千万")
+        XCTAssertEqual(TokenUsageFormatter.format(tokens: 99_999_999), "10.0千万")
+    }
+
+    func testFormatTokensAboveHundredMillionShowsYi() {
+        XCTAssertEqual(TokenUsageFormatter.format(tokens: 100_000_000), "1.00亿")
+        XCTAssertEqual(TokenUsageFormatter.format(tokens: 417_200_000), "4.17亿")
+        XCTAssertEqual(TokenUsageFormatter.format(tokens: 1_234_567_890), "12.35亿")
     }
 
     // MARK: - formatResetTime
