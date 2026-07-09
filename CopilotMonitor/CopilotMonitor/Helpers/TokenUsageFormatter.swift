@@ -14,22 +14,18 @@ enum TokenUsageFormatter {
 
     // MARK: - Token formatting
 
-    /// Format a token count using Chinese number units (no "M" abbreviation).
+    /// Format a token count using Chinese number units (万 / 亿).
     /// - 0..999: plain integer ("0" / "999")
     /// - 1_000..9_999: 1 decimal + k ("1.0k" / "9.9k")
-    /// - 10_000..9_999_999: 1 decimal + 万 ("1.0万" / "2570.0万")
-    /// - 10_000_000..99_999_999: 1 decimal + 千万 ("1.0千万" / "25.7千万")
+    /// - 10_000..99_999_999: 1 decimal + 万 ("1.0万" / "9900.0万")
     /// - ≥100_000_000: 2 decimal + 亿 ("1.00亿" / "4.17亿")
     static func format(tokens: Int) -> String {
         if tokens < 1_000 { return "\(tokens)" }
         if tokens < 10_000 {
             return String(format: "%.1fk", Double(tokens) / 1_000.0)
         }
-        if tokens < 10_000_000 {
-            return String(format: "%.1f万", Double(tokens) / 10_000.0)
-        }
         if tokens < 100_000_000 {
-            return String(format: "%.1f千万", Double(tokens) / 10_000_000.0)
+            return String(format: "%.1f万", Double(tokens) / 10_000.0)
         }
         return String(format: "%.2f亿", Double(tokens) / 100_000_000.0)
     }

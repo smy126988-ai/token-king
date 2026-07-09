@@ -11,7 +11,7 @@ import XCTest
 /// F1/F4 unit tests for token formatting and time-window helpers.
 final class TokenUsageFormatterTests: XCTestCase {
 
-    // MARK: - formatTokens (Chinese units: 万 / 千万 / 亿, no "M")
+    // MARK: - formatTokens (Chinese units: 万 / 亿, no "M" no 千万)
 
     func testFormatTokensUnderThousandShowsPlainNumber() {
         XCTAssertEqual(TokenUsageFormatter.format(tokens: 0), "0")
@@ -23,17 +23,12 @@ final class TokenUsageFormatterTests: XCTestCase {
         XCTAssertEqual(TokenUsageFormatter.format(tokens: 9_999), "10.0k")
     }
 
-    func testFormatTokensTenThousandToTenMillionShowsWan() {
+    func testFormatTokensTenThousandToHundredMillionShowsWan() {
         XCTAssertEqual(TokenUsageFormatter.format(tokens: 10_000), "1.0万")
         XCTAssertEqual(TokenUsageFormatter.format(tokens: 12_345), "1.2万")
         XCTAssertEqual(TokenUsageFormatter.format(tokens: 1_000_000), "100.0万")
-        XCTAssertEqual(TokenUsageFormatter.format(tokens: 9_999_999), "1000.0万")
-    }
-
-    func testFormatTokensTenMillionToHundredMillionShowsQianWan() {
-        XCTAssertEqual(TokenUsageFormatter.format(tokens: 10_000_000), "1.0千万")
-        XCTAssertEqual(TokenUsageFormatter.format(tokens: 25_700_000), "2.6千万")
-        XCTAssertEqual(TokenUsageFormatter.format(tokens: 99_999_999), "10.0千万")
+        XCTAssertEqual(TokenUsageFormatter.format(tokens: 25_700_000), "2570.0万")
+        XCTAssertEqual(TokenUsageFormatter.format(tokens: 99_999_999), "10000.0万")
     }
 
     func testFormatTokensAboveHundredMillionShowsYi() {
