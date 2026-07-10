@@ -44,6 +44,16 @@ struct CodexExtractor: TokenExtractorProtocol {
         // `/compact` (cumulative shrink) when the fallback path is taken.
         // Per-field token counts come from `last_token_usage` directly.
         var prevCumulativeTotal: Int? = nil
+        // Tracks the cumulative `cached_input_tokens` from the previous event
+        // in this file. Codex's `last_token_usage.cached_input_tokens` is the
+        // cumulative size of the cache context at the most recent API call
+        // (same shape as `total_token_usage.cached_input_tokens`), NOT a
+        // per-event delta. Storing it verbatim per event would double-count
+        // the actual cache usage (1B+ in real sessions); emit per-event
+        // deltas instead. When the previous event has no `last_token_usage`
+        // we fall back to its `total_token_usage.cached_input_tokens` as the
+        // cumulative reference, so subsequent deltas stay consistent.
+        var prevCachedInputTokens: Int? = nil
 
         for line in content.split(separator: "\n", omittingEmptySubsequences: true) {
             defer { lineIndex += 1 }
@@ -81,10 +91,22 @@ struct CodexExtractor: TokenExtractorProtocol {
                 let tokens = makeBreakdown(
                     lastUsage: lastUsage,
                     totalUsage: totalUsage,
-                    prevCumulativeTotal: prevCumulativeTotal
+                    prevCumulativeTotal: prevCumulativeTotal,
+                    prevCachedInputTokens: prevCachedInputTokens
                 )
                 if let totalUsage {
                     prevCumulativeTotal = intValue(totalUsage["total_tokens"])
+                }
+                // Advance the cumulative cache reference for the next event.
+                // Prefer `last_token_usage.cached_input_tokens` (per-call
+                // cumulative) when available; otherwise use
+                // `total_token_usage.cached_input_tokens` (session
+                // cumulative). Either way the value is cumulative, so
+                // subtracting it on the next event yields a per-event delta.
+                if let lastUsage {
+                    prevCachedInputTokens = intValue(lastUsage["cached_input_tokens"])
+                } else if let totalUsage {
+                    prevCachedInputTokens = intValue(totalUsage["cached_input_tokens"])
                 }
 
                 let provider = TokenNormalizer.matchProvider(model: effectiveModel, providerID: "openai")
@@ -127,11 +149,16 @@ struct CodexExtractor: TokenExtractorProtocol {
 
     /// Build a per-event TokenBreakdown from a Codex rollout token_count event.
     ///
-    /// Primary path: read `last_token_usage` directly. Codex's `last_token_usage`
-    /// IS the per-event delta (it reports the most recent API call's usage),
-    /// while `total_token_usage` is the cumulative context size — using it
-    /// directly double-counts cache across events. Codex does not expose a
-    /// cache_write field, so it is always 0.
+    /// Primary path: read `last_token_usage` directly. Codex's
+    /// `last_token_usage.input_tokens` / `output_tokens` /
+    /// `reasoning_output_tokens` are per-event deltas (the most recent API
+    /// call's contribution). `last_token_usage.cached_input_tokens` however
+    /// is the CUMULATIVE size of the cache context — same shape as
+    /// `total_token_usage.cached_input_tokens`. To avoid double-counting the
+    /// cache across events in a session we convert it to a per-event delta
+    /// via `prevCachedInputTokens`. Negative deltas (after `/compact`) are
+    /// clamped to 0. Codex does not expose a `cache_write` field, so it is
+    /// always 0.
     ///
     /// Fallback path: when `last_token_usage` is absent (older rollouts), fall
     /// back to the cumulative delta via `prevCumulativeTotal`. The delta is
@@ -141,13 +168,18 @@ struct CodexExtractor: TokenExtractorProtocol {
     private func makeBreakdown(
         lastUsage: [String: Any]?,
         totalUsage: [String: Any]?,
-        prevCumulativeTotal: Int?
+        prevCumulativeTotal: Int?,
+        prevCachedInputTokens: Int?
     ) -> TokenBreakdown {
         if let lastUsage {
             let input = intValue(lastUsage["input_tokens"])
             let output = intValue(lastUsage["output_tokens"])
-            let cacheRead = intValue(lastUsage["cached_input_tokens"])
             let reasoning = intValue(lastUsage["reasoning_output_tokens"])
+            let currentCacheRead = intValue(lastUsage["cached_input_tokens"])
+            // Convert the cumulative cache context size to a per-event delta.
+            // `?? 0` covers the first event in the file (no prior reference).
+            // `max(0, …)` covers cumulative shrinks from `/compact`.
+            let cacheRead = max(0, currentCacheRead - (prevCachedInputTokens ?? 0))
             return TokenBreakdown(
                 input: input,
                 output: output,

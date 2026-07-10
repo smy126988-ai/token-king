@@ -216,4 +216,107 @@ final class CodexExtractorTests: XCTestCase {
         XCTAssertEqual(events[1].tokens.total, 0,
                        "Decreased cumulative total (after /compact): delta clamped to 0")
     }
+
+    // MARK: - F2b cacheRead delta fix (2026-07-11)
+    //
+    // Codex's `last_token_usage.cached_input_tokens` is the cumulative size of
+    // the cache context at the most recent API call (same shape as
+    // `total_token_usage.cached_input_tokens`). Storing it verbatim per event
+    // double-counts the actual cache usage — every event contributes the full
+    // cumulative value, producing inflated totals (1B+ in real sessions).
+    //
+    // Real data (2026-07-10 session, 1762 events): summing
+    // last_token_usage.cached_input_tokens verbatim = 269,059,200; converting
+    // to per-event deltas = 9,131,520. Both interpretations are cumulative;
+    // we just need to track the previous value and emit the difference.
+
+    /// Three events with `last_token_usage.cached_input_tokens` of 100K, 250K,
+    /// 350K. Storing them verbatim per event (the pre-fix bug) would yield a
+    /// total cacheRead of 700K (sum of 100K + 250K + 350K). After the fix the
+    /// per-event deltas are 100K, 150K, 100K, summing to 350K — i.e., the
+    /// actual cache growth across the three turns, not the cumulative count.
+    func testCacheReadIsPerEventDeltaNotCumulative() async throws {
+        let rollout = """
+        {"type":"session_meta","payload":{"model":"gpt-4o"},"timestamp":1700000000}
+        {"type":"event_msg","id":"msg-1","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":100000,"output_tokens":1000,"cached_input_tokens":100000,"reasoning_output_tokens":100,"total_tokens":101100},"last_token_usage":{"input_tokens":1000,"output_tokens":100,"cached_input_tokens":100000,"reasoning_output_tokens":10,"total_tokens":101110}}},"timestamp":1700000001}
+        {"type":"event_msg","id":"msg-2","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":110000,"output_tokens":2000,"cached_input_tokens":250000,"reasoning_output_tokens":200,"total_tokens":112200},"last_token_usage":{"input_tokens":2000,"output_tokens":200,"cached_input_tokens":250000,"reasoning_output_tokens":20,"total_tokens":202220}}},"timestamp":1700000002}
+        {"type":"event_msg","id":"msg-3","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":120000,"output_tokens":3000,"cached_input_tokens":350000,"reasoning_output_tokens":300,"total_tokens":123300},"last_token_usage":{"input_tokens":3000,"output_tokens":300,"cached_input_tokens":350000,"reasoning_output_tokens":30,"total_tokens":303330}}},"timestamp":1700000003}
+        """
+        try? rollout.write(
+            toFile: tmpDir + "/2026/07/08/rollout-cum-cache-read.jsonl",
+            atomically: true, encoding: .utf8
+        )
+
+        let extractor = CodexExtractor(rootPath: tmpDir)
+        let events = try await extractor.extractAll()
+        XCTAssertEqual(events.count, 3)
+
+        XCTAssertEqual(events[0].tokens.cacheRead, 100000,
+                       "First event: no prev → delta = full cumulative value (100000)")
+        XCTAssertEqual(events[1].tokens.cacheRead, 150000,
+                       "Second event: delta = 250000 - 100000 = 150000")
+        XCTAssertEqual(events[2].tokens.cacheRead, 100000,
+                       "Third event: delta = 350000 - 250000 = 100000")
+
+        let totalCacheRead = events.reduce(0) { $0 + $1.tokens.cacheRead }
+        XCTAssertEqual(totalCacheRead, 350000,
+                       "Sum of per-event deltas (350000) must equal the final cumulative value, NOT the sum of cumulative values (700000)")
+    }
+
+    /// After `/compact` the cumulative `last_token_usage.cached_input_tokens`
+    /// shrinks. The negative delta must be clamped to zero (a negative
+    /// cacheRead would corrupt F2b totals).
+    func testCacheReadClampedToZeroAfterCompact() async throws {
+        let rollout = """
+        {"type":"session_meta","payload":{"model":"gpt-4o"},"timestamp":1700000000}
+        {"type":"event_msg","id":"msg-1","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":100000,"output_tokens":1000,"cached_input_tokens":100000,"reasoning_output_tokens":100,"total_tokens":101100},"last_token_usage":{"input_tokens":1000,"output_tokens":100,"cached_input_tokens":100000,"reasoning_output_tokens":10,"total_tokens":101110}}},"timestamp":1700000001}
+        {"type":"event_msg","id":"msg-2","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":110000,"output_tokens":2000,"cached_input_tokens":200000,"reasoning_output_tokens":200,"total_tokens":112200},"last_token_usage":{"input_tokens":2000,"output_tokens":200,"cached_input_tokens":200000,"reasoning_output_tokens":20,"total_tokens":202220}}},"timestamp":1700000002}
+        {"type":"event_msg","id":"msg-3","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":80000,"output_tokens":3000,"cached_input_tokens":50000,"reasoning_output_tokens":300,"total_tokens":83300},"last_token_usage":{"input_tokens":3000,"output_tokens":300,"cached_input_tokens":50000,"reasoning_output_tokens":30,"total_tokens":50330}}},"timestamp":1700000003}
+        """
+        try? rollout.write(
+            toFile: tmpDir + "/2026/07/08/rollout-cum-cache-compact.jsonl",
+            atomically: true, encoding: .utf8
+        )
+
+        let extractor = CodexExtractor(rootPath: tmpDir)
+        let events = try await extractor.extractAll()
+        XCTAssertEqual(events.count, 3)
+
+        XCTAssertEqual(events[0].tokens.cacheRead, 100000)
+        XCTAssertEqual(events[1].tokens.cacheRead, 100000,
+                       "Second event: delta = 200000 - 100000 = 100000")
+        XCTAssertEqual(events[2].tokens.cacheRead, 0,
+                       "Third event: cumulative dropped (50000 < 200000): negative delta clamped to 0")
+    }
+
+    /// Mixed session: some events have `last_token_usage`, some don't. When
+    /// `last_token_usage` is present the extractor reads its cached_input_tokens
+    /// and computes a delta against the previous event's cumulative value. When
+    /// it is absent the extractor falls back to the existing cumulative-delta
+    /// path (total_token_usage only). The previous-event cumulative value is
+    /// sourced from `last_token_usage.cached_input_tokens` when available, else
+    /// `total_token_usage.cached_input_tokens`.
+    func testCacheReadFromLastTokenUsageFallsBackToCumulativeIfMissing() async throws {
+        let rollout = """
+        {"type":"session_meta","payload":{"model":"gpt-4o"},"timestamp":1700000000}
+        {"type":"event_msg","id":"msg-1","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"output_tokens":100,"cached_input_tokens":100,"reasoning_output_tokens":10,"total_tokens":1210},"last_token_usage":{"input_tokens":1000,"output_tokens":100,"cached_input_tokens":100,"reasoning_output_tokens":10,"total_tokens":1210}}},"timestamp":1700000001}
+        {"type":"event_msg","id":"msg-2","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1500,"output_tokens":200,"cached_input_tokens":300,"reasoning_output_tokens":20,"total_tokens":1820}}},"timestamp":1700000002}
+        {"type":"event_msg","id":"msg-3","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":2000,"output_tokens":300,"cached_input_tokens":500,"reasoning_output_tokens":30,"total_tokens":2430},"last_token_usage":{"input_tokens":1500,"output_tokens":300,"cached_input_tokens":500,"reasoning_output_tokens":30,"total_tokens":1830}}},"timestamp":1700000003}
+        """
+        try? rollout.write(
+            toFile: tmpDir + "/2026/07/08/rollout-mixed-last.jsonl",
+            atomically: true, encoding: .utf8
+        )
+
+        let extractor = CodexExtractor(rootPath: tmpDir)
+        let events = try await extractor.extractAll()
+        XCTAssertEqual(events.count, 3)
+
+        XCTAssertEqual(events[0].tokens.cacheRead, 100,
+                       "Event 1: last_token_usage present, prev=null → delta = 100")
+        XCTAssertEqual(events[1].tokens.cacheRead, 0,
+                       "Event 2: last_token_usage missing → fallback path, cacheRead=0")
+        XCTAssertEqual(events[2].tokens.cacheRead, 200,
+                       "Event 3: last_token_usage present, prev sourced from event 2's total.cached (300) → delta = 500 - 300 = 200")
+    }
 }
