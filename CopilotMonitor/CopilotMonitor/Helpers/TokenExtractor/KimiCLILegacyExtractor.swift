@@ -41,6 +41,7 @@ struct KimiCLILegacyExtractor: TokenExtractorProtocol {
             return []
         }
         let sessionId = url.deletingLastPathComponent().lastPathComponent
+        let fallbackTimestamp = fileModificationDate(at: url)
         var events: [TokenEvent] = []
 
         for line in content.split(separator: "\n", omittingEmptySubsequences: true) {
@@ -53,7 +54,7 @@ struct KimiCLILegacyExtractor: TokenExtractorProtocol {
 
             let tokenCount = intValue(json["token_count"])
             if tokenCount <= 0 { continue }
-            let timestamp = parseTimestamp(json["timestamp"]) ?? Date(timeIntervalSince1970: 0)
+            let timestamp = parseTimestamp(json["timestamp"]) ?? fallbackTimestamp
             let model = (json["model"] as? String) ?? ""
 
             // Legacy schema only gives a combined token_count; treat it as output.
@@ -99,6 +100,20 @@ struct KimiCLILegacyExtractor: TokenExtractorProtocol {
         if let d = any as? Double { return Int(d) }
         if let s = any as? String, let i = Int(s) { return i }
         return 0
+    }
+
+    /// The legacy kimi-cli `context.jsonl` rows DO NOT carry a per-event
+    /// timestamp — every `_usage` line is just `{"role": "_usage",
+    /// "token_count": N}`. When `parseTimestamp` returns nil (field missing
+    /// OR field present but unparseable) we fall back to the file's
+    /// modification date. The file is append-only, so mtime is a
+    /// reasonable upper-bound estimate of when the event was recorded.
+    private func fileModificationDate(at url: URL) -> Date {
+        let resources = try? url.resourceValues(forKeys: [.contentModificationDateKey])
+        if let date = resources?.contentModificationDate {
+            return date
+        }
+        return Date(timeIntervalSince1970: 0)
     }
 
     private func parseTimestamp(_ any: Any?) -> Date? {

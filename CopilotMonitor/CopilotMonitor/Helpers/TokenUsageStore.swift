@@ -389,6 +389,41 @@ actor TokenUsageStore {
         return Int(sqlite3_changes(db))
     }
 
+    /// One-shot cleanup for legacy Kimi CLI (`context.jsonl`) events whose
+    /// `ts_ms` is 0 because the legacy format does NOT carry a per-event
+    /// timestamp field at all (every `_usage` line is just
+    /// `{"role": "_usage", "token_count": N}`). Pre-fix the extractor
+    /// fell back to `Date(timeIntervalSince1970: 0)`, so every legacy
+    /// kimi event was stamped 1970-01-01 and invisible to 今日 / 本周 / 本月.
+    ///
+    /// After the file-mtime fallback fix lands in
+    /// `KimiCLILegacyExtractor.parseFile`, the next refresh re-scans the
+    /// `context.jsonl` files and `INSERT OR IGNORE`s the corrected rows.
+    /// Deleting the bad rows lets the refresh write correct timestamps.
+    ///
+    /// Scoped to `source = 'kimiCli'` so the newer `KimiCodeExtractor`
+    /// (which writes `source = 'kimiCode'`) is not touched — its own row
+    /// schema and timestamp path are independent.
+    ///
+    /// - Returns: number of rows deleted. Idempotent — returns 0 when no
+    ///   bad rows remain. Returns 0 silently when the store is closed /
+    ///   uninitialized so callers can invoke it on startup without
+    ///   exception handling.
+    func purgeKimiLegacyEventsWithBadTimestamps() async throws -> Int {
+        guard initError == nil, let db else { return 0 }
+        let sql = "DELETE FROM token_events WHERE provider = ? AND source = ? AND ts_ms = 0"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else {
+            return 0
+        }
+        defer { sqlite3_finalize(stmt) }
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        sqlite3_bind_text(stmt, 1, Provider.kimi.rawValue, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_text(stmt, 2, TokenSource.kimiCli.rawValue, -1, SQLITE_TRANSIENT)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { return 0 }
+        return Int(sqlite3_changes(db))
+    }
+
     /// Insert or ignore a quota snapshot (5h or 7d usage state).
     /// Idempotent on PK collision (provider, window, snapshot_ts) — first one wins.
     func upsertQuotaSnapshot(_ snapshot: QuotaSnapshot) throws {

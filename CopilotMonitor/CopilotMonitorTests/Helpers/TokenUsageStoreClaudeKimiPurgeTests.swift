@@ -218,4 +218,75 @@ final class TokenUsageStoreClaudeKimiPurgeTests: XCTestCase {
         XCTAssertEqual(countRows(matching: "source = ?", args: ["kimiCode"]), 1,
                        "kimiCode rows must never be touched by the legacy purge")
     }
+
+    // MARK: - purgeKimiLegacyEventsWithBadTimestamps (no timestamp field)
+    //
+    // This is the "ts_ms = 0 because the legacy kimi-cli `context.jsonl`
+    // rows DO NOT carry a per-event timestamp field at all" scenario.
+    // Pre-fix the extractor fell back to `Date(timeIntervalSince1970: 0)`
+    // and every legacy row ended up stamped 1970-01-01. The fix is the
+    // file-mtime fallback in KimiCLILegacyExtractor.parseFile, and this
+    // purge cleans up the rows that were stamped 1970 before the fix.
+
+    func testPurgeKimiLegacyDeletesOnlyLegacyKimiCliTsMsZero() async throws {
+        // Two bad legacy rows (ts_ms = 0) from the "no timestamp field" bug.
+        try insertRow(.init(provider: "kimi", source: "kimiCli",
+                            sessionId: "leg1", sourceId: "kimi:leg1:main:u1",
+                            tsMs: 0, input: 100, output: 50, cached: 0))
+        try insertRow(.init(provider: "kimi", source: "kimiCli",
+                            sessionId: "leg2", sourceId: "kimi:leg2:main:u2",
+                            tsMs: 0, input: 200, output: 70, cached: 0))
+        // Healthy legacy row that MUST survive.
+        try insertRow(.init(provider: "kimi", source: "kimiCli",
+                            sessionId: "leg3", sourceId: "kimi:leg3:main:u3",
+                            tsMs: healthyMs(year: 2026, month: 6, day: 1),
+                            input: 5, output: 1, cached: 0))
+        // New-schema kimiCode row that MUST survive even with ts_ms = 0.
+        try insertRow(.init(provider: "kimi", source: "kimiCode",
+                            sessionId: "kc1", sourceId: "kimi:kc1:main:u1",
+                            tsMs: 0, input: 999, output: 999, cached: 0))
+
+        let deleted = try await store.purgeKimiLegacyEventsWithBadTimestamps()
+        XCTAssertEqual(deleted, 2, "Only the 2 bad legacy kimiCli rows should be deleted")
+        XCTAssertEqual(rawCount(), 2, "1 healthy kimiCli + 1 kimiCode must remain")
+    }
+
+    func testPurgeKimiLegacyIsIdempotent() async throws {
+        try insertRow(.init(provider: "kimi", source: "kimiCli",
+                            sessionId: "leg1", sourceId: "kimi:leg1:main:u1",
+                            tsMs: 0, input: 100, output: 50, cached: 0))
+
+        let first = try await store.purgeKimiLegacyEventsWithBadTimestamps()
+        let second = try await store.purgeKimiLegacyEventsWithBadTimestamps()
+        XCTAssertEqual(first, 1, "First call deletes the bad row")
+        XCTAssertEqual(second, 0, "Second call finds nothing to delete")
+    }
+
+    func testPurgeKimiLegacyPreservesAllOtherProviders() async throws {
+        // Bad legacy row to purge.
+        try insertRow(.init(provider: "kimi", source: "kimiCli",
+                            sessionId: "leg1", sourceId: "kimi:leg1:main:u1",
+                            tsMs: 0, input: 100, output: 50, cached: 0))
+        // Rows that MUST survive (various ts_ms values).
+        try insertRow(.init(provider: "claude", source: "claudeCode",
+                            sessionId: "c1", sourceId: "claudeCode:c1:main:m1",
+                            tsMs: 0, input: 1, output: 2, cached: 0))
+        try insertRow(.init(provider: "kimi", source: "kimiCode",
+                            sessionId: "kc1", sourceId: "kimi:kc1:main:u1",
+                            tsMs: 0, input: 1, output: 2, cached: 0))
+        try insertRow(.init(provider: "opencode", source: "opencode",
+                            sessionId: "o1", sourceId: "opencode:o1:main:m1",
+                            tsMs: 0, input: 1, output: 2, cached: 0))
+        try insertRow(.init(provider: "codex", source: "codexCli",
+                            sessionId: "cx1", sourceId: "codex:cx1:main:m1",
+                            tsMs: 0, input: 1, output: 2, cached: 0))
+        try insertRow(.init(provider: "kimi", source: "kimiCli",
+                            sessionId: "leg_ok", sourceId: "kimi:leg_ok:main:u1",
+                            tsMs: healthyMs(year: 2026, month: 6, day: 1),
+                            input: 1, output: 2, cached: 0))
+
+        let deleted = try await store.purgeKimiLegacyEventsWithBadTimestamps()
+        XCTAssertEqual(deleted, 1, "Only the bad legacy kimiCli row is deleted")
+        XCTAssertEqual(rawCount(), 5, "claude + kimiCode + opencode + codex + healthy kimiCli must survive")
+    }
 }

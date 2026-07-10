@@ -218,29 +218,116 @@ final class KimiCLILegacyExtractorTests: XCTestCase {
     }
 
     /// A row with a garbage timestamp string must not crash the extractor.
-    /// The pre-fix `parseTimestamp` returned nil for unparseable input, so
-    /// the caller fell back to `Date(timeIntervalSince1970: 0)` — a 1970
-    /// stamp. The post-fix parser also returns nil for garbage and the
-    /// same fallback applies, but the extractor must survive without
-    /// throwing. This test pins that "swallow garbage" contract.
+    /// The `parseTimestamp` helper returns nil for unparseable input and
+    /// the caller falls back to the file's modification date — a
+    /// reasonable approximation because the file is append-only. This
+    /// test pins the "swallow garbage + use file mtime" contract so a
+    /// regression would re-introduce the silent epoch-0 collapse.
     func testDoesNotCrashOnUnparseableTimestamp() async {
         let dir = tmpDir + "/garbage/session1"
         try? FileManager.default.createDirectory(
             atPath: dir, withIntermediateDirectories: true
         )
+        let path = dir + "/context.jsonl"
         let ctx = """
         {"role":"_usage","token_count":7426,"timestamp":"not-a-timestamp","model":"kimi-for-coding"}
         """
-        try? ctx.write(
-            toFile: dir + "/context.jsonl", atomically: true, encoding: .utf8
-        )
+        try? ctx.write(toFile: path, atomically: true, encoding: .utf8)
+
+        let knownDate = Date(timeIntervalSince1970: 1_751_376_645)
+        do {
+            try FileManager.default.setAttributes(
+                [.modificationDate: knownDate],
+                ofItemAtPath: path
+            )
+        } catch {
+            XCTFail("Failed to set file mtime: \(error)")
+            return
+        }
 
         let extractor = KimiCLILegacyExtractor(rootPath: tmpDir)
         let events = (try? await extractor.extractAll()) ?? []
 
         XCTAssertEqual(events.count, 1, "Garbage timestamp must not skip the event")
         let event = try? XCTUnwrap(events.first)
-        XCTAssertEqual(event?.timestamp, Date(timeIntervalSince1970: 0),
-                       "Unparseable timestamp must fall back to epoch 0")
+        let delta = abs((event?.timestamp.timeIntervalSince1970 ?? 0) - knownDate.timeIntervalSince1970)
+        XCTAssertLessThan(delta, 1.0,
+                          "Unparseable timestamp must fall back to the file mtime, not epoch 0")
+    }
+
+    /// The legacy kimi-cli `context.jsonl` rows look like
+    /// `{"role": "_usage", "token_count": N}` — they DO NOT carry a
+    /// per-event timestamp. Pre-fix the extractor fell back to
+    /// `Date(timeIntervalSince1970: 0)` and 117 events were invisible
+    /// to 今日 / 本周 / 本月. Post-fix the extractor uses the file's
+    /// modification date as the fallback timestamp. Because the file
+    /// is append-only, mtime is a reasonable upper-bound estimate.
+    func testFallsBackToFileModificationDateWhenTimestampMissing() async {
+        let dir = tmpDir + "/no-ts/session1"
+        try? FileManager.default.createDirectory(
+            atPath: dir, withIntermediateDirectories: true
+        )
+        let path = dir + "/context.jsonl"
+        let ctx = """
+        {"role":"_usage","token_count":16762,"model":"kimi-for-coding"}
+        """
+        try? ctx.write(toFile: path, atomically: true, encoding: .utf8)
+
+        let knownDate = Date(timeIntervalSince1970: 1_751_376_645)
+        do {
+            try FileManager.default.setAttributes(
+                [.modificationDate: knownDate],
+                ofItemAtPath: path
+            )
+        } catch {
+            XCTFail("Failed to set file mtime: \(error)")
+            return
+        }
+
+        let extractor = KimiCLILegacyExtractor(rootPath: tmpDir)
+        let events = (try? await extractor.extractAll()) ?? []
+
+        XCTAssertEqual(events.count, 1, "An event with no timestamp must still be extracted")
+        let event = try? XCTUnwrap(events.first)
+        let delta = abs((event?.timestamp.timeIntervalSince1970 ?? 0) - knownDate.timeIntervalSince1970)
+        XCTAssertLessThan(delta, 1.0,
+                          "Missing-timestamp event must fall back to file mtime within 1 second")
+        XCTAssertNotEqual(event?.timestamp, Date(timeIntervalSince1970: 0),
+                          "Missing-timestamp event must NOT collapse to epoch 0")
+    }
+
+    /// When a timestamp IS present (e.g. a hybrid session that mixes
+    /// legacy and new lines), the json-supplied timestamp always wins
+    /// over the file mtime. This guards against the file-mtime
+    /// fallback overwriting real timestamps.
+    func testJsonTimestampWinsOverFileMtimeFallback() async {
+        let dir = tmpDir + "/mixed/session1"
+        try? FileManager.default.createDirectory(
+            atPath: dir, withIntermediateDirectories: true
+        )
+        let path = dir + "/context.jsonl"
+        let ctx = """
+        {"role":"_usage","token_count":16762,"timestamp":1700000000,"model":"kimi-for-coding"}
+        """
+        try? ctx.write(toFile: path, atomically: true, encoding: .utf8)
+
+        let knownDate = Date(timeIntervalSince1970: 1_751_376_645)
+        do {
+            try FileManager.default.setAttributes(
+                [.modificationDate: knownDate],
+                ofItemAtPath: path
+            )
+        } catch {
+            XCTFail("Failed to set file mtime: \(error)")
+            return
+        }
+
+        let extractor = KimiCLILegacyExtractor(rootPath: tmpDir)
+        let events = (try? await extractor.extractAll()) ?? []
+
+        XCTAssertEqual(events.count, 1)
+        let event = try? XCTUnwrap(events.first)
+        XCTAssertEqual(event?.timestamp, Date(timeIntervalSince1970: 1_700_000_000),
+                       "Json timestamp must take precedence over file mtime fallback")
     }
 }
