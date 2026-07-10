@@ -176,4 +176,69 @@ final class TokenUsageStoreCodexPurgeTests: XCTestCase {
         let date = Calendar(identifier: .gregorian).date(from: comps) ?? Date()
         return Int64(date.timeIntervalSince1970 * 1000)
     }
+
+    // MARK: - purgeAllCodexEvents
+
+    func testPurgeAllCodexEventsDeletesEverything() async throws {
+        // A mix of codex rows (some healthy, some ts_ms=0) — every single
+        // one must be purged by the all-events method, regardless of ts_ms.
+        try insertRow(.init(provider: "codex", source: "codexCli",
+                            sessionId: "s1", sourceId: "codex:s1:main:m1",
+                            tsMs: 0, input: 100, output: 50, cached: 80))
+        try insertRow(.init(provider: "codex", source: "codexCli",
+                            sessionId: "s2", sourceId: "codex:s2:main:m2",
+                            tsMs: healthyMs(year: 2026, month: 5, day: 1),
+                            input: 200, output: 70, cached: 150))
+        try insertRow(.init(provider: "codex", source: "codexCli",
+                            sessionId: "s3", sourceId: "codex:s3:main:m3",
+                            tsMs: healthyMs(year: 2026, month: 6, day: 15),
+                            input: 300, output: 90, cached: 220))
+
+        let deleted = try await store.purgeAllCodexEvents()
+
+        XCTAssertEqual(deleted, 3, "All 3 codex rows must be purged")
+        XCTAssertEqual(countRows(matching: "provider = ?", args: ["codex"]), 0,
+                       "No codex rows should remain after the all-events purge")
+    }
+
+    func testPurgeAllCodexEventsIsIdempotent() async throws {
+        try insertRow(.init(provider: "codex", source: "codexCli",
+                            sessionId: "s1", sourceId: "codex:s1:main:m1",
+                            tsMs: healthyMs(year: 2026, month: 5, day: 1),
+                            input: 100, output: 50, cached: 80))
+
+        let first = try await store.purgeAllCodexEvents()
+        let second = try await store.purgeAllCodexEvents()
+
+        XCTAssertEqual(first, 1, "First run deletes the codex row")
+        XCTAssertEqual(second, 0, "Second run finds nothing to delete")
+        XCTAssertEqual(rawCount(), 0)
+    }
+
+    func testPurgeAllCodexEventsPreservesOtherProviders() async throws {
+        // Two codex rows (both must be purged) plus rows from claude and
+        // opencode (both must survive).
+        try insertRow(.init(provider: "codex", source: "codexCli",
+                            sessionId: "s1", sourceId: "codex:s1:main:m1",
+                            tsMs: 0, input: 100, output: 50, cached: 80))
+        try insertRow(.init(provider: "codex", source: "codexCli",
+                            sessionId: "s2", sourceId: "codex:s2:main:m2",
+                            tsMs: healthyMs(year: 2026, month: 5, day: 1),
+                            input: 200, output: 70, cached: 150))
+        try insertRow(.init(provider: "claude", source: "claudeCode",
+                            sessionId: "c1", sourceId: "claude:c1:main:m1",
+                            tsMs: healthyMs(year: 2026, month: 5, day: 2),
+                            input: 400, output: 100, cached: 300))
+        try insertRow(.init(provider: "opencode", source: "opencode",
+                            sessionId: "o1", sourceId: "opencode:o1:main:m1",
+                            tsMs: healthyMs(year: 2026, month: 5, day: 3),
+                            input: 500, output: 120, cached: 380))
+
+        let deleted = try await store.purgeAllCodexEvents()
+
+        XCTAssertEqual(deleted, 2, "Only the 2 codex rows must be deleted")
+        XCTAssertEqual(rawCount(), 2, "Claude + opencode rows must survive")
+        XCTAssertEqual(countRows(matching: "provider = ?", args: ["claude"]), 1)
+        XCTAssertEqual(countRows(matching: "provider = ?", args: ["opencode"]), 1)
+    }
 }

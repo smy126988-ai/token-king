@@ -296,6 +296,39 @@ actor TokenUsageStore {
         return Int(sqlite3_changes(db))
     }
 
+    /// One-shot migration that deletes EVERY Codex row from `token_events`,
+    /// not just the ones with bad timestamps. Use this after a Codex
+    /// extractor bug that produced wrong token counts (e.g. the
+    /// `last_token_usage` confusion) — every affected row is wrong, so
+    /// keeping the "healthy-looking" ones around would still under-report
+    /// usage.
+    ///
+    /// The next extractor refresh will re-emit corrected rows from the
+    /// rollout JSONL files. The `source_id UNIQUE` constraint would
+    /// otherwise collide with the pre-fix rows, so they must go first.
+    ///
+    /// - Returns: number of rows deleted. Idempotent — returns 0 when no
+    ///   codex rows remain. Returns 0 silently when the store is closed
+    ///   / uninitialized so callers can invoke it on startup without
+    ///   exception handling.
+    /// - Note: not auto-invoked from `AppDelegate` because it is
+    ///   destructive. Run once via debug menu or migration script after
+    ///   the fix deploys:
+    ///     `DELETE FROM token_events WHERE provider = 'codex'`
+    func purgeAllCodexEvents() async throws -> Int {
+        guard initError == nil, let db else { return 0 }
+        let sql = "DELETE FROM token_events WHERE provider = ?"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else {
+            return 0
+        }
+        defer { sqlite3_finalize(stmt) }
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        sqlite3_bind_text(stmt, 1, Provider.codex.rawValue, -1, SQLITE_TRANSIENT)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { return 0 }
+        return Int(sqlite3_changes(db))
+    }
+
     /// Insert or ignore a quota snapshot (5h or 7d usage state).
     /// Idempotent on PK collision (provider, window, snapshot_ts) — first one wins.
     func upsertQuotaSnapshot(_ snapshot: QuotaSnapshot) throws {

@@ -82,31 +82,13 @@ final class CodexExtractorTimestampTests: XCTestCase {
         _ = try await extractor.extractAll()
     }
 
-    // MARK: - last_token_usage is preferred over total_token_usage
+    // MARK: - last_token_usage was previously preferred but is wrong
+    //
+    // Codex's `last_token_usage` is actually the CUMULATIVE context size at
+    // the last call (same shape as `total_token_usage`), NOT a per-event
+    // delta. The correct per-event delta is computed from
+    // `total_token_usage.total_tokens` between consecutive events. See
+    // CodexExtractorTests.testDeltaComputedFromTotalTokensBetweenEvents
+    // and friends for the regression coverage.
 
-    func testUsesLastTokenUsageDeltaNotCumulativeTotal() async throws {
-        let sessionMeta = """
-        {"timestamp":"2026-05-20T08:33:54.127Z","type":"session_meta","payload":{"id":"s1","model":"gpt-4o"}}
-        """
-        let eventMsg = """
-        {"timestamp":"2026-05-20T08:34:30.500Z","type":"event_msg","id":"msg-1","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":100000,"cached_input_tokens":50000,"output_tokens":5000,"reasoning_output_tokens":1000,"total_tokens":106000},"last_token_usage":{"input_tokens":1000,"cached_input_tokens":500,"output_tokens":50,"reasoning_output_tokens":10,"total_tokens":1060},"model_context_window":258400}}}
-        """
-        writeRollout(name: "rollout-iso-delta.jsonl", lines: [sessionMeta, eventMsg])
-
-        let extractor = CodexExtractor(rootPath: tmpDir)
-        let events = try await extractor.extractAll()
-
-        XCTAssertEqual(events.count, 1)
-        let event = try XCTUnwrap(events.first)
-        // Codex `last_token_usage.input_tokens` is the fresh / non-cached
-        // tokens billed this turn — separate from `cached_input_tokens`.
-        // So `input` is the raw value while `cacheRead` holds the cache
-        // hits separately.
-        XCTAssertEqual(event.tokens.input, 1000,
-                       "Should use last_token_usage.input_tokens (raw, not subtracted), not cumulative")
-        XCTAssertEqual(event.tokens.output, 50)
-        XCTAssertEqual(event.tokens.cacheRead, 500)
-        XCTAssertEqual(event.tokens.cacheWrite, 0)
-        XCTAssertEqual(event.tokens.reasoning, 10)
-    }
 }

@@ -80,7 +80,6 @@ struct CodexExtractor: TokenExtractorProtocol {
 
                 let deltaTokens = makeDeltaBreakdown(
                     totalUsage: totalUsage,
-                    lastUsage: lastUsage,
                     prevCumulativeTotal: prevCumulativeTotal
                 )
                 prevCumulativeTotal = totalTokens
@@ -125,7 +124,6 @@ struct CodexExtractor: TokenExtractorProtocol {
 
     private func makeDeltaBreakdown(
         totalUsage: [String: Any],
-        lastUsage: [String: Any]?,
         prevCumulativeTotal: Int?
     ) -> TokenBreakdown {
         let inputTokens = intValue(totalUsage["input_tokens"])
@@ -136,38 +134,20 @@ struct CodexExtractor: TokenExtractorProtocol {
 
         let nonCachedInput = max(0, inputTokens - cachedTokens)
 
-        // Prefer last_token_usage (per-turn delta) when fully present.
-        // Codex's `last_token_usage` reports `input_tokens` as the fresh /
-        // non-cached tokens billed this turn — it does NOT include
-        // `cached_input_tokens`. So `input` is the raw value, while
-        // `cacheRead` holds the cache-hit tokens separately.
-        if isCompleteLastUsage(lastUsage) {
-            let li = intValue(lastUsage?["input_tokens"])
-            let lo = intValue(lastUsage?["output_tokens"])
-            let lc = intValue(lastUsage?["cached_input_tokens"])
-            let lr = intValue(lastUsage?["reasoning_output_tokens"])
-            return TokenBreakdown(
-                input: li,
-                output: lo,
-                cacheRead: lc,
-                cacheWrite: 0,
-                reasoning: lr
-            )
+        // Compute the per-event delta from `total_token_usage.total_tokens`
+        // (the cumulative context size reported by Codex). On the first
+        // event of a session there is no previous total to subtract, so the
+        // full cumulative total is treated as the delta. On subsequent
+        // events the delta is `current - previous`, clamped to zero to
+        // absorb `/compact`-style drops without producing a negative
+        // breakdown.
+        let delta: Int
+        if let prev = prevCumulativeTotal {
+            delta = max(0, totalTokens - prev)
+        } else {
+            delta = totalTokens
         }
 
-        guard let prev = prevCumulativeTotal else {
-            // First token_count in this rollout: treat cumulative total as the
-            // first turn's usage because no delta is available.
-            return TokenBreakdown(
-                input: nonCachedInput,
-                output: outputTokens,
-                cacheRead: cachedTokens,
-                cacheWrite: 0,
-                reasoning: reasoningTokens
-            )
-        }
-
-        let delta = max(0, totalTokens - prev)
         return proportionalDelta(
             totalDelta: delta,
             nonCachedInput: nonCachedInput,
@@ -176,18 +156,6 @@ struct CodexExtractor: TokenExtractorProtocol {
             reasoning: reasoningTokens,
             total: totalTokens
         )
-    }
-
-    private func isCompleteLastUsage(_ lastUsage: [String: Any]?) -> Bool {
-        guard let lastUsage = lastUsage else { return false }
-        let required = [
-            "input_tokens",
-            "output_tokens",
-            "cached_input_tokens",
-            "reasoning_output_tokens",
-            "total_tokens",
-        ]
-        return required.allSatisfy { lastUsage[$0] != nil }
     }
 
     private func proportionalDelta(
