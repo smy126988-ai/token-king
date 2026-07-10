@@ -39,6 +39,10 @@ struct CodexExtractor: TokenExtractorProtocol {
         var model = ""
         var events: [TokenEvent] = []
         var lineIndex = 0
+        // Tracks the cumulative `total_token_usage.total_tokens` from the
+        // previous event in this file. Used ONLY as a safety check to detect
+        // `/compact` (cumulative shrink) when the fallback path is taken.
+        // Per-field token counts come from `last_token_usage` directly.
         var prevCumulativeTotal: Int? = nil
 
         for line in content.split(separator: "\n", omittingEmptySubsequences: true) {
@@ -67,10 +71,6 @@ struct CodexExtractor: TokenExtractorProtocol {
                 let totalUsage = info["total_token_usage"] as? [String: Any]
                 let lastUsage = info["last_token_usage"] as? [String: Any]
 
-                guard let totalUsage = totalUsage else { continue }
-
-                let totalTokens = intValue(totalUsage["total_tokens"])
-
                 let effectiveModel = model.isEmpty
                     ? ((lastUsage?["model"] as? String) ?? "gpt-4o")
                     : model
@@ -78,17 +78,20 @@ struct CodexExtractor: TokenExtractorProtocol {
                 let timestamp = parseTimestamp(json["timestamp"]) ?? Date(timeIntervalSince1970: 0)
                 let msgId = (json["id"] as? String) ?? "\(lineIndex)"
 
-                let deltaTokens = makeDeltaBreakdown(
+                let tokens = makeBreakdown(
+                    lastUsage: lastUsage,
                     totalUsage: totalUsage,
                     prevCumulativeTotal: prevCumulativeTotal
                 )
-                prevCumulativeTotal = totalTokens
+                if let totalUsage {
+                    prevCumulativeTotal = intValue(totalUsage["total_tokens"])
+                }
 
                 let provider = TokenNormalizer.matchProvider(model: effectiveModel, providerID: "openai")
                 events.append(TokenEvent(
                     provider: provider, model: effectiveModel, source: .codexCli,
                     sessionId: sessionId, timestamp: timestamp,
-                    tokens: deltaTokens,
+                    tokens: tokens,
                     sourceId: "codex:\(sessionId):main:\(msgId)"
                 ))
             }
@@ -122,67 +125,54 @@ struct CodexExtractor: TokenExtractorProtocol {
         return nil
     }
 
-    private func makeDeltaBreakdown(
-        totalUsage: [String: Any],
+    /// Build a per-event TokenBreakdown from a Codex rollout token_count event.
+    ///
+    /// Primary path: read `last_token_usage` directly. Codex's `last_token_usage`
+    /// IS the per-event delta (it reports the most recent API call's usage),
+    /// while `total_token_usage` is the cumulative context size — using it
+    /// directly double-counts cache across events. Codex does not expose a
+    /// cache_write field, so it is always 0.
+    ///
+    /// Fallback path: when `last_token_usage` is absent (older rollouts), fall
+    /// back to the cumulative delta via `prevCumulativeTotal`. The delta is
+    /// assigned to `input`; output / cacheRead / reasoning / cacheWrite stay
+    /// at 0 because the per-field split cannot be reconstructed. Negative
+    /// deltas (e.g., after `/compact`) are clamped to 0.
+    private func makeBreakdown(
+        lastUsage: [String: Any]?,
+        totalUsage: [String: Any]?,
         prevCumulativeTotal: Int?
     ) -> TokenBreakdown {
-        let inputTokens = intValue(totalUsage["input_tokens"])
-        let outputTokens = intValue(totalUsage["output_tokens"])
-        let cachedTokens = intValue(totalUsage["cached_input_tokens"])
-        let reasoningTokens = intValue(totalUsage["reasoning_output_tokens"])
+        if let lastUsage {
+            let input = intValue(lastUsage["input_tokens"])
+            let output = intValue(lastUsage["output_tokens"])
+            let cacheRead = intValue(lastUsage["cached_input_tokens"])
+            let reasoning = intValue(lastUsage["reasoning_output_tokens"])
+            return TokenBreakdown(
+                input: input,
+                output: output,
+                cacheRead: cacheRead,
+                cacheWrite: 0,
+                reasoning: reasoning
+            )
+        }
+
+        guard let totalUsage else {
+            return TokenBreakdown.zero
+        }
         let totalTokens = intValue(totalUsage["total_tokens"])
-
-        let nonCachedInput = max(0, inputTokens - cachedTokens)
-
-        // Compute the per-event delta from `total_token_usage.total_tokens`
-        // (the cumulative context size reported by Codex). On the first
-        // event of a session there is no previous total to subtract, so the
-        // full cumulative total is treated as the delta. On subsequent
-        // events the delta is `current - previous`, clamped to zero to
-        // absorb `/compact`-style drops without producing a negative
-        // breakdown.
         let delta: Int
         if let prev = prevCumulativeTotal {
             delta = max(0, totalTokens - prev)
         } else {
             delta = totalTokens
         }
-
-        return proportionalDelta(
-            totalDelta: delta,
-            nonCachedInput: nonCachedInput,
-            output: outputTokens,
-            cacheRead: cachedTokens,
-            reasoning: reasoningTokens,
-            total: totalTokens
-        )
-    }
-
-    private func proportionalDelta(
-        totalDelta: Int,
-        nonCachedInput: Int,
-        output: Int,
-        cacheRead: Int,
-        reasoning: Int,
-        total: Int
-    ) -> TokenBreakdown {
-        guard totalDelta > 0, total > 0 else {
-            return TokenBreakdown(input: 0, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0)
-        }
-
-        let inputDelta = Int(Double(totalDelta) * Double(nonCachedInput) / Double(total))
-        let outputDelta = Int(Double(totalDelta) * Double(output) / Double(total))
-        let cacheReadDelta = Int(Double(totalDelta) * Double(cacheRead) / Double(total))
-        let reasoningDelta = Int(Double(totalDelta) * Double(reasoning) / Double(total))
-
-        let remainder = totalDelta - (inputDelta + outputDelta + cacheReadDelta + reasoningDelta)
-
         return TokenBreakdown(
-            input: inputDelta + remainder,
-            output: outputDelta,
-            cacheRead: cacheReadDelta,
+            input: delta,
+            output: 0,
+            cacheRead: 0,
             cacheWrite: 0,
-            reasoning: reasoningDelta
+            reasoning: 0
         )
     }
 }

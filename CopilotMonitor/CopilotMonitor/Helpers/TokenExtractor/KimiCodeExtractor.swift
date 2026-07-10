@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 /// Kimi Code (newer Rust port) JSONL scanner.
 /// Path: ~/.kimi-code/sessions/<workdir-hash>/<sessionId>/agents/main/wire.jsonl
@@ -24,13 +25,17 @@ struct KimiCodeExtractor: TokenExtractorProtocol {
         }
 
         var events: [TokenEvent] = []
+        // Kimi Code wire.jsonl `inputCacheRead` / `inputCacheCreation` are
+        // session-cumulative counters. Track per-session to convert to
+        // per-event deltas and avoid double-counting.
+        var cacheStateBySession: [String: CacheState] = [:]
         for case let url as URL in enumerator where url.lastPathComponent == "wire.jsonl" {
-            events.append(contentsOf: parseFile(at: url))
+            events.append(contentsOf: parseFile(at: url, cacheState: &cacheStateBySession))
         }
         return events
     }
 
-    private func parseFile(at url: URL) -> [TokenEvent] {
+    private func parseFile(at url: URL, cacheState: inout [String: CacheState]) -> [TokenEvent] {
         guard let data = try? Data(contentsOf: url),
               let content = String(data: data, encoding: .utf8) else {
             return []
@@ -38,11 +43,10 @@ struct KimiCodeExtractor: TokenExtractorProtocol {
         let sessionId = url.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().lastPathComponent
         let fallbackModel = lookupKimiModel()
         var events: [TokenEvent] = []
-        var lineIndex = 0
 
         for line in content.split(separator: "\n", omittingEmptySubsequences: true) {
-            defer { lineIndex += 1 }
-            guard let lineData = String(line).data(using: .utf8),
+            let rawLine = String(line)
+            guard let lineData = rawLine.data(using: .utf8),
                   let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any] else {
                 continue
             }
@@ -59,22 +63,55 @@ struct KimiCodeExtractor: TokenExtractorProtocol {
 
             let input = intValue(usage["inputOther"]) + intValue(usage["input_other"])
             let output = intValue(usage["output"])
-            let cacheRead = intValue(usage["inputCacheRead"]) + intValue(usage["input_cache_read"])
-            let cacheWrite = intValue(usage["inputCacheCreation"]) + intValue(usage["input_cache_creation"])
+            let cumulativeCacheRead = intValue(usage["inputCacheRead"]) + intValue(usage["input_cache_read"])
+            let cumulativeCacheWrite = intValue(usage["inputCacheCreation"]) + intValue(usage["input_cache_creation"])
+
+            // Convert session-cumulative cache counters to per-event deltas.
+            // `max(0, …)` absorbs cache-reset / context-compact drops without
+            // emitting negative cache values.
+            let prev = cacheState[sessionId] ?? CacheState()
+            let cacheRead = max(0, cumulativeCacheRead - prev.cumulativeCacheRead)
+            let cacheWrite = max(0, cumulativeCacheWrite - prev.cumulativeCacheWrite)
+            cacheState[sessionId] = CacheState(
+                cumulativeCacheRead: cumulativeCacheRead,
+                cumulativeCacheWrite: cumulativeCacheWrite
+            )
 
             let tokens = TokenBreakdown(
                 input: input, output: output,
                 cacheRead: cacheRead, cacheWrite: cacheWrite
             )
             let provider = TokenNormalizer.matchProvider(model: model, providerID: "moonshot")
+            let sourceId = makeSourceId(sessionId: sessionId, file: url, json: json, rawLine: rawLine)
             events.append(TokenEvent(
                 provider: provider, model: model, source: .kimiCode,
                 sessionId: sessionId, timestamp: timestamp,
                 tokens: tokens,
-                sourceId: "kimiCode:\(sessionId):main:\(lineIndex)"
+                sourceId: sourceId
             ))
         }
         return events
+    }
+
+    private func makeSourceId(sessionId: String, file: URL, json: [String: Any], rawLine: String) -> String {
+        if let stableId = stableId(from: json) {
+            return "kimiCode:\(sessionId):main:\(stableId)"
+        }
+        let hash = sha256Prefix(rawLine)
+        return "file:\(sessionId)/\(file.lastPathComponent):hash:\(hash)"
+    }
+
+    private func stableId(from json: [String: Any]) -> String? {
+        if let requestId = json["request_id"] as? String, !requestId.isEmpty { return requestId }
+        if let message = json["message"] as? [String: Any],
+           let messageId = message["id"] as? String, !messageId.isEmpty { return messageId }
+        if let id = json["id"] as? String, !id.isEmpty { return id }
+        return nil
+    }
+
+    private func sha256Prefix(_ string: String, length: Int = 16) -> String {
+        let digest = SHA256.hash(data: Data(string.utf8))
+        return String(Data(digest).map { String(format: "%02x", $0) }.joined().prefix(length))
     }
 
     private static func defaultConfigPath() -> String {
@@ -112,4 +149,10 @@ struct KimiCodeExtractor: TokenExtractorProtocol {
         if let s = any as? String, let i = Int(s) { return i }
         return 0
     }
+}
+
+/// Per-session accumulator for Kimi Code's cumulative cache counters.
+private struct CacheState {
+    var cumulativeCacheRead: Int = 0
+    var cumulativeCacheWrite: Int = 0
 }

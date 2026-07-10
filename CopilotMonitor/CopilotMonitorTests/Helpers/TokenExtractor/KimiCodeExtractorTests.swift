@@ -160,4 +160,153 @@ final class KimiCodeExtractorTests: XCTestCase {
             "kimi-auto"
         )
     }
+
+    func testSourceIdUsesRequestIdWhenPresent() async {
+        let dir = tmpDir + "/ws_req/session1/agents/main"
+        try? FileManager.default.createDirectory(
+            atPath: dir, withIntermediateDirectories: true
+        )
+        let wire = """
+        {"time":1700000000000,"model":"kimi-code/kimi-for-coding","request_id":"req-abc","usage":{"inputOther":10,"output":20,"inputCacheRead":0,"inputCacheCreation":0}}
+        """
+        try? wire.write(
+            toFile: dir + "/wire.jsonl", atomically: true, encoding: .utf8
+        )
+
+        let extractor = KimiCodeExtractor(rootPath: tmpDir)
+        let events = (try? await extractor.extractAll()) ?? []
+        XCTAssertEqual(events.count, 1)
+        XCTAssertEqual(events.first?.sourceId, "kimiCode:session1:main:req-abc")
+    }
+
+    func testSourceIdStableOnAppend() async {
+        let dir = tmpDir + "/ws_append/session1/agents/main"
+        try? FileManager.default.createDirectory(
+            atPath: dir, withIntermediateDirectories: true
+        )
+        let path = dir + "/wire.jsonl"
+        let line1 = "{\"time\":1700000000000,\"model\":\"kimi-code/kimi-for-coding\",\"usage\":{\"inputOther\":10,\"output\":20,\"inputCacheRead\":0,\"inputCacheCreation\":0}}"
+        let line2 = "{\"time\":1700000001000,\"model\":\"kimi-code/kimi-for-coding\",\"usage\":{\"inputOther\":30,\"output\":40,\"inputCacheRead\":0,\"inputCacheCreation\":0}}"
+
+        try? line1.write(toFile: path, atomically: true, encoding: .utf8)
+        let extractor = KimiCodeExtractor(rootPath: tmpDir)
+        let events1 = (try? await extractor.extractAll()) ?? []
+        XCTAssertEqual(events1.count, 1)
+        let ids1 = Set(events1.map { $0.sourceId })
+
+        if let handle = FileHandle(forWritingAtPath: path) {
+            handle.seekToEndOfFile()
+            handle.write(("\n" + line2).data(using: .utf8)!)
+            handle.closeFile()
+        }
+
+        let events2 = (try? await extractor.extractAll()) ?? []
+        XCTAssertEqual(events2.count, events1.count + 1)
+        let ids2 = Set(events2.map { $0.sourceId })
+        XCTAssertTrue(ids1.isSubset(of: ids2), "Pre-existing sourceIds must stay stable after append")
+        XCTAssertEqual(ids2.subtracting(ids1).count, 1, "Exactly one new sourceId should appear")
+
+        let newSourceId = events2.first { !ids1.contains($0.sourceId) }?.sourceId ?? ""
+        XCTAssertTrue(newSourceId.hasPrefix("file:"), "Hash fallback should use file: prefix")
+        XCTAssertTrue(newSourceId.contains(":hash:"), "Hash fallback should include :hash: segment")
+    }
+
+    // MARK: - F2b fix: `inputCacheRead` and `inputCacheCreation` in Kimi Code
+    // wire.jsonl are session-cumulative counters, not per-event deltas. The
+    // extractor MUST convert them to per-event deltas per-session before
+    // emitting, otherwise the F2b totals double-count the actual cache usage.
+
+    /// Build a wire.jsonl file with explicit cumulative cache counters.
+    /// Returns the directory hosting the wire.jsonl. Caller is responsible for
+    /// cleanup.
+    private func writeCumulativeCacheFile(
+        root: String,
+        sessionId: String,
+        cumulativeCacheReads: [Int],
+        cumulativeCacheWrites: [Int]? = nil
+    ) throws {
+        precondition(cumulativeCacheReads.count >= 1)
+        let writes = cumulativeCacheWrites ?? Array(repeating: 0, count: cumulativeCacheReads.count)
+        precondition(writes.count == cumulativeCacheReads.count)
+
+        let dir = root + "/ws_cumcache/\(sessionId)/agents/main"
+        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        let path = dir + "/wire.jsonl"
+        var lines: [String] = []
+        for (i, readVal) in cumulativeCacheReads.enumerated() {
+            let writeVal = writes[i]
+            let time = 1700000000000 + i * 1000
+            let line = """
+                {"time":\(time),"model":"kimi-code/kimi-for-coding","usage":{"inputOther":10,"output":5,"inputCacheRead":\(readVal),"inputCacheCreation":\(writeVal)}}
+                """
+            lines.append(line)
+        }
+        try lines.joined(separator: "\n").write(toFile: path, atomically: true, encoding: .utf8)
+    }
+
+    /// Pre-fix the three events above would store `inputCacheRead` verbatim
+    /// (100, 250, 300 — summing to 650 when the real per-event cache
+    /// was only 300). The fixed extractor emits per-event deltas
+    /// (100, 150, 50).
+    func testCacheReadIsPerEventDeltaNotCumulative() async throws {
+        let root = NSTemporaryDirectory() + "kimic_cumcache_\(UUID().uuidString)"
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        try writeCumulativeCacheFile(
+            root: root,
+            sessionId: "ses_cache",
+            cumulativeCacheReads: [100, 250, 300]
+        )
+
+        let extractor = KimiCodeExtractor(rootPath: root)
+        let events = (try? await extractor.extractAll()) ?? []
+        XCTAssertEqual(events.count, 3)
+        XCTAssertEqual(events[0].tokens.cacheRead, 100,
+                       "First event in session: full cumulative value as delta")
+        XCTAssertEqual(events[1].tokens.cacheRead, 150,
+                       "Second event: delta = 250 - 100 = 150")
+        XCTAssertEqual(events[2].tokens.cacheRead, 50,
+                       "Third event: delta = 300 - 250 = 50")
+    }
+
+    /// After a Kimi Code cache reset / context compact the cumulative
+    /// `inputCacheRead` value shrinks. The negative delta must be clamped to
+    /// zero rather than emitted as a negative number.
+    func testCacheReadClampedToZeroAfterCompact() async throws {
+        let root = NSTemporaryDirectory() + "kimic_cumcache_compact_\(UUID().uuidString)"
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        try writeCumulativeCacheFile(
+            root: root,
+            sessionId: "ses_compact",
+            cumulativeCacheReads: [100, 200, 50]
+        )
+
+        let extractor = KimiCodeExtractor(rootPath: root)
+        let events = (try? await extractor.extractAll()) ?? []
+        XCTAssertEqual(events.count, 3)
+        XCTAssertEqual(events[0].tokens.cacheRead, 100)
+        XCTAssertEqual(events[1].tokens.cacheRead, 100)
+        XCTAssertEqual(events[2].tokens.cacheRead, 0,
+                       "Cumulative dropped (50 < 200): negative delta clamped to 0")
+    }
+
+    /// Same delta tracking applies to `inputCacheCreation`.
+    func testCacheWriteIsPerEventDeltaNotCumulative() async throws {
+        let root = NSTemporaryDirectory() + "kimic_cumcache_write_\(UUID().uuidString)"
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        try writeCumulativeCacheFile(
+            root: root,
+            sessionId: "ses_write",
+            cumulativeCacheReads: [0, 0, 0],
+            cumulativeCacheWrites: [40, 110, 110]
+        )
+
+        let extractor = KimiCodeExtractor(rootPath: root)
+        let events = (try? await extractor.extractAll()) ?? []
+        XCTAssertEqual(events.count, 3)
+        XCTAssertEqual(events[0].tokens.cacheWrite, 40)
+        XCTAssertEqual(events[1].tokens.cacheWrite, 70,
+                       "Delta = 110 - 40 = 70")
+        XCTAssertEqual(events[2].tokens.cacheWrite, 0,
+                       "Cumulative unchanged: delta = 0")
+    }
 }

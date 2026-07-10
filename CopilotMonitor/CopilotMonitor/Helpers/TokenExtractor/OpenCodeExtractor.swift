@@ -29,14 +29,22 @@ struct OpenCodeExtractor: TokenExtractorProtocol {
         defer { sqlite3_close(db) }
 
         var events: [TokenEvent] = []
-        events.append(contentsOf: extractOldSchema(from: db))
-        events.append(contentsOf: extractNewSchema(from: db))
+        // `tokens.cache.read` / `tokens.cache.write` in the OpenCode SQLite
+        // schema are session-cumulative counters (total cache hits/writes
+        // since session start). To avoid double-counting, every event must
+        // store the per-event DELTA. We track the previously-seen cumulative
+        // value per session_id and convert on the fly. The map must be
+        // shared across old-schema and new-schema calls so a session that
+        // spans both schemas tracks consistently.
+        var cacheStateBySession: [String: CacheState] = [:]
+        events.append(contentsOf: extractOldSchema(from: db, cacheState: &cacheStateBySession))
+        events.append(contentsOf: extractNewSchema(from: db, cacheState: &cacheStateBySession))
         return events
     }
 
     /// Old schema: `data.model.providerID` and `data.model.modelID` live on the
     /// assistant message itself.
-    private func extractOldSchema(from db: OpaquePointer) -> [TokenEvent] {
+    private func extractOldSchema(from db: OpaquePointer, cacheState: inout [String: CacheState]) -> [TokenEvent] {
         let sql = """
             SELECT id,
                    json_extract(data, '$.tokens.input')      AS input,
@@ -60,13 +68,13 @@ struct OpenCodeExtractor: TokenExtractorProtocol {
             return []
         }
         defer { sqlite3_finalize(stmt) }
-        return Self.iterateRows(stmt: stmt)
+        return Self.iterateRows(stmt: stmt, cacheState: &cacheState)
     }
 
     /// New schema: `data.modelID` is camelCase top-level, `data.model.providerID`
     /// is absent on the assistant message. We join to the parent (user-role) message
     /// via `data.parentID` to recover the provider ID.
-    private func extractNewSchema(from db: OpaquePointer) -> [TokenEvent] {
+    private func extractNewSchema(from db: OpaquePointer, cacheState: inout [String: CacheState]) -> [TokenEvent] {
         let sql = """
             SELECT a.id,
                    json_extract(a.data, '$.tokens.input')      AS input,
@@ -94,23 +102,35 @@ struct OpenCodeExtractor: TokenExtractorProtocol {
             return []
         }
         defer { sqlite3_finalize(stmt) }
-        return Self.iterateRows(stmt: stmt)
+        return Self.iterateRows(stmt: stmt, cacheState: &cacheState)
     }
 
     /// Iterate a prepared statement and build TokenEvent objects.
-    private static func iterateRows(stmt: OpaquePointer) -> [TokenEvent] {
+    private static func iterateRows(stmt: OpaquePointer, cacheState: inout [String: CacheState]) -> [TokenEvent] {
         var events: [TokenEvent] = []
         while sqlite3_step(stmt) == SQLITE_ROW {
             let id = sqlite3_column_text(stmt, 0).flatMap { String(cString: $0) } ?? ""
             let input = Int(sqlite3_column_int64(stmt, 1))
             let output = Int(sqlite3_column_int64(stmt, 2))
             let reasoning = Int(sqlite3_column_int64(stmt, 3))
-            let cacheRead = Int(sqlite3_column_int64(stmt, 4))
-            let cacheWrite = Int(sqlite3_column_int64(stmt, 5))
+            let cumulativeCacheRead = Int(sqlite3_column_int64(stmt, 4))
+            let cumulativeCacheWrite = Int(sqlite3_column_int64(stmt, 5))
             let providerID = sqlite3_column_text(stmt, 6).flatMap { String(cString: $0) } ?? ""
             let modelID = sqlite3_column_text(stmt, 7).flatMap { String(cString: $0) } ?? ""
             let sessionID = sqlite3_column_text(stmt, 8).flatMap { String(cString: $0) } ?? id
             let tsMs = sqlite3_column_int64(stmt, 9)
+
+            // Convert session-cumulative cache counters to per-event deltas.
+            // `max(0, …)` absorbs `/compact`-style drops without producing
+            // negative cache values. The state is keyed on session_id so two
+            // concurrent sessions track independently.
+            let prev = cacheState[sessionID] ?? CacheState()
+            let cacheRead = max(0, cumulativeCacheRead - prev.cumulativeCacheRead)
+            let cacheWrite = max(0, cumulativeCacheWrite - prev.cumulativeCacheWrite)
+            cacheState[sessionID] = CacheState(
+                cumulativeCacheRead: cumulativeCacheRead,
+                cumulativeCacheWrite: cumulativeCacheWrite
+            )
 
             let tokens = TokenBreakdown(
                 input: input, output: output,
@@ -129,4 +149,10 @@ struct OpenCodeExtractor: TokenExtractorProtocol {
         }
         return events
     }
+}
+
+/// Per-session accumulator for OpenCode's cumulative cache counters.
+private struct CacheState {
+    var cumulativeCacheRead: Int = 0
+    var cumulativeCacheWrite: Int = 0
 }

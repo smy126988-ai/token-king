@@ -329,6 +329,71 @@ actor TokenUsageStore {
         return Int(sqlite3_changes(db))
     }
 
+    /// One-shot migration that deletes EVERY OpenCode row from
+    /// `token_events`. Use after the OpenCode extractor fix that converts
+    /// `tokens.cache.read` / `tokens.cache.write` from session-cumulative
+    /// (double-counted) to per-event delta — every pre-fix row stores the
+    /// cumulative cache counter, so all of them must be re-extracted.
+    ///
+    /// Scoped on `source = 'opencode'` (NOT on `provider = ?`) because
+    /// OpenCode messages can normalize to any provider
+    /// (.kimi / .claude / .codex / .zai / .minimax / .xiaomi etc) via
+    /// `TokenNormalizer.matchProvider`. The other providers stay intact.
+    ///
+    /// - Returns: number of rows deleted. Idempotent — returns 0 when no
+    ///   opencode rows remain. Returns 0 silently when the store is closed
+    ///   / uninitialized so callers can invoke it on startup without
+    ///   exception handling.
+    /// - Note: not auto-invoked from `AppDelegate` because it is
+    ///   destructive. Run once via debug menu or migration script after
+    ///   the fix deploys:
+    ///     `DELETE FROM token_events WHERE source = 'opencode'`
+    func purgeAllOpenCodeEvents() async throws -> Int {
+        guard initError == nil, let db else { return 0 }
+        let sql = "DELETE FROM token_events WHERE source = ?"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else {
+            return 0
+        }
+        defer { sqlite3_finalize(stmt) }
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        sqlite3_bind_text(stmt, 1, TokenSource.opencode.rawValue, -1, SQLITE_TRANSIENT)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { return 0 }
+        return Int(sqlite3_changes(db))
+    }
+
+    /// One-shot migration that deletes EVERY KimiCode row from
+    /// `token_events`. Use after the KimiCode extractor fix that converts
+    /// `inputCacheRead` / `inputCacheCreation` from session-cumulative
+    /// (double-counted) to per-event delta — every pre-fix row stores the
+    /// cumulative cache counter, so all of them must be re-extracted.
+    ///
+    /// Scoped on `source = 'kimiCode'` so the older `kimiCli` rows (legacy
+    /// Kimi CLI JSONL scanner) are NOT touched — their row schema and
+    /// extraction path are independent.
+    ///
+    /// - Returns: number of rows deleted. Idempotent — returns 0 when no
+    ///   kimiCode rows remain. Returns 0 silently when the store is closed
+    ///   / uninitialized so callers can invoke it on startup without
+    ///   exception handling.
+    /// - Note: not auto-invoked from `AppDelegate` because it is
+    ///   destructive. Run once via debug menu or migration script after
+    ///   the fix deploys:
+    ///     `DELETE FROM token_events WHERE source = 'kimiCode'`
+    func purgeAllKimiCodeEvents() async throws -> Int {
+        guard initError == nil, let db else { return 0 }
+        let sql = "DELETE FROM token_events WHERE source = ?"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else {
+            return 0
+        }
+        defer { sqlite3_finalize(stmt) }
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        sqlite3_bind_text(stmt, 1, TokenSource.kimiCode.rawValue, -1, SQLITE_TRANSIENT)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { return 0 }
+        return Int(sqlite3_changes(db))
+    }
+
     /// One-shot cleanup for pre-fix Claude Code events whose `ts_ms` is 0
     /// (epoch 1970-01-01). The pre-fix `ClaudeCodeExtractor.parseTimestamp`
     /// could not parse ISO 8601 strings like `"2026-06-24T09:44:55.227Z"`,
