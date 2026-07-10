@@ -40,6 +40,27 @@ final class PerPeriodTokenAggregatorTests: XCTestCase {
         // 2026-07-07 row should NOT be in today totals
     }
 
+    func testProviderTotalExcludesCacheRead() {
+        // cacheRead is CACHE HITS (re-reads of prior context), typically free on
+        // OpenAI and 90% discounted on Anthropic. They are NOT the "tokens spent"
+        // number the user wants to see in 今日 Token / 本周 Token / 本月 Token.
+        let total = PerPeriodTokenAggregator.ProviderTotal(
+            providerRaw: "kimi", displayName: "Kimi",
+            input: 100, output: 50, cacheRead: 1_000_000, cacheWrite: 20, reasoning: 7
+        )
+        // Billable = input + output + cacheWrite + reasoning (excludes cacheRead)
+        XCTAssertEqual(total.total, 177, "ProviderTotal.total must be the billable sum, excluding cacheRead")
+    }
+
+    func testProviderTotalBillableWithZeroCacheWrite() {
+        // Reasoning included even when cacheWrite = 0 (still billable).
+        let total = PerPeriodTokenAggregator.ProviderTotal(
+            providerRaw: "claude", displayName: "Claude",
+            input: 10, output: 5, cacheRead: 999, cacheWrite: 0, reasoning: 3
+        )
+        XCTAssertEqual(total.total, 18, "Billable = input(10) + output(5) + cacheWrite(0) + reasoning(3)")
+    }
+
     func testAggregateEmptyDayAggregatesReturnsEmpty() {
         let result = PerPeriodTokenAggregator.aggregate(
             dayAggregates: [],

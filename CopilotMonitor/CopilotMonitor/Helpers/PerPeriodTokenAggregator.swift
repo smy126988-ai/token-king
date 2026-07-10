@@ -21,7 +21,12 @@ enum PerPeriodTokenAggregator {
         let cacheWrite: Int
         let reasoning: Int
 
-        var total: Int { input + output + cacheRead + cacheWrite + reasoning }
+        /// Billable token total. Excludes `cacheRead` because cache reads are
+        /// typically free (OpenAI) or heavily discounted (Anthropic 90% off on
+        /// cache hits) and would otherwise inflate the top-level "今日 Token" /
+        /// "本周 Token" / "本月 Token" menu items. Cache writes stay included
+        /// because they are billed at full price on first creation.
+        var total: Int { input + output + cacheWrite + reasoning }
     }
 
     /// Aggregate day_aggregates into per-provider totals, filtered to `period`.
