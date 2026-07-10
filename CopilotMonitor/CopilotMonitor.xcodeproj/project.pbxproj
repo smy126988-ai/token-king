@@ -69,6 +69,8 @@
 		CC0000000000000000000TBF /* ClaudeCodeExtractorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000TFR /* ClaudeCodeExtractorTests.swift */; };
 		CE0000000000000000000TBF /* CodexExtractorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000TFR /* CodexExtractorTests.swift */; };
 		CE0000000000000000000XBF /* CodexExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000XFR /* CodexExtractor.swift */; };
+		CEXTS00000000000000BF01 /* CodexExtractorTimestampTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEXTS00000000000000FR01 /* CodexExtractorTimestampTests.swift */; };
+		TSP00000000000000000BF1 /* TokenUsageStoreCodexPurgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TSP00000000000000000FR1 /* TokenUsageStoreCodexPurgeTests.swift */; };
 		CF11AA22BB33CC44DD55EE01 /* CurrencyFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF11AA22BB33CC44DD55EE02 /* CurrencyFormatter.swift */; };
 		CF11AA22BB33CC44DD55EE03 /* CurrencyFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF11AA22BB33CC44DD55EE04 /* CurrencyFormatterTests.swift */; };
 		CLI1111111111111111111111 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = CLI2222222222222222222222 /* main.swift */; };
@@ -302,6 +304,8 @@
 		CC0000000000000000000TFR /* ClaudeCodeExtractorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClaudeCodeExtractorTests.swift; sourceTree = "<group>"; };
 		CE0000000000000000000TFR /* CodexExtractorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CodexExtractorTests.swift; sourceTree = "<group>"; };
 		CE0000000000000000000XFR /* CodexExtractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CodexExtractor.swift; sourceTree = "<group>"; };
+		CEXTS00000000000000FR01 /* CodexExtractorTimestampTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CodexExtractorTimestampTests.swift; sourceTree = "<group>"; };
+		TSP00000000000000000FR1 /* TokenUsageStoreCodexPurgeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenUsageStoreCodexPurgeTests.swift; sourceTree = "<group>"; };
 		CF11AA22BB33CC44DD55EE02 /* CurrencyFormatter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CurrencyFormatter.swift; sourceTree = "<group>"; };
 		CF11AA22BB33CC44DD55EE04 /* CurrencyFormatterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CurrencyFormatterTests.swift; sourceTree = "<group>"; };
 		CF23F2A5CF0366FB78011DCA /* ai_infra_keys.yaml */ = {isa = PBXFileReference; includeInIndex = 1; path = ai_infra_keys.yaml; sourceTree = "<group>"; };
@@ -503,6 +507,7 @@
 				TKN00000000000000000000FR2 /* TokenEventKimiCNTests.swift */,
 				MMA00000000000000000000FR2 /* TokenEventMiniMaxXiaomiTests.swift */,
 				MMA00000000000000000001FR2 /* TokenUsageStoreOpenCodeMigrationTests.swift */,
+				TSP00000000000000000FR1 /* TokenUsageStoreCodexPurgeTests.swift */,
 				MPI00000000000000000000FR2 /* ProviderIdentifierMiniMaxXiaomiTests.swift */,
 				RA00100000000000000000FR2 /* RefreshActorTests.swift */,
 				TRD000000000000000000FR2 /* RefreshActorDayAggregatesTests.swift */,
@@ -730,6 +735,7 @@
 				OC0000000000000000000TFR /* OpenCodeExtractorTests.swift */,
 				CC0000000000000000000TFR /* ClaudeCodeExtractorTests.swift */,
 				CE0000000000000000000TFR /* CodexExtractorTests.swift */,
+				CEXTS00000000000000FR01 /* CodexExtractorTimestampTests.swift */,
 				KL0000000000000000000TFR /* KimiCLILegacyExtractorTests.swift */,
 				KC0000000000000000000TFR /* KimiCodeExtractorTests.swift */,
 				ZA0000000000000000000TFR /* ZAIExtractorTests.swift */,
@@ -1184,6 +1190,7 @@
 				OC0000000000000000000TBF /* OpenCodeExtractorTests.swift in Sources */,
 				CC0000000000000000000TBF /* ClaudeCodeExtractorTests.swift in Sources */,
 				CE0000000000000000000TBF /* CodexExtractorTests.swift in Sources */,
+				CEXTS00000000000000BF01 /* CodexExtractorTimestampTests.swift in Sources */,
 				KL0000000000000000000TBF /* KimiCLILegacyExtractorTests.swift in Sources */,
 				KC0000000000000000000TBF /* KimiCodeExtractorTests.swift in Sources */,
 				ZA0000000000000000000TBF /* ZAIExtractorTests.swift in Sources */,
@@ -1198,6 +1205,7 @@
 				TKN00000000000000000000BF2 /* TokenEventKimiCNTests.swift in Sources */,
 				MMA00000000000000000000BF2 /* TokenEventMiniMaxXiaomiTests.swift in Sources */,
 				MMA00000000000000000001BF2 /* TokenUsageStoreOpenCodeMigrationTests.swift in Sources */,
+				TSP00000000000000000BF1 /* TokenUsageStoreCodexPurgeTests.swift in Sources */,
 				MPI00000000000000000000BF2 /* ProviderIdentifierMiniMaxXiaomiTests.swift in Sources */,
 				RA00100000000000000000BF2 /* RefreshActorTests.swift in Sources */,
 				TRD000000000000000000BF2 /* RefreshActorDayAggregatesTests.swift in Sources */,

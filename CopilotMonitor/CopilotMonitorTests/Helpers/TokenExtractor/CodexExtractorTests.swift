@@ -132,8 +132,12 @@ final class CodexExtractorTests: XCTestCase {
         let events = try await extractor.extractAll()
         let gpt4o = events.first { $0.model == "gpt-4o" }
         XCTAssertNotNil(gpt4o)
+        // Codex's `last_token_usage.input_tokens` is the fresh / non-cached
+        // tokens billed this turn — it does NOT include `cached_input_tokens`.
+        // So `input` is the raw value (200), while `cacheRead` holds the
+        // cache-hit tokens (100) separately.
         XCTAssertEqual(gpt4o?.tokens.cacheRead, 100)
-        XCTAssertEqual(gpt4o?.tokens.input, 100)
+        XCTAssertEqual(gpt4o?.tokens.input, 200)
         XCTAssertEqual(gpt4o?.tokens.output, 50)
         XCTAssertEqual(gpt4o?.tokens.reasoning, 20)
         XCTAssertEqual(gpt4o?.tokens.cacheWrite, 0)
@@ -149,12 +153,12 @@ final class CodexExtractorTests: XCTestCase {
         let second = events[1]
 
         XCTAssertEqual(first.tokens.cacheRead, 200)
-        XCTAssertEqual(first.tokens.input, 400)
+        XCTAssertEqual(first.tokens.input, 600, "input is the raw last_token_usage.input_tokens (non-cached only) — not input - cached")
         XCTAssertEqual(first.tokens.output, 300)
         XCTAssertEqual(first.tokens.reasoning, 50)
 
         XCTAssertEqual(second.tokens.cacheRead, 200)
-        XCTAssertEqual(second.tokens.input, 600)
+        XCTAssertEqual(second.tokens.input, 800, "input is the raw last_token_usage.input_tokens (non-cached only) — not input - cached")
         XCTAssertEqual(second.tokens.output, 400)
         XCTAssertEqual(second.tokens.reasoning, 100)
 

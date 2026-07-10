@@ -107,7 +107,19 @@ struct CodexExtractor: TokenExtractorProtocol {
 
     private func parseTimestamp(_ any: Any?) -> Date? {
         if let ts = any as? Double { return Date(timeIntervalSince1970: ts) }
-        if let s = any as? String, let ts = Double(s) { return Date(timeIntervalSince1970: ts) }
+        if let s = any as? String {
+            if let ts = Double(s) { return Date(timeIntervalSince1970: ts) }
+            // Codex rollout JSONL lines stamp events with ISO 8601 strings
+            // like "2026-05-20T08:33:54.127Z" or "2026-07-05T16:17:22Z".
+            // Try with fractional seconds first (Codex default), then fall
+            // back to plain ISO 8601.
+            let formatterWithFrac = ISO8601DateFormatter()
+            formatterWithFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let d = formatterWithFrac.date(from: s) { return d }
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime]
+            if let d = formatter.date(from: s) { return d }
+        }
         return nil
     }
 
@@ -125,13 +137,17 @@ struct CodexExtractor: TokenExtractorProtocol {
         let nonCachedInput = max(0, inputTokens - cachedTokens)
 
         // Prefer last_token_usage (per-turn delta) when fully present.
+        // Codex's `last_token_usage` reports `input_tokens` as the fresh /
+        // non-cached tokens billed this turn — it does NOT include
+        // `cached_input_tokens`. So `input` is the raw value, while
+        // `cacheRead` holds the cache-hit tokens separately.
         if isCompleteLastUsage(lastUsage) {
             let li = intValue(lastUsage?["input_tokens"])
             let lo = intValue(lastUsage?["output_tokens"])
             let lc = intValue(lastUsage?["cached_input_tokens"])
             let lr = intValue(lastUsage?["reasoning_output_tokens"])
             return TokenBreakdown(
-                input: max(0, li - lc),
+                input: li,
                 output: lo,
                 cacheRead: lc,
                 cacheWrite: 0,

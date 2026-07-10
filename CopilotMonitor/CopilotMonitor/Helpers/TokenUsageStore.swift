@@ -257,6 +257,45 @@ actor TokenUsageStore {
         )
     }
 
+    /// One-shot cleanup for stale Codex rows from before the
+    /// `parseTimestamp` + `last_token_usage` fix.
+    ///
+    /// Pre-fix, the Codex rollout scanner emitted `ts_ms = 0` (epoch
+    /// 1970-01-01) for every Codex event because it could not parse ISO 8601
+    /// timestamps, AND it stored the cumulative
+    /// `total_token_usage.total_tokens` instead of the per-turn
+    /// `last_token_usage` delta. The `token_events` rows from that era all
+    /// have `ts_ms = 0` and inflated token counts.
+    ///
+    /// After the parser + extractor fix lands, the next refresh would
+    /// re-scan the rollout files and `INSERT OR IGNORE` the corrected rows
+    /// (the new `source_id` values match the old ones, but the corrected
+    /// numbers would be silently dropped behind the existing bad rows on the
+    /// `source_id UNIQUE` constraint). Deleting the bad rows lets the
+    /// refresh write correct per-event delta counts.
+    ///
+    /// - Returns: number of rows deleted. Idempotent — returns 0 when no
+    ///   bad rows remain. Returns 0 silently when the store is closed /
+    ///   uninitialized so callers can invoke it on startup without
+    ///   exception handling.
+    /// - Note: not auto-invoked from `AppDelegate` because it is
+    ///   destructive. Run once via debug menu or migration script after
+    ///   the fix deploys:
+    ///     `DELETE FROM token_events WHERE provider = 'codex' AND ts_ms = 0`
+    func purgeCodexEventsWithBadTimestamps() throws -> Int {
+        guard initError == nil, let db else { return 0 }
+        let sql = "DELETE FROM token_events WHERE provider = ? AND ts_ms = 0"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else {
+            return 0
+        }
+        defer { sqlite3_finalize(stmt) }
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        sqlite3_bind_text(stmt, 1, Provider.codex.rawValue, -1, SQLITE_TRANSIENT)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { return 0 }
+        return Int(sqlite3_changes(db))
+    }
+
     /// Insert or ignore a quota snapshot (5h or 7d usage state).
     /// Idempotent on PK collision (provider, window, snapshot_ts) — first one wins.
     func upsertQuotaSnapshot(_ snapshot: QuotaSnapshot) throws {
