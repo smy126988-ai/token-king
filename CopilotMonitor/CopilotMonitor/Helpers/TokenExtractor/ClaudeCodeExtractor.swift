@@ -84,7 +84,19 @@ struct ClaudeCodeExtractor: TokenExtractorProtocol {
 
     private func parseTimestamp(_ any: Any?) -> Date? {
         if let ts = any as? Double { return Date(timeIntervalSince1970: ts) }
-        if let s = any as? String, let ts = Double(s) { return Date(timeIntervalSince1970: ts) }
+        if let s = any as? String {
+            if let ts = Double(s) { return Date(timeIntervalSince1970: ts) }
+            // Claude Code stamps events with ISO 8601 strings like
+            // "2026-06-24T09:44:55.227Z" or "2026-06-24T09:44:55Z". Try with
+            // fractional seconds first (Claude CLI default), then fall back to
+            // plain ISO 8601.
+            let formatterWithFrac = ISO8601DateFormatter()
+            formatterWithFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let d = formatterWithFrac.date(from: s) { return d }
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime]
+            if let d = formatter.date(from: s) { return d }
+        }
         return nil
     }
 }

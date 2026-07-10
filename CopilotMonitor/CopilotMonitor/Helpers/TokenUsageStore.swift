@@ -329,6 +329,66 @@ actor TokenUsageStore {
         return Int(sqlite3_changes(db))
     }
 
+    /// One-shot cleanup for pre-fix Claude Code events whose `ts_ms` is 0
+    /// (epoch 1970-01-01). The pre-fix `ClaudeCodeExtractor.parseTimestamp`
+    /// could not parse ISO 8601 strings like `"2026-06-24T09:44:55.227Z"`,
+    /// so every Claude event was stamped with epoch 0.
+    ///
+    /// After the `parseTimestamp` fix lands, the next refresh re-scans the
+    /// jsonl files and `INSERT OR IGNORE`s the corrected rows. Deleting the
+    /// bad rows lets the refresh write correct timestamps.
+    ///
+    /// - Returns: number of rows deleted. Idempotent — returns 0 when no
+    ///   bad rows remain. Returns 0 silently when the store is closed /
+    ///   uninitialized so callers can invoke it on startup without
+    ///   exception handling.
+    func purgeClaudeEventsWithBadTimestamps() async throws -> Int {
+        guard initError == nil, let db else { return 0 }
+        let sql = "DELETE FROM token_events WHERE provider = ? AND ts_ms = 0"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else {
+            return 0
+        }
+        defer { sqlite3_finalize(stmt) }
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        sqlite3_bind_text(stmt, 1, Provider.claude.rawValue, -1, SQLITE_TRANSIENT)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { return 0 }
+        return Int(sqlite3_changes(db))
+    }
+
+    /// One-shot cleanup for pre-fix Kimi CLI (legacy `context.jsonl`) events
+    /// whose `ts_ms` is 0 (epoch 1970-01-01). The pre-fix
+    /// `KimiCLILegacyExtractor.parseTimestamp` could not parse ISO 8601
+    /// strings like `"2026-06-24T09:44:55.227Z"`, so every legacy kimi event
+    /// was stamped with epoch 0.
+    ///
+    /// After the `parseTimestamp` fix lands, the next refresh re-scans the
+    /// `context.jsonl` files and `INSERT OR IGNORE`s the corrected rows.
+    /// Deleting the bad rows lets the refresh write correct timestamps.
+    ///
+    /// Scoped to `source = 'kimiCli'` so the newer `KimiCodeExtractor`
+    /// (which writes `source = 'kimiCode'`) is not touched — its own row
+    /// schema and timestamp path are independent.
+    ///
+    /// - Returns: number of rows deleted. Idempotent — returns 0 when no
+    ///   bad rows remain. Returns 0 silently when the store is closed /
+    ///   uninitialized so callers can invoke it on startup without
+    ///   exception handling.
+    func purgeKimiCliEventsWithBadTimestamps() async throws -> Int {
+        guard initError == nil, let db else { return 0 }
+        let sql = "DELETE FROM token_events WHERE provider = ? AND source = ? AND ts_ms = 0"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else {
+            return 0
+        }
+        defer { sqlite3_finalize(stmt) }
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        sqlite3_bind_text(stmt, 1, Provider.kimi.rawValue, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_text(stmt, 2, TokenSource.kimiCli.rawValue, -1, SQLITE_TRANSIENT)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { return 0 }
+        return Int(sqlite3_changes(db))
+    }
+
     /// Insert or ignore a quota snapshot (5h or 7d usage state).
     /// Idempotent on PK collision (provider, window, snapshot_ts) — first one wins.
     func upsertQuotaSnapshot(_ snapshot: QuotaSnapshot) throws {

@@ -71,6 +71,7 @@
 		CE0000000000000000000XBF /* CodexExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000XFR /* CodexExtractor.swift */; };
 		CEXTS00000000000000BF01 /* CodexExtractorTimestampTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEXTS00000000000000FR01 /* CodexExtractorTimestampTests.swift */; };
 		TSP00000000000000000BF1 /* TokenUsageStoreCodexPurgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TSP00000000000000000FR1 /* TokenUsageStoreCodexPurgeTests.swift */; };
+		PUG00000000000000000BF1 /* TokenUsageStoreClaudeKimiPurgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = PUG00000000000000000FR1 /* TokenUsageStoreClaudeKimiPurgeTests.swift */; };
 		CF11AA22BB33CC44DD55EE01 /* CurrencyFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF11AA22BB33CC44DD55EE02 /* CurrencyFormatter.swift */; };
 		CF11AA22BB33CC44DD55EE03 /* CurrencyFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF11AA22BB33CC44DD55EE04 /* CurrencyFormatterTests.swift */; };
 		CLI1111111111111111111111 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = CLI2222222222222222222222 /* main.swift */; };
@@ -306,6 +307,7 @@
 		CE0000000000000000000XFR /* CodexExtractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CodexExtractor.swift; sourceTree = "<group>"; };
 		CEXTS00000000000000FR01 /* CodexExtractorTimestampTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CodexExtractorTimestampTests.swift; sourceTree = "<group>"; };
 		TSP00000000000000000FR1 /* TokenUsageStoreCodexPurgeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenUsageStoreCodexPurgeTests.swift; sourceTree = "<group>"; };
+		PUG00000000000000000FR1 /* TokenUsageStoreClaudeKimiPurgeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenUsageStoreClaudeKimiPurgeTests.swift; sourceTree = "<group>"; };
 		CF11AA22BB33CC44DD55EE02 /* CurrencyFormatter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CurrencyFormatter.swift; sourceTree = "<group>"; };
 		CF11AA22BB33CC44DD55EE04 /* CurrencyFormatterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CurrencyFormatterTests.swift; sourceTree = "<group>"; };
 		CF23F2A5CF0366FB78011DCA /* ai_infra_keys.yaml */ = {isa = PBXFileReference; includeInIndex = 1; path = ai_infra_keys.yaml; sourceTree = "<group>"; };
@@ -508,6 +510,7 @@
 				MMA00000000000000000000FR2 /* TokenEventMiniMaxXiaomiTests.swift */,
 				MMA00000000000000000001FR2 /* TokenUsageStoreOpenCodeMigrationTests.swift */,
 				TSP00000000000000000FR1 /* TokenUsageStoreCodexPurgeTests.swift */,
+				PUG00000000000000000FR1 /* TokenUsageStoreClaudeKimiPurgeTests.swift */,
 				MPI00000000000000000000FR2 /* ProviderIdentifierMiniMaxXiaomiTests.swift */,
 				RA00100000000000000000FR2 /* RefreshActorTests.swift */,
 				TRD000000000000000000FR2 /* RefreshActorDayAggregatesTests.swift */,
@@ -1206,6 +1209,7 @@
 				MMA00000000000000000000BF2 /* TokenEventMiniMaxXiaomiTests.swift in Sources */,
 				MMA00000000000000000001BF2 /* TokenUsageStoreOpenCodeMigrationTests.swift in Sources */,
 				TSP00000000000000000BF1 /* TokenUsageStoreCodexPurgeTests.swift in Sources */,
+				PUG00000000000000000BF1 /* TokenUsageStoreClaudeKimiPurgeTests.swift in Sources */,
 				MPI00000000000000000000BF2 /* ProviderIdentifierMiniMaxXiaomiTests.swift in Sources */,
 				RA00100000000000000000BF2 /* RefreshActorTests.swift in Sources */,
 				TRD000000000000000000BF2 /* RefreshActorDayAggregatesTests.swift in Sources */,
