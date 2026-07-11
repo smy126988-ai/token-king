@@ -2,6 +2,32 @@ import Foundation
 
 /// Codex rollout JSONL scanner.
 /// Path: ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl
+///
+/// IMPORTANT — `last_token_usage` semantics:
+///   Codex CLI emits `last_token_usage.{input_tokens, cached_input_tokens,
+///   reasoning_output_tokens}` as CUMULATIVE-per-session values (mirroring
+///   `total_token_usage`), NOT per-turn deltas. The previous extractor
+///   assumed per-turn semantics and stored the raw values directly, which
+///   inflated `input` and `cache_read` by 10-30× depending on session length
+///   (the inflation factor scales with turns-per-session because the same
+///   numbers were summed many times).
+///
+/// To produce correct per-event values, this extractor walks each rollout in
+/// order and applies `delta = max(0, current - previous)` to the cumulative
+/// fields:
+///   - input_tokens            (cumulative session) -> delta = per-turn input
+///   - cached_input_tokens     (cumulative session) -> delta = per-turn cache
+///   - reasoning_output_tokens (cumulative session) -> delta = per-turn reasoning
+///   - output_tokens           is per-turn already (it does not accumulate
+///                              across turns the same way cache does), so it
+///                              is stored as-is.
+/// First event in a session uses the raw cumulative value (the entire
+/// "first turn" usage counts as that turn's delta). Shrinks clamp to 0.
+///
+/// When `last_token_usage` is absent, the older `total_token_usage`-vs-prev
+/// fallback path is used (proportional split). That path was already correct
+/// because it already treats the cumulative total as input to a delta
+/// computation; the bug was only on the `last_token_usage` fast path.
 struct CodexExtractor: TokenExtractorProtocol {
     let rootPath: String
 
@@ -39,7 +65,15 @@ struct CodexExtractor: TokenExtractorProtocol {
         var model = ""
         var events: [TokenEvent] = []
         var lineIndex = 0
-        var prevCumulativeTotal: Int? = nil
+
+        // Per-session cumulative trackers. Reset each rollout (session_id).
+        // First event in a session has nil prev -> the raw value is treated
+        // as the first turn's delta.
+        var prevCumulativeInput: Int? = nil
+        var prevCumulativeCache: Int? = nil
+        var prevCumulativeReasoning: Int? = nil
+        // Fallback cumulative total when `last_token_usage` is missing.
+        var prevFallbackTotal: Int? = nil
 
         for line in content.split(separator: "\n", omittingEmptySubsequences: true) {
             defer { lineIndex += 1 }
@@ -66,30 +100,73 @@ struct CodexExtractor: TokenExtractorProtocol {
                       let info = payload["info"] as? [String: Any] {
                 let totalUsage = info["total_token_usage"] as? [String: Any]
                 let lastUsage = info["last_token_usage"] as? [String: Any]
+                guard totalUsage != nil else { continue }
 
-                guard let totalUsage = totalUsage else { continue }
-
-                let totalTokens = intValue(totalUsage["total_tokens"])
-
+                let timestamp = parseTimestamp(json["timestamp"]) ?? Date(timeIntervalSince1970: 0)
+                let msgId = (json["id"] as? String) ?? "\(lineIndex)"
                 let effectiveModel = model.isEmpty
                     ? ((lastUsage?["model"] as? String) ?? "gpt-4o")
                     : model
 
-                let timestamp = parseTimestamp(json["timestamp"]) ?? Date(timeIntervalSince1970: 0)
-                let msgId = (json["id"] as? String) ?? "\(lineIndex)"
-
-                let deltaTokens = makeDeltaBreakdown(
-                    totalUsage: totalUsage,
-                    lastUsage: lastUsage,
-                    prevCumulativeTotal: prevCumulativeTotal
-                )
-                prevCumulativeTotal = totalTokens
+                let breakdown: TokenBreakdown
+                if isCompleteLastUsage(lastUsage) {
+                    breakdown = deltaFromLastUsage(
+                        lastUsage: lastUsage!,
+                        prevInput: prevCumulativeInput,
+                        prevCache: prevCumulativeCache,
+                        prevReasoning: prevCumulativeReasoning
+                    )
+                    prevCumulativeInput = intValue(lastUsage?["input_tokens"])
+                    prevCumulativeCache = intValue(lastUsage?["cached_input_tokens"])
+                    // reasoning/output are per-turn, no prev tracking needed
+                } else {
+                    // Older Codex builds didn't emit `last_token_usage`. Fall
+                    // back to the cumulative total track, proportional-split.
+                    guard let totalUsage = totalUsage else { continue }
+                    let totalTokens = intValue(totalUsage["total_tokens"])
+                    let inputTokens = intValue(totalUsage["input_tokens"])
+                    let outputTokens = intValue(totalUsage["output_tokens"])
+                    let cachedTokens = intValue(totalUsage["cached_input_tokens"])
+                    let reasoningTokens = intValue(totalUsage["reasoning_output_tokens"])
+                    let nonCachedInput = max(0, inputTokens - cachedTokens)
+                    guard let prev = prevFallbackTotal else {
+                        // First event: treat raw cumulative as first turn's
+                        // usage, just like the OpenCode first-event rule.
+                        breakdown = TokenBreakdown(
+                            input: nonCachedInput,
+                            output: outputTokens,
+                            cacheRead: cachedTokens,
+                            cacheWrite: 0,
+                            reasoning: reasoningTokens
+                        )
+                        prevFallbackTotal = totalTokens
+                        _ = timestamp; _ = msgId; _ = effectiveModel
+                        let event = TokenEvent(
+                            provider: .codex, model: effectiveModel, source: .codexCli,
+                            sessionId: sessionId, timestamp: timestamp,
+                            tokens: breakdown,
+                            sourceId: "codex:\(sessionId):main:\(msgId)"
+                        )
+                        events.append(event)
+                        continue
+                    }
+                    let delta = max(0, totalTokens - prev)
+                    prevFallbackTotal = totalTokens
+                    breakdown = proportionalDelta(
+                        totalDelta: delta,
+                        nonCachedInput: nonCachedInput,
+                        output: outputTokens,
+                        cacheRead: cachedTokens,
+                        reasoning: reasoningTokens,
+                        total: totalTokens
+                    )
+                }
 
                 let provider = TokenNormalizer.matchProvider(model: effectiveModel, providerID: "openai")
                 events.append(TokenEvent(
                     provider: provider, model: effectiveModel, source: .codexCli,
                     sessionId: sessionId, timestamp: timestamp,
-                    tokens: deltaTokens,
+                    tokens: breakdown,
                     sourceId: "codex:\(sessionId):main:\(msgId)"
                 ))
             }
@@ -97,68 +174,55 @@ struct CodexExtractor: TokenExtractorProtocol {
         return events
     }
 
-    private func intValue(_ any: Any?) -> Int {
-        if let i = any as? Int { return i }
-        if let n = any as? NSNumber { return n.intValue }
-        if let d = any as? Double { return Int(d) }
-        if let s = any as? String, let i = Int(s) { return i }
-        return 0
-    }
-
-    private func parseTimestamp(_ any: Any?) -> Date? {
-        if let ts = any as? Double { return Date(timeIntervalSince1970: ts) }
-        if let s = any as? String, let ts = Double(s) { return Date(timeIntervalSince1970: ts) }
-        return nil
-    }
-
-    private func makeDeltaBreakdown(
-        totalUsage: [String: Any],
-        lastUsage: [String: Any]?,
-        prevCumulativeTotal: Int?
+    /// Convert Codex's `last_token_usage` fields into per-event values.
+    ///
+    /// Field semantics in real Codex rollouts (verified against user data):
+    ///   - input_tokens:             CUMULATIVE per session (cache footprint
+    ///                               that grew across turns). Must be delta-ed.
+    ///   - cached_input_tokens:      CUMULATIVE per session. Must be delta-ed.
+    ///   - output_tokens:            PER-TURN (fluctuates independently).
+    ///                               Use raw value as-is.
+    ///   - reasoning_output_tokens:  PER-TURN. Use raw value as-is.
+    ///
+    /// First event in a session uses the raw cumulative value as the delta
+    /// (the entire first turn counts as that turn's contribution).
+    /// Shrinks clamp to 0 — never negative.
+    private func deltaFromLastUsage(
+        lastUsage: [String: Any],
+        prevInput: Int?,
+        prevCache: Int?,
+        prevReasoning: Int?    // kept for API symmetry; reasoning is per-turn, ignored below
     ) -> TokenBreakdown {
-        let inputTokens = intValue(totalUsage["input_tokens"])
-        let outputTokens = intValue(totalUsage["output_tokens"])
-        let cachedTokens = intValue(totalUsage["cached_input_tokens"])
-        let reasoningTokens = intValue(totalUsage["reasoning_output_tokens"])
-        let totalTokens = intValue(totalUsage["total_tokens"])
+        let rawInput = intValue(lastUsage["input_tokens"])
+        let rawCache = intValue(lastUsage["cached_input_tokens"])
+        let rawOutput = intValue(lastUsage["output_tokens"])
+        let rawReasoning = intValue(lastUsage["reasoning_output_tokens"])
 
-        let nonCachedInput = max(0, inputTokens - cachedTokens)
-
-        // Prefer last_token_usage (per-turn delta) when fully present.
-        if isCompleteLastUsage(lastUsage) {
-            let li = intValue(lastUsage?["input_tokens"])
-            let lo = intValue(lastUsage?["output_tokens"])
-            let lc = intValue(lastUsage?["cached_input_tokens"])
-            let lr = intValue(lastUsage?["reasoning_output_tokens"])
-            return TokenBreakdown(
-                input: max(0, li - lc),
-                output: lo,
-                cacheRead: lc,
-                cacheWrite: 0,
-                reasoning: lr
-            )
+        let deltaInput: Int
+        if let pi = prevInput {
+            deltaInput = max(0, rawInput - pi)
+        } else {
+            deltaInput = max(0, rawInput)
         }
-
-        guard let prev = prevCumulativeTotal else {
-            // First token_count in this rollout: treat cumulative total as the
-            // first turn's usage because no delta is available.
-            return TokenBreakdown(
-                input: nonCachedInput,
-                output: outputTokens,
-                cacheRead: cachedTokens,
-                cacheWrite: 0,
-                reasoning: reasoningTokens
-            )
+        let deltaCache: Int
+        if let pc = prevCache {
+            deltaCache = max(0, rawCache - pc)
+        } else {
+            deltaCache = max(0, rawCache)
         }
+        _ = prevReasoning    // reasoning/output are per-turn; see below.
 
-        let delta = max(0, totalTokens - prev)
-        return proportionalDelta(
-            totalDelta: delta,
-            nonCachedInput: nonCachedInput,
-            output: outputTokens,
-            cacheRead: cachedTokens,
-            reasoning: reasoningTokens,
-            total: totalTokens
+        // Fresh input this turn = total input sent - cache hits served.
+        // Can be 0 when nearly all of this turn's input was served from
+        // an existing cache prefix.
+        let freshInput = max(0, deltaInput - deltaCache)
+
+        return TokenBreakdown(
+            input: freshInput,
+            output: max(0, rawOutput),
+            cacheRead: deltaCache,
+            cacheWrite: 0,
+            reasoning: max(0, rawReasoning)
         )
     }
 
@@ -200,5 +264,40 @@ struct CodexExtractor: TokenExtractorProtocol {
             cacheWrite: 0,
             reasoning: reasoningDelta
         )
+    }
+
+    private func intValue(_ any: Any?) -> Int {
+        if let i = any as? Int { return i }
+        if let n = any as? NSNumber { return n.intValue }
+        if let d = any as? Double { return Int(d) }
+        if let s = any as? String, let i = Int(s) { return i }
+        return 0
+    }
+
+    private func parseTimestamp(_ any: Any?) -> Date? {
+        if let ts = any as? Double { return Date(timeIntervalSince1970: ts) }
+        if let s = any as? String {
+            // First try ISO 8601 (Codex CLI emits e.g. "2026-07-03T07:12:26.884Z").
+            // Try with fractional seconds first, then plain.
+            if let d = CodeISO8601DateParser.parse(s) { return d }
+            // Last-resort: numeric seconds.
+            if let ts = Double(s) { return Date(timeIntervalSince1970: ts) }
+        }
+        return nil
+    }
+}
+
+/// Tiny helper: ISO 8601 strings with optional fractional seconds and a
+/// trailing `Z`. Centralized so other extractors (ClaudeCode,
+/// KimiCode) can reuse the same parser without bringing in DateFormatter
+/// boilerplate each time.
+enum CodeISO8601DateParser {
+    static func parse(_ s: String) -> Date? {
+        let withFrac = ISO8601DateFormatter()
+        withFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = withFrac.date(from: s) { return d }
+        let plain = ISO8601DateFormatter()
+        if let d = plain.date(from: s) { return d }
+        return nil
     }
 }
