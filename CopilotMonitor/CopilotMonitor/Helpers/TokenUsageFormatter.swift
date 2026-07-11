@@ -8,6 +8,17 @@
 
 import Foundation
 
+/// Time-window constants used across F1 / F3 / F4 aggregations.
+/// Centralised here so menu builders, week boundaries, and ISO-window
+/// helpers all agree on the same magic numbers (B51).
+enum TimeWindow {
+    static let hoursPerDay: Int = 24
+    static let hoursPerWeek: Int = hoursPerDay * 7
+    static let secondsPerHour: TimeInterval = 3600
+    static let secondsPerDay: TimeInterval = TimeInterval(hoursPerDay) * secondsPerHour
+    static let secondsPerWeek: TimeInterval = TimeInterval(hoursPerWeek) * secondsPerHour
+}
+
 /// Token and time-window formatting helpers for F1 / F3 / F4 UI.
 /// All time calculations use UTC (B46 / B53: never `TimeZone(identifier:)!`).
 enum TokenUsageFormatter {
