@@ -263,6 +263,64 @@ final class TokenUsageStoreOpenCodeKimiCodePurgeTests: XCTestCase {
         XCTAssertEqual(deleted, 0, "Closed store should be a no-op, not throw")
     }
 
+    // MARK: - purgeMismatchedOpencodeEvents (alias)
+
+    /// `purgeMismatchedOpencodeEvents` is a thin alias that delegates to the
+    /// underlying purge. It exists so call sites can use a name reflecting the
+    /// broader scope (any opencode providerID routed to .nanoGpt, including
+    /// the `opencode-go` / `opencode` cases) rather than the legacy specific
+    /// name. This test verifies the alias actually performs the deletion.
+    func testPurgeMismatchedOpencodeEventsDeletesMisclassifiedOpencodeNanoGptRows() async throws {
+        // Simulate the pre-fix bug: opencode events whose providerID was
+        // `opencode-go` / `opencode` (lacking normalizer rules) landed in
+        // .nanoGpt. After the fix, the next refresh re-extracts them via the
+        // new providerID-first routing into the correct provider bucket.
+        try insertRow(.init(provider: "nanoGpt", source: "opencode",
+                            sessionId: "go1", sourceId: "opencode:go1:main:g1",
+                            tsMs: healthyMs(year: 2026, month: 5, day: 1),
+                            input: 100, output: 50, cached: 80, cachedWrite: 0))
+        try insertRow(.init(provider: "nanoGpt", source: "opencode",
+                            sessionId: "bare1", sourceId: "opencode:bare1:main:b1",
+                            tsMs: healthyMs(year: 2026, month: 5, day: 2),
+                            input: 200, output: 70, cached: 150, cachedWrite: 5))
+        // And a row that was correctly classified BEFORE the fix and must
+        // remain after the purge (so we don't accidentally destroy good data).
+        try insertRow(.init(provider: "kimi", source: "opencode",
+                            sessionId: "k_ok", sourceId: "opencode:k_ok:main:k_ok",
+                            tsMs: healthyMs(year: 2026, month: 5, day: 3),
+                            input: 300, output: 90, cached: 220, cachedWrite: 10))
+
+        let deleted = try await store.purgeMismatchedOpencodeEvents()
+
+        XCTAssertEqual(deleted, 2, "Both pre-fix opencode + nanoGpt rows are removed")
+        XCTAssertEqual(rawCount(), 1, "Only the correctly-classified opencode + kimi row remains")
+        XCTAssertEqual(countRows(matching: "source = ? AND provider = ?",
+                                 args: ["opencode", "nanoGpt"]), 0)
+    }
+
+    /// Idempotency: running `purgeMismatchedOpencodeEvents` twice is safe —
+    /// the second run finds no misclassified rows and returns 0.
+    func testPurgeMismatchedOpencodeEventsIsIdempotent() async throws {
+        try insertRow(.init(provider: "nanoGpt", source: "opencode",
+                            sessionId: "go1", sourceId: "opencode:go1:main:g1",
+                            tsMs: healthyMs(year: 2026, month: 5, day: 1),
+                            input: 100, output: 50, cached: 80, cachedWrite: 0))
+
+        let first = try await store.purgeMismatchedOpencodeEvents()
+        let second = try await store.purgeMismatchedOpencodeEvents()
+
+        XCTAssertEqual(first, 1, "First run removes the misclassified row")
+        XCTAssertEqual(second, 0, "Second run finds nothing to delete")
+    }
+
+    /// Closed store is a no-op for the alias too.
+    func testPurgeMismatchedOpencodeEventsWhenStoreClosed() async throws {
+        try await store.close()
+
+        let deleted = try await store.purgeMismatchedOpencodeEvents()
+        XCTAssertEqual(deleted, 0, "Closed store should be a no-op, not throw")
+    }
+
     // MARK: - purgeAllKimiCodeEvents
 
     func testPurgeAllKimiCodeEventsDeletesEverything() async throws {

@@ -676,4 +676,61 @@ final class OpenCodeExtractorTests: XCTestCase {
         XCTAssertEqual(event?.model, "kimi-for-coding",
                        "modelID should also prefer parent (kimi-for-coding) over assistant's inline claude-sonnet-4-5")
     }
+
+    // MARK: - opencode-go / opencode providerID routing (bug 1 fix)
+
+    /// Integration test for bug 1: pre-fix, every event with
+    /// `providerID = "opencode-go"` or `providerID = "opencode"` (where the
+    /// provider was not in the old hardcoded rules list) classified as
+    /// `.nanoGpt`. After the fix, the new providerID-first routing in
+    /// `TokenNormalizer` disambiguates by model name.
+    ///
+    /// Builds a mixed DB with three representative shapes:
+    ///   - opencode-go + gpt-5        → .codex  (was .nanoGpt)
+    ///   - opencode-go + claude-opus  → .claude (was .nanoGpt)
+    ///   - bare opencode + qwen3.7    → .xiaomiTokenPlanCN (was .nanoGpt)
+    /// and verifies that NONE of them land in .nanoGpt.
+    func testOpencodeAndOpencodeGoProviderIDsRouteToCorrectProviders() async throws {
+        let dir = NSTemporaryDirectory() + "opencode_go_router_\(UUID().uuidString)"
+        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+        let path = dir + "/opencode.db"
+        var db: OpaquePointer?
+        sqlite3_open(path, &db)
+        sqlite3_exec(db, """
+            CREATE TABLE message (
+                id TEXT PRIMARY KEY,
+                session_id TEXT,
+                time_created INTEGER,
+                time_updated INTEGER,
+                data TEXT
+            )
+        """, nil, nil, nil)
+        sqlite3_exec(db, """
+            INSERT INTO message VALUES
+            ('go_user', 'ses_go', 1000, 1000, '{"role":"user","model":{"providerID":"opencode-go","modelID":"gpt-5"}}'),
+            ('go_a1', 'ses_go', 2000, 2000, '{"role":"assistant","parentID":"go_user","tokens":{"input":10,"output":5,"cache":{"read":0,"write":0}},"modelID":"gpt-5","time":{"created":1700000001000}}'),
+            ('go_user2', 'ses_go2', 1100, 1100, '{"role":"user","model":{"providerID":"opencode-go","modelID":"claude-opus-4-8"}}'),
+            ('go_a2', 'ses_go2', 2100, 2100, '{"role":"assistant","parentID":"go_user2","tokens":{"input":20,"output":7,"cache":{"read":0,"write":0}},"modelID":"claude-opus-4-8","time":{"created":1700000002000}}'),
+            ('bare_user', 'ses_bare', 1200, 1200, '{"role":"user","model":{"providerID":"opencode","modelID":"qwen3.7-max"}}'),
+            ('bare_a', 'ses_bare', 2200, 2200, '{"role":"assistant","parentID":"bare_user","tokens":{"input":15,"output":4,"cache":{"read":0,"write":0}},"modelID":"qwen3.7-max","time":{"created":1700000003000}}')
+        """, nil, nil, nil)
+        sqlite3_close(db)
+
+        let extractor = OpenCodeExtractor(rootPath: dir)
+        let events = (try? await extractor.extractAll()) ?? []
+
+        XCTAssertEqual(events.count, 3, "All 3 mixed-shape events must be extracted")
+        for event in events {
+            XCTAssertNotEqual(event.provider, .nanoGpt,
+                              "Event \(event.sourceId) (\(event.model)) misclassified as .nanoGpt — opencode-go / opencode routing regressed")
+        }
+        let byModel = Dictionary(uniqueKeysWithValues: events.map { ($0.model, $0.provider) })
+        XCTAssertEqual(byModel["gpt-5"], .codex,
+                       "opencode-go + gpt-5 must classify as .codex (not .nanoGpt)")
+        XCTAssertEqual(byModel["claude-opus-4-8"], .claude,
+                       "opencode-go + claude-opus must classify as .claude (not .nanoGpt)")
+        XCTAssertEqual(byModel["qwen3.7-max"], .xiaomiTokenPlanCN,
+                       "bare opencode + qwen3.7-max must classify as .xiaomiTokenPlanCN (not .nanoGpt)")
+    }
 }

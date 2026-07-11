@@ -111,7 +111,11 @@ final class NanoGPTExtractorTests: XCTestCase {
             bearerTokenProvider: { "test-key" }
         )
         let events = (try? await extractor.extractAll()) ?? []
-        XCTAssertEqual(events.first?.provider, .codex)
+        // providerID-first routing: NanoGPTExtractor passes providerID="nanogpt"
+        // and TokenNormalizer matches that to .nanoGpt regardless of the model
+        // name. Pre-fix this asserted .codex because model-first routing matched
+        // the gpt- prefix — but the event is genuinely from NanoGPT, not Codex.
+        XCTAssertEqual(events.first?.provider, .nanoGpt)
     }
 
     func testTokenBreakdownExtraction() async {

@@ -111,12 +111,16 @@ final class TokenNormalizerTests: XCTestCase {
         XCTAssertEqual(TokenNormalizer.matchProvider(model: "unknown", providerID: "openai"), .codex)
     }
 
-    func testKimiModelAnthropicProvider() {
-        XCTAssertEqual(TokenNormalizer.matchProvider(model: "kimi-special", providerID: "anthropic"), .kimi)
+    func testKimiModelAnthropicProviderRoutesByProviderID() {
+        // providerID-first routing: "anthropic" wins over the misleading
+        // model name "kimi-special". Pre-fix this asserted .kimi (model-first).
+        XCTAssertEqual(TokenNormalizer.matchProvider(model: "kimi-special", providerID: "anthropic"), .claude)
     }
 
-    func testZaiModelOpenAIProvider() {
-        XCTAssertEqual(TokenNormalizer.matchProvider(model: "glm-4.5", providerID: "openai"), .zai)
+    func testZaiModelOpenAIProviderRoutesByProviderID() {
+        // providerID-first routing: "openai" wins over the misleading
+        // model name "glm-4.5". Pre-fix this asserted .zai (model-first).
+        XCTAssertEqual(TokenNormalizer.matchProvider(model: "glm-4.5", providerID: "openai"), .codex)
     }
 
     // MARK: - 真实 user 本机数据 (5 tests)

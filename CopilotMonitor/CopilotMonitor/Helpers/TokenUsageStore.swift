@@ -405,6 +405,17 @@ actor TokenUsageStore {
         return Int(sqlite3_changes(db))
     }
 
+    /// Thin alias of `purgeMismatchedOpencodeAsNanoGpt` with a name that
+    /// reflects the broader scope of the bug: it covers OpenCode events
+    /// mis-classified as `.nanoGpt` for ANY reason — most recently the
+    /// `opencode` / `opencode-go` providerIDs that lacked rules in the
+    /// pre-fix `TokenNormalizer`. Prefer this name in new call sites.
+    ///
+    /// Same SQL: `DELETE FROM token_events WHERE source = 'opencode' AND provider = 'nanoGpt'`
+    func purgeMismatchedOpencodeEvents() async throws -> Int {
+        try await purgeMismatchedOpencodeAsNanoGpt()
+    }
+
     /// One-shot migration that deletes EVERY KimiCode row from
     /// `token_events`. Use after the KimiCode extractor fix that converts
     /// `inputCacheRead` / `inputCacheCreation` from session-cumulative

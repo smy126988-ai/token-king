@@ -3,56 +3,67 @@ import os.log
 
 private let tokenNormalizerLogger = Logger(subsystem: "com.opencodeproviders", category: "TokenNormalizer")
 
-/// Provider 归一化 (5 reference 共识: model 字段为主 + providerID 辅助).
-/// 决策: model 优先, 匹配不到再用 providerID, 都失败 → .nanoGpt 兜底 + logger.warning.
-/// Kimi Global / CN 区分: providerID 含 'cn' / 'kimi-cn' → .kimiCN, 否则 .kimi.
+/// Provider normalization (providerID-first, model-name fallback).
+///
+/// Decision: `providerID` is the most reliable signal — it is the explicit
+/// user choice of which upstream provider to route through, while `model` is
+/// just a model name string. When both are present, trust providerID first.
+/// When providerID is missing/empty, fall back to model-name heuristics.
+/// Final fallback is `.nanoGpt`.
 struct TokenNormalizer {
-    /// 把 raw event 的 model + providerID 归一化到 Provider enum.
+    /// Normalize a raw event's (model, providerID) into a Provider enum.
+    ///
+    /// Routing order:
+    ///   1. `providerID` is checked first because it is the explicit user
+    ///      choice (e.g. "opencode-go" / "opencode" / "xiaomi-token-plan-cn")
+    ///      and is the only signal that disambiguates routing through a
+    ///      multi-provider gateway like OpenCode Go.
+    ///   2. When providerID is empty / unrecognized, fall back to model-name
+    ///      patterns (`claude-` / `gpt-` / `glm-` / `kimi` / `minimax` /
+    ///      `xiaomi` / `qwen3.7-max`).
+    ///   3. Final fallback: `.nanoGpt` + a warning log so misclassified
+    ///      events show up in `Console.app` instead of silently drifting.
+    ///
     /// - Parameters:
-    ///   - model:       原始 model 名 (e.g. "kimi-for-coding", "claude-sonnet-4-5", "gpt-4o")
-    ///   - providerID:  原始 providerID (e.g. "kimi", "anthropic", "openai", "z-ai", "opencode-go")
-    /// - Returns: 归一化后的 Provider
+    ///   - model:       raw model name (e.g. "kimi-for-coding", "claude-sonnet-4-5", "mimo-v2.5-pro")
+    ///   - providerID:  raw providerID (e.g. "kimi", "anthropic", "openai", "z-ai", "opencode-go", "opencode")
+    /// - Returns: normalized Provider
     static func matchProvider(model: String, providerID: String) -> Provider {
         let m = model.lowercased()
         let p = providerID.lowercased()
 
-        // model 字段为主
-        if m.contains("kimi") || m.hasPrefix("k2p") {
-            // Kimi CN 识别: providerID 含 cn / kimi-cn
-            if p.contains("cn") || p.contains("kimi-cn") {
-                return .kimiCN
+        // 1. providerID is the primary signal.
+        if p.contains("nano-gpt") || p == "nanogpt" {
+            return .nanoGpt
+        }
+        if p.contains("opencode-go") {
+            if m.hasPrefix("gpt-5") || m.hasPrefix("gpt-4") {
+                return .codex
+            }
+            if m.hasPrefix("claude-") {
+                return .claude
+            }
+            if m.contains("minimax") || m.hasPrefix("mimo-") {
+                return .minimaxCN
+            }
+            if m.contains("kimi") {
+                return .kimi
             }
             return .kimi
         }
-        if m.hasPrefix("claude-") {
-            return .claude
-        }
-        if m.hasPrefix("gpt-") || m.hasPrefix("o3-") || m.hasPrefix("o4-") {
-            return .codex
-        }
-        if m.hasPrefix("glm-") {
-            return .zai
-        }
-        // MiniMax family — model field check first (catches both current
-        // "minimax-m3" naming, legacy "mimo-v2.5-pro" model IDs, and the
-        // F2b camelCase "MiniMax-M3" emitted by the new OpenCode schema).
-        if m.contains("minimax") || m.hasPrefix("mimo-") || m.hasPrefix("minimax-") {
-            if p.contains("cn") || p.contains("minimax-cn") {
-                return .minimaxCN
+        if p == "opencode" || p.contains("opencode") {
+            if m.contains("kimi") || m.hasPrefix("mimo-") {
+                return .kimi
             }
-            return .minimax
-        }
-        // Xiaomi family — qwen3.7-max / xiaomi-prefixed models.
-        // "mimo" historical Xiaomi model names also match here.
-        if m.contains("xiaomi") || m.contains("mimo") {
-            if p.contains("token-plan") || p.contains("cn") {
+            if m.contains("xiaomi") || m == "qwen3.7-max" {
                 return .xiaomiTokenPlanCN
             }
-            return .xiaomi
+            if m.contains("minimax") {
+                return .minimaxCN
+            }
+            return .kimi
         }
-
-        // providerID 辅助
-        if p.contains("kimi-cn") || (p.contains("kimi") && p.contains("cn")) {
+        if p.contains("kimi-cn") || p.contains("kimicn") {
             return .kimiCN
         }
         if p.contains("kimi") || p.contains("moonshot") {
@@ -80,8 +91,24 @@ struct TokenNormalizer {
             return .xiaomi
         }
 
-        // 兜底 (5 reference 共识: 不 panic, logger warning + 默认值)
-        tokenNormalizerLogger.warning("F2b: unknown model '\(model, privacy: .public)' providerID '\(providerID, privacy: .public)', fallback to .nanoGpt")
+        // 2. Model-name fallback (only when providerID is missing/empty).
+        if m.hasPrefix("claude-") { return .claude }
+        if m.hasPrefix("gpt-") || m.hasPrefix("o3-") || m.hasPrefix("o4-") {
+            return .codex
+        }
+        if m.hasPrefix("glm-") { return .zai }
+        if m.contains("kimi") || m == "kimi-for-coding" {
+            return .kimi
+        }
+        if m.contains("minimax") || m.hasPrefix("mimo-") {
+            return .minimax
+        }
+        if m.contains("xiaomi") || m == "qwen3.7-max" {
+            return .xiaomiTokenPlanCN
+        }
+
+        // 3. Final fallback.
+        tokenNormalizerLogger.warning("TokenNormalizer: unknown model '\(model, privacy: .public)' providerID '\(providerID, privacy: .public)', fallback to .nanoGpt")
         return .nanoGpt
     }
 }
