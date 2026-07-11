@@ -11,8 +11,12 @@ private let tokenNormalizerLogger = Logger(subsystem: "com.opencodeproviders", c
 ///   2. `model` prefixes are used when `providerID` is empty or generic
 ///      (e.g. `claude-sonnet-4-5` => `.claude`, `gpt-4o` => `.codex`).
 ///   3. Unknown combinations fall back to `.nanoGpt` with a warning.
-///      On the OpenCode code path we route providerID `opencode` to `.opencodeGo`
-///      as a best-effort match (the SDK used to emit that identifier).
+///
+/// Note on `mimo`: the `mimo` model is only ever served through one of the
+/// Xiaomi MiMo providers, so a model-based fallback is unnecessary; the
+/// providerID-direct routes above handle it. Earlier code carried a
+/// `mimo` model-fallback branch that was always shadowed by the
+/// providerID check, removed in the audit.
 ///
 /// Kimi Global / CN split: providerID contains `cn` / `kimi-cn` => `.kimiCN`,
 /// otherwise `.kimi`. Same logic for `.minimaxCN` / `.xiaomiTokenPlanCN`.
@@ -72,14 +76,6 @@ struct TokenNormalizer {
         }
         if m.contains("minimax") {
             return p.contains("cn") ? .minimaxCN : .minimax
-        }
-        if m.contains("mimo") {
-            // `mimo` model + `xiaomi-token-plan-cn` providerID is the typical
-            // Chinese subscription setup. Other combinations fall back to .xiaomi.
-            if p.contains("token-plan") {
-                return .xiaomiTokenPlanCN
-            }
-            return .xiaomi
         }
         if m.hasPrefix("glm-") {
             return .zai

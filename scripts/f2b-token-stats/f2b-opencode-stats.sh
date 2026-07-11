@@ -77,6 +77,25 @@ if ! command -v sqlite3 >/dev/null; then
     exit 1
 fi
 
+# Reject any filter value containing characters that could break out of the
+# single-quote SQL interpolation. The script is single-user/local but it costs
+# nothing to be strict, and quoting-error-prone callers (CI reruns etc.) won't
+# accidentally inject. The character class puts `-` at the end so POSIX BRE
+# can't mis-read it as a range start.
+validate_filter() {
+    local name="$1" value="$2"
+    if [[ -z "$value" ]]; then return 0; fi
+    if [[ "$value" =~ [^a-zA-Z0-9_./:_-] ]]; then
+        echo "rejecting $name=\"$value\": contains characters outside [a-zA-Z0-9_./:_-]" >&2
+        exit 1
+    fi
+    return 0
+}
+
+validate_filter --source     "$SOURCE_FILTER"
+validate_filter --provider   "$PROVIDER_FILTER"
+validate_filter --since      "$SINCE"
+
 # ---------------------------------------------------------------------------
 # SQL fragments
 # ---------------------------------------------------------------------------
