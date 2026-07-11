@@ -77,6 +77,13 @@ struct TokenNormalizer {
         if m.contains("minimax") {
             return p.contains("cn") ? .minimaxCN : .minimax
         }
+        if m.contains("mimo") {
+            // Xiaomi MiMo. Some Claude Code subagent chains pass model name
+            // without providerID; we only know it via the model. Token-plan
+            // hint would distinguish CN, but without providerID we default to
+            // global MiMo (`.xiaomi`). Most observed: xiaomi-token-plan-cn.
+            return .xiaomi
+        }
         if m.hasPrefix("glm-") {
             return .zai
         }
