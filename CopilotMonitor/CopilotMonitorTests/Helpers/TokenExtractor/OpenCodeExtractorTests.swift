@@ -372,4 +372,107 @@ final class OpenCodeExtractorTests: XCTestCase {
         XCTAssertEqual(events[1].tokens.cacheRead, 200,
                        "New-schema path: delta = 500 - 300 = 200")
     }
+
+    // MARK: - Real-world new-schema data lacks `$.sessionID` in the JSON blob.
+    //
+    // In production (verified against ~/.local/share/opencode/opencode.db),
+    // the new schema emits assistant messages with NO `sessionID` field in
+    // the `data` JSON. The session identity lives ONLY on the `message`
+    // table's `session_id` column. The buggy extractor reads
+    // `json_extract(data, '$.sessionID')` (always NULL for new schema) and
+    // falls back to per-event message id, which breaks the per-session
+    // cache delta tracking.
+
+    private func createNewSchemaWithoutSessionIDInJSONDB() throws -> String {
+        let dir = NSTemporaryDirectory() + "opencode_nosid_\(UUID().uuidString)"
+        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        let path = dir + "/opencode.db"
+        var db: OpaquePointer?
+        sqlite3_open(path, &db)
+        sqlite3_exec(db, """
+            CREATE TABLE message (
+                id TEXT PRIMARY KEY,
+                session_id TEXT,
+                time_created INTEGER,
+                time_updated INTEGER,
+                data TEXT
+            )
+        """, nil, nil, nil)
+        sqlite3_exec(db, """
+            INSERT INTO message VALUES
+            ('parent', 'ses_real', 1000, 1000, '{"role":"user","model":{"providerID":"openai","modelID":"gpt-4o"}}'),
+            ('msg_a', 'ses_real', 2000, 2000, '{"role":"assistant","parentID":"parent","tokens":{"input":10,"output":5,"cache":{"read":1024,"write":0}},"modelID":"gpt-4o","time":{"created":1781000000000}}'),
+            ('msg_b', 'ses_real', 3000, 3000, '{"role":"assistant","parentID":"parent","tokens":{"input":10,"output":5,"cache":{"read":3072,"write":0}},"modelID":"gpt-4o","time":{"created":1781000001000}}')
+        """, nil, nil, nil)
+        sqlite3_close(db)
+        return dir
+    }
+
+    /// Two new-schema events from the same session (where the JSON has NO
+    /// `$.sessionID`) MUST receive the SAME `sessionId` after extraction —
+    /// i.e. the extractor must read from the `message.session_id` column,
+    /// not from `json_extract(data, '$.sessionID')`.
+    func testSessionIdFromNewSchemaUsesMessageTableColumn() async throws {
+        let dir = try createNewSchemaWithoutSessionIDInJSONDB()
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+
+        let extractor = OpenCodeExtractor(rootPath: dir)
+        let events = (try? await extractor.extractAll()) ?? []
+        XCTAssertEqual(events.count, 2)
+        XCTAssertEqual(events[0].sessionId, "ses_real",
+                       "First event: sessionId must come from message.session_id column, not JSON")
+        XCTAssertEqual(events[1].sessionId, "ses_real",
+                       "Second event: same session_id as first — the bug would emit per-event message id")
+        XCTAssertNotEqual(events[0].sessionId, events[0].sourceId,
+                          "sessionId must not be a per-event message id (would defeat cache delta tracking)")
+    }
+
+    /// Across 3 new-schema events with cumulative cache values, deltas must
+    /// be small (a few K per turn), not the full cumulative value (200K+).
+    /// The bug — using per-event message id as the cacheState key —
+    /// causes each new-schema event to start fresh state and emit the full
+    /// cumulative value as the "delta".
+    func testCacheReadDeltaAcrossMultipleEventsInSameSession() async throws {
+        let dir = NSTemporaryDirectory() + "opencode_nosid_cum_\(UUID().uuidString)"
+        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+        let path = dir + "/opencode.db"
+        var db: OpaquePointer?
+        sqlite3_open(path, &db)
+        sqlite3_exec(db, """
+            CREATE TABLE message (
+                id TEXT PRIMARY KEY,
+                session_id TEXT,
+                time_created INTEGER,
+                time_updated INTEGER,
+                data TEXT
+            )
+        """, nil, nil, nil)
+        sqlite3_exec(db, """
+            INSERT INTO message VALUES
+            ('parent', 'ses_real', 1000, 1000, '{"role":"user","model":{"providerID":"openai","modelID":"gpt-4o"}}'),
+            ('ev1', 'ses_real', 2000, 2000, '{"role":"assistant","parentID":"parent","tokens":{"input":10,"output":5,"cache":{"read":2000,"write":0}},"modelID":"gpt-4o","time":{"created":1781000000000}}'),
+            ('ev2', 'ses_real', 3000, 3000, '{"role":"assistant","parentID":"parent","tokens":{"input":10,"output":5,"cache":{"read":4500,"write":0}},"modelID":"gpt-4o","time":{"created":1781000001000}}'),
+            ('ev3', 'ses_real', 4000, 4000, '{"role":"assistant","parentID":"parent","tokens":{"input":10,"output":5,"cache":{"read":6200,"write":0}},"modelID":"gpt-4o","time":{"created":1781000002000}}')
+        """, nil, nil, nil)
+        sqlite3_close(db)
+
+        let extractor = OpenCodeExtractor(rootPath: dir)
+        let events = (try? await extractor.extractAll()) ?? []
+        XCTAssertEqual(events.count, 3)
+        let sessions = Set(events.map(\.sessionId))
+        XCTAssertEqual(sessions, ["ses_real"],
+                       "All 3 events must share the same sessionId (column), not per-event message ids")
+        XCTAssertEqual(events[0].tokens.cacheRead, 2000,
+                       "First event in session: full cumulative value (no prior state)")
+        XCTAssertEqual(events[1].tokens.cacheRead, 2500,
+                       "Second event: per-event delta = 4500 - 2000 = 2500")
+        XCTAssertEqual(events[2].tokens.cacheRead, 1700,
+                       "Third event: per-event delta = 6200 - 4500 = 1700")
+        XCTAssertEqual(
+            events.map(\.tokens.cacheRead).reduce(0, +),
+            6200,
+            "Sum of per-event deltas equals final cumulative value when cacheState key matches session_id"
+        )
+    }
 }

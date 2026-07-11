@@ -73,7 +73,11 @@ struct OpenCodeExtractor: TokenExtractorProtocol {
 
     /// New schema: `data.modelID` is camelCase top-level, `data.model.providerID`
     /// is absent on the assistant message. We join to the parent (user-role) message
-    /// via `data.parentID` to recover the provider ID.
+    /// via `data.parentID` to recover the provider ID. New schema also drops the
+    /// `data.sessionID` field on assistant messages, so the session identity is
+    /// read directly from `message.session_id` (the table column). Reading it
+    /// from JSON would fall back to the per-event message id and break the
+    /// per-session cache delta tracking.
     private func extractNewSchema(from db: OpaquePointer, cacheState: inout [String: CacheState]) -> [TokenEvent] {
         let sql = """
             SELECT a.id,
@@ -84,7 +88,7 @@ struct OpenCodeExtractor: TokenExtractorProtocol {
                    json_extract(a.data, '$.tokens.cache.write') AS cache_write,
                    json_extract(u.data, '$.model.providerID')  AS provider_id,
                    json_extract(a.data, '$.modelID')           AS model_id,
-                   json_extract(a.data, '$.sessionID')         AS session_id,
+                   a.session_id                              AS session_id,
                    json_extract(a.data, '$.time.created')      AS ts_ms
             FROM message a
             LEFT JOIN message u ON u.id = json_extract(a.data, '$.parentID')
