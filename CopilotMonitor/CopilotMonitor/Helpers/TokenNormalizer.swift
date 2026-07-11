@@ -3,38 +3,44 @@ import os.log
 
 private let tokenNormalizerLogger = Logger(subsystem: "com.opencodeproviders", category: "TokenNormalizer")
 
-/// Provider 归一化 (5 reference 共识: model 字段为主 + providerID 辅助).
-/// 决策: model 优先, 匹配不到再用 providerID, 都失败 → .nanoGpt 兜底 + logger.warning.
-/// Kimi Global / CN 区分: providerID 含 'cn' / 'kimi-cn' → .kimiCN, 否则 .kimi.
+/// Provider normalization. Routes the raw `model` + `providerID` of each event
+/// into a single `Provider` enum case. Resolution priority:
+///
+///   1. `providerID` is the strongest signal — direct routes take precedence
+///      (e.g. `opencode-go` => `.opencodeGo`, `xiaomi-token-plan-cn` => `.xiaomiTokenPlanCN`).
+///   2. `model` prefixes are used when `providerID` is empty or generic
+///      (e.g. `claude-sonnet-4-5` => `.claude`, `gpt-4o` => `.codex`).
+///   3. Unknown combinations fall back to `.nanoGpt` with a warning.
+///      On the OpenCode code path we route providerID `opencode` to `.opencodeGo`
+///      as a best-effort match (the SDK used to emit that identifier).
+///
+/// Kimi Global / CN split: providerID contains `cn` / `kimi-cn` => `.kimiCN`,
+/// otherwise `.kimi`. Same logic for `.minimaxCN` / `.xiaomiTokenPlanCN`.
 struct TokenNormalizer {
-    /// 把 raw event 的 model + providerID 归一化到 Provider enum.
-    /// - Parameters:
-    ///   - model:       原始 model 名 (e.g. "kimi-for-coding", "claude-sonnet-4-5", "gpt-4o")
-    ///   - providerID:  原始 providerID (e.g. "kimi", "anthropic", "openai", "z-ai", "opencode-go")
-    /// - Returns: 归一化后的 Provider
     static func matchProvider(model: String, providerID: String) -> Provider {
         let m = model.lowercased()
         let p = providerID.lowercased()
 
-        // model 字段为主
-        if m.contains("kimi") || m.hasPrefix("k2p") {
-            // Kimi CN 识别: providerID 含 cn / kimi-cn
-            if p.contains("cn") || p.contains("kimi-cn") {
-                return .kimiCN
-            }
-            return .kimi
+        // providerID direct routes (strongest signal).
+        if p.contains("minimax") {
+            // `minimax-cn` => China, plain `minimax` => global. Substring match
+            // keeps the rule resilient to slight naming changes.
+            return p.contains("cn") ? .minimaxCN : .minimax
         }
-        if m.hasPrefix("claude-") {
-            return .claude
+        if p.contains("xiaomi-token-plan") || p.contains("xiaomi_token_plan") {
+            return .xiaomiTokenPlanCN
         }
-        if m.hasPrefix("gpt-") || m.hasPrefix("o3-") || m.hasPrefix("o4-") {
-            return .codex
+        if p.contains("xiaomi") {
+            return .xiaomi
         }
-        if m.hasPrefix("glm-") {
-            return .zai
+        if p.contains("opencode-go") || p.contains("opencode_go") {
+            return .opencodeGo
         }
-
-        // providerID 辅助
+        if p.contains("opencode") {
+            // Older OpenCode SDKs emitted bare `opencode` as the providerID for the
+            // Go subscription. Route to `.opencodeGo` to preserve attribution.
+            return .opencodeGo
+        }
         if p.contains("kimi-cn") || (p.contains("kimi") && p.contains("cn")) {
             return .kimiCN
         }
@@ -51,7 +57,34 @@ struct TokenNormalizer {
             return .zai
         }
 
-        // 兜底 (5 reference 共识: 不 panic, logger warning + 默认值)
+        // model-based routing as fallback when providerID is generic or empty.
+        if m.contains("kimi") || m.hasPrefix("k2p") {
+            if p.contains("cn") || p.contains("kimi-cn") {
+                return .kimiCN
+            }
+            return .kimi
+        }
+        if m.hasPrefix("claude-") {
+            return .claude
+        }
+        if m.hasPrefix("gpt-") || m.hasPrefix("o3-") || m.hasPrefix("o4-") {
+            return .codex
+        }
+        if m.contains("minimax") {
+            return p.contains("cn") ? .minimaxCN : .minimax
+        }
+        if m.contains("mimo") {
+            // `mimo` model + `xiaomi-token-plan-cn` providerID is the typical
+            // Chinese subscription setup. Other combinations fall back to .xiaomi.
+            if p.contains("token-plan") {
+                return .xiaomiTokenPlanCN
+            }
+            return .xiaomi
+        }
+        if m.hasPrefix("glm-") {
+            return .zai
+        }
+
         tokenNormalizerLogger.warning("F2b: unknown model '\(model, privacy: .public)' providerID '\(providerID, privacy: .public)', fallback to .nanoGpt")
         return .nanoGpt
     }
