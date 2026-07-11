@@ -224,7 +224,7 @@ final class StatusBarController: NSObject {
     /// `refreshTopLevelTokenCache` on the same periodic loop as
     /// `refreshMonthlyTotalsCache`. Read synchronously by `updateMultiProviderMenu`
     /// (main-actor).
-    private var cachedPerPeriodTokens: [TokenPeriod: [PerPeriodTokenAggregator.ProviderTotal]] = [:]
+    var cachedPerPeriodTokens: [TokenPeriod: [PerPeriodTokenAggregator.ProviderTotal]] = [:]
     private var lastTokenStatsFetchAt: Date?
     /// F4 redesign: in-memory snapshot cache keyed by F2b `Provider.rawValue`.
     /// Populated by `refreshQuotaSnapshotCache` so the per-provider quota
@@ -1265,6 +1265,15 @@ final class StatusBarController: NSObject {
         )
     }
 
+    /// F1 header: billable token total for the current month across all
+    /// providers. Mirrors the F4 top-level "本月 Token" menu item by summing
+    /// `ProviderTotal.total` (input + output + cacheWrite + reasoning),
+    /// excluding `cacheRead`. Without this, F1 and F4 displayed different
+    /// totals for the same month (e.g. 7月: F1=54.39亿 vs F4=52.72亿 = Σ cacheRead).
+    func currentMonthBillableTotalTokens() -> Int {
+        cachedPerPeriodTokens[.month]?.reduce(0) { $0 + $1.total } ?? 0
+    }
+
     /// F4 redesign: quota snapshot sampling. Iterates the latest
     /// `providerResults` and writes a `QuotaSnapshot` row for every provider
     /// with `fiveHourUsage` (window="5h") or `sevenDayUsage` (window="7d").
@@ -2195,11 +2204,13 @@ final class StatusBarController: NSObject {
          menu.insertItem(separator1, at: insertIndex)
          insertIndex += 1
 
-           // F1 top header: this month's total tokens (cross-provider)
-           let monthTotal = currentMonthTotalTokens()
-           if monthTotal.total > 0 {
+           // F1 top header: this month's billable tokens (cross-provider).
+           // Uses the same formula as the F4 top-level "本月 Token" menu
+           // item below (excludes cacheRead) so both displays agree.
+           let monthBillable = currentMonthBillableTotalTokens()
+           if monthBillable > 0 {
                let f1Header = NSMenuItem()
-               f1Header.view = createHeaderView(title: "本月 Token：\(TokenUsageFormatter.format(tokens: monthTotal.total))")
+               f1Header.view = createHeaderView(title: "本月 Token：\(TokenUsageFormatter.format(tokens: monthBillable))")
                f1Header.tag = MenuItemTag.dynamic
                f1Header.identifier = NSUserInterfaceItemIdentifier("f1-month-total-header")
                menu.insertItem(f1Header, at: insertIndex)

@@ -96,6 +96,43 @@ final class StatusBarControllerRedesignTests: XCTestCase {
         XCTAssertTrue(texts.contains(where: { $0.contains("Total:") && $0.contains("177") }), "Billable Total should include reasoning but exclude cacheRead; got \(texts)")
     }
 
+    // MARK: - F1 header billable total
+
+    func testCurrentMonthBillableTotalTokensMatchesF4TopLevel() {
+        // Inject per-period cache: month totals from 2 providers. The F1
+        // header must use the same billable formula as the F4 top-level
+        // "本月 Token" menu item so both displays agree on the same number.
+        controller.cachedPerPeriodTokens[.month] = [
+            PerPeriodTokenAggregator.ProviderTotal(
+                providerRaw: "kimi", displayName: "Kimi",
+                input: 100, output: 50, cacheRead: 30, cacheWrite: 20, reasoning: 0
+            ),
+            PerPeriodTokenAggregator.ProviderTotal(
+                providerRaw: "claude", displayName: "Claude",
+                input: 200, output: 100, cacheRead: 60, cacheWrite: 40, reasoning: 0
+            ),
+        ]
+        // Billable total = sum of ProviderTotal.total = input + output + cacheWrite + reasoning.
+        // Kimi: 100+50+20+0 = 170; Claude: 200+100+40+0 = 340; sum = 510.
+        // Excludes cacheRead 30+60 = 90 — same formula as the F4 loop above.
+        XCTAssertEqual(controller.currentMonthBillableTotalTokens(), 510)
+    }
+
+    func testCurrentMonthBillableTotalTokensExcludesCacheRead() {
+        // Specific: cacheRead=999_999 must NOT inflate the F1 header total.
+        // This locks in the "billable only" contract so a future refactor
+        // (e.g. switching back to currentMonthTotalTokens().total) cannot
+        // silently re-introduce the 5-sum divergence with F4.
+        controller.cachedPerPeriodTokens[.month] = [
+            PerPeriodTokenAggregator.ProviderTotal(
+                providerRaw: "kimi", displayName: "Kimi",
+                input: 100, output: 50, cacheRead: 999_999, cacheWrite: 20, reasoning: 7
+            ),
+        ]
+        // Billable = 100+50+20+7 = 177 (cacheRead=999_999 excluded).
+        XCTAssertEqual(controller.currentMonthBillableTotalTokens(), 177)
+    }
+
     // MARK: - Quota history submenu
 
     func testQuotaHistorySubmenuRendersAllSnapshots() {
