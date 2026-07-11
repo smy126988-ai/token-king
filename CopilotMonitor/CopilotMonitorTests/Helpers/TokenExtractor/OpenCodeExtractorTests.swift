@@ -28,16 +28,14 @@ final class OpenCodeExtractorTests: XCTestCase {
                 data TEXT
             )
         """, nil, nil, nil)
-
-        // Real OpenCode emits CUMULATIVE cache.read / cache.write values per
-        // session (the cache footprint at end of turn, monotonically growing
-        // until context compaction or eviction). Three of the rows below
-        // intentionally show a session where the cache shrinks (compaction);
-        // the extractor must clamp the delta to 0 in that case rather than
-        // going negative.
+        // Real OpenCode emits per-request (Anthropic semantics) `tokens.*`
+        // values. `tokens.input` is fresh non-cached; `tokens.cache.read` /
+        // `tokens.cache.write` are this request's cache hits / creations.
         sqlite3_exec(db, """
             INSERT INTO message VALUES
-            -- ses_a: 3 events, cache grows 1906 -> 63920 -> 63393 (compaction).
+            -- ses_a: 3 events; cache_read bumps 1906 -> 63920 -> 63393 (cache
+            -- misses happen, value is whatever the API reported for THIS
+            -- request, store as-is).
             ('msg_1','ses_a',1000,1000,'{"role":"assistant","modelID":"MiniMax-M3","providerID":"minimax-cn","tokens":{"input":61501,"output":527,"reasoning":0,"cache":{"read":1906,"write":0}},"time":{"created":1000}}'),
             ('msg_2','ses_a',2000,2000,'{"role":"assistant","modelID":"MiniMax-M3","providerID":"minimax-cn","tokens":{"input":139,"output":84,"reasoning":0,"cache":{"read":63920,"write":0}},"time":{"created":2000}}'),
             ('msg_3','ses_a',3000,3000,'{"role":"assistant","modelID":"MiniMax-M3","providerID":"minimax-cn","tokens":{"input":3204,"output":787,"reasoning":0,"cache":{"read":63393,"write":0}},"time":{"created":3000}}'),
@@ -56,8 +54,8 @@ final class OpenCodeExtractorTests: XCTestCase {
             ('msg_10','ses_g',10000,10000,'{"role":"assistant","modelID":"gpt-4o","providerID":"openai","tokens":{"input":50,"output":25,"reasoning":0,"cache":{"read":5,"write":0}},"time":{"created":10000}}'),
             -- ses_h: glm-4.6 via z-ai.
             ('msg_11','ses_h',11000,11000,'{"role":"assistant","modelID":"glm-4.6","providerID":"z-ai","tokens":{"input":60,"output":30,"reasoning":0,"cache":{"read":0,"write":0}},"time":{"created":11000}}'),
-            -- ses_cumulative: cache grows strictly monotonic per turn.
-            -- Verify the extractor computes deltas, NOT raw cumulative values.
+            -- ses_cum: cache grows monotonically; verifier covers per-event
+            -- fields. raw values are stored as-is (no delta).
             ('msg_20','ses_cum',20000,20000,'{"role":"assistant","modelID":"MiniMax-M3","providerID":"minimax-cn","tokens":{"input":1000,"output":50,"reasoning":0,"cache":{"read":100000,"write":5000}},"time":{"created":20000}}'),
             ('msg_21','ses_cum',20010,20010,'{"role":"assistant","modelID":"MiniMax-M3","providerID":"minimax-cn","tokens":{"input":500,"output":80,"reasoning":0,"cache":{"read":150000,"write":10000}},"time":{"created":20010}}'),
             ('msg_22','ses_cum',20020,20020,'{"role":"assistant","modelID":"MiniMax-M3","providerID":"minimax-cn","tokens":{"input":200,"output":20,"reasoning":0,"cache":{"read":200000,"write":15000}},"time":{"created":20020}}')
@@ -139,40 +137,39 @@ final class OpenCodeExtractorTests: XCTestCase {
         XCTAssertTrue(sessionIds.contains("ses_cum"))
     }
 
-    /// Per-session cache delta: the on-disk cache.read/cache.write values are
-    /// CUMULATIVE (current cache footprint at end of turn), and the extractor
-    /// is expected to convert them into per-event deltas so monthly aggregates
-    /// stay meaningful. Without this, summing across a long session inflates
-    /// the cache_read totals by 10-30× the actual cache footprint.
-    func testCacheReadConvertedToPerSessionDelta() async {
+    /// `data.tokens.*` fields are **per-request** values (Anthropic
+    /// cacheReadInputTokens / cacheWriteInputTokens / input_tokens /
+    /// output_tokens). The extractor stores them raw — no
+    /// cumulative-to-delta conversion. Sum across messages gives the
+    /// total tokens billed for the session.
+    func testTokenFieldsPreservedPerRequest() async {
         let extractor = OpenCodeExtractor(rootPath: tmpDir)
         let events = (try? await extractor.extractAll()) ?? []
 
-        // Cumulative session ses_cum fixture: 100K -> 150K -> 200K.
-        // Expected deltas: 100K, 50K, 50K.
+        // ses_cum fixture: cache.read bumps 100000 -> 150000 -> 200000.
+        // Raw values are what the API reported for each request. Sum these
+        // across messages to get the session's cache_read total.
         let cum = events.filter { $0.sessionId == "ses_cum" }.sorted { $0.timestamp < $1.timestamp }
         XCTAssertEqual(cum.count, 3)
-        XCTAssertEqual(cum[0].tokens.cacheRead, 100_000, "first event uses raw value (cache was created this turn)")
-        XCTAssertEqual(cum[1].tokens.cacheRead,  50_000)
-        XCTAssertEqual(cum[2].tokens.cacheRead,  50_000)
-        // cache_write: 5K -> 10K -> 15K => deltas 5K, 5K, 5K.
-        XCTAssertEqual(cum[0].tokens.cacheWrite,  5_000)
-        XCTAssertEqual(cum[1].tokens.cacheWrite,  5_000)
-        XCTAssertEqual(cum[2].tokens.cacheWrite,  5_000)
-    }
+        XCTAssertEqual(cum[0].tokens.cacheRead, 100_000)
+        XCTAssertEqual(cum[1].tokens.cacheRead, 150_000)
+        XCTAssertEqual(cum[2].tokens.cacheRead, 200_000)
+        // cache.write: 5K -> 10K -> 15K (also raw per-request).
+        XCTAssertEqual(cum[0].tokens.cacheWrite, 5_000)
+        XCTAssertEqual(cum[1].tokens.cacheWrite, 10_000)
+        XCTAssertEqual(cum[2].tokens.cacheWrite, 15_000)
 
-    /// Real OpenCode sessions occasionally see cache sizes shrink (context
-    /// compaction or eviction). The delta must clamp to 0, never go negative.
-    func testCacheReadDeltaClampsOnShrink() async {
-        let extractor = OpenCodeExtractor(rootPath: tmpDir)
-        let events = (try? await extractor.extractAll()) ?? []
-
-        // ses_a fixture: cache 1906 -> 63920 -> 63393 (shrink by 527 on turn 3).
+        // ses_a fixture: cache miss on turn 3 (cache_read DROPS from 63920
+        // to 63393, a 527-token decrease). Real Anthropic behavior —
+        // cache_read_input_tokens reflects whatever THIS request actually
+        // had from cache. The previous version's "clamp to 0, never
+        // negative" delta rule was wrong because the upstream value can
+        // genuinely shrink on cache eviction / context compaction.
         let sesA = events.filter { $0.sessionId == "ses_a" }.sorted { $0.timestamp < $1.timestamp }
         XCTAssertEqual(sesA.count, 3)
-        XCTAssertEqual(sesA[0].tokens.cacheRead,  1_906, "first event uses raw value")
-        XCTAssertEqual(sesA[1].tokens.cacheRead, 62_014, "growth 1906 -> 63920 = 62014")
-        XCTAssertEqual(sesA[2].tokens.cacheRead,      0, "shrink 63920 -> 63393 must clamp to 0")
+        XCTAssertEqual(sesA[0].tokens.cacheRead, 1_906)
+        XCTAssertEqual(sesA[1].tokens.cacheRead, 63_920)
+        XCTAssertEqual(sesA[2].tokens.cacheRead, 63_393)
     }
 
     func testProviderNormalizationApplied() async {
