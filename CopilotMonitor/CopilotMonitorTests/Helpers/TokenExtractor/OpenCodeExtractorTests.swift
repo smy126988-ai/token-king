@@ -157,8 +157,14 @@ final class OpenCodeExtractorTests: XCTestCase {
         XCTAssertEqual(event?.sessionId, "ses_new")
     }
 
-    func testNewSchemaMessageWithoutValidParentSkipped() async throws {
-        // Build a DB where the assistant's parentID references a non-existent message.
+    /// Pre-unification behavior: this test asserted orphan-parent events were
+    /// silently dropped. After the unified-SQL refactor, the assistant message
+    /// still carries a recoverable `modelID` and `tokens`; the providerID falls
+    /// through to empty and is resolved via model-based normalization. The
+    /// event is now extracted — using the model field to classify instead of
+    /// being discarded entirely. `matchProvider("MiniMax-M3", "")` enters the
+    /// minimax branch on the model name and resolves to `.minimax`.
+    func testNewSchemaOrphanParentStillExtractsWithModelBasedClassification() async throws {
         let dir = NSTemporaryDirectory() + "opencode_new_orphan_\(UUID().uuidString)"
         try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(atPath: dir) }
@@ -168,7 +174,6 @@ final class OpenCodeExtractorTests: XCTestCase {
         sqlite3_exec(db, """
             CREATE TABLE message (id TEXT PRIMARY KEY, session_id TEXT, time_created INTEGER, time_updated INTEGER, data TEXT)
         """, nil, nil, nil)
-        // Assistant with parentID pointing to a message that does NOT exist.
         sqlite3_exec(db, """
             INSERT INTO message VALUES
             ('msg_orphan_assistant', 'ses_o', 2000, 2000, '{"role":"assistant","sessionID":"ses_o","parentID":"msg_does_not_exist","tokens":{"input":100,"output":50,"reasoning":0,"cache":{"read":0,"write":0}},"modelID":"MiniMax-M3","time":{"created":1781070432579}}')
@@ -178,8 +183,11 @@ final class OpenCodeExtractorTests: XCTestCase {
         let extractor = OpenCodeExtractor(rootPath: dir)
         let events = (try? await extractor.extractAll()) ?? []
 
-        // No valid providerID recoverable; message must be skipped (not extracted).
-        XCTAssertEqual(events.count, 0)
+        XCTAssertEqual(events.count, 1, "Orphan-parent assistant is now extracted (not silently dropped) because the model field is recoverable")
+        XCTAssertEqual(events.first?.model, "MiniMax-M3", "ModelID recovered from assistant's top-level field")
+        XCTAssertEqual(events.first?.provider, .minimax, "Without a recoverable providerID the model name drives classification (MiniMax-* → minimax branch)")
+        XCTAssertEqual(events.first?.tokens.input, 100)
+        XCTAssertEqual(events.first?.tokens.output, 50)
     }
 
     func testNewAndOldSchemaCoexistInSameDatabase() async throws {
@@ -474,5 +482,198 @@ final class OpenCodeExtractorTests: XCTestCase {
             6200,
             "Sum of per-event deltas equals final cumulative value when cacheState key matches session_id"
         )
+    }
+
+    // MARK: - F2b COALESCE regression: parent providerID flow.
+
+    /// Real-world new-schema data has the assistant message's `data.model.providerID`
+    /// as NULL while the parent user message carries the actual provider. The fix
+    /// joins via parentID and COALESCEs the parent's providerID first. Before the fix
+    /// the WHERE clause required `model.providerID IS NULL` on the assistant AND
+    /// `modelID IS NOT NULL` AND `u.data.model.providerID IS NOT NULL`, which silently
+    /// dropped events whose assistant had `modelID` only — leaving every such event
+    /// in the F2b DB misclassified as `.nanoGpt`.
+    func testAssistantWithParentUsesParentProviderID() async throws {
+        // Production-shape: assistant has top-level modelID (camelCase), no
+        // `$.model.providerID`. Parent user message has `$.model.providerID`.
+        let dir = try await createProductionShapeDB()
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+
+        let extractor = OpenCodeExtractor(rootPath: dir)
+        let events = (try? await extractor.extractAll()) ?? []
+
+        XCTAssertEqual(events.count, 1,
+                       "Production-shape event must be extracted (was silently dropped by old WHERE clause)")
+        let event = events.first
+        XCTAssertEqual(event?.provider, .xiaomiTokenPlanCN,
+                       "Model 'qwen3.7-max' with parent providerID 'xiaomi-token-plan-cn' must classify as .xiaomiTokenPlanCN — NOT .nanoGpt (the bug)")
+        XCTAssertEqual(event?.model, "qwen3.7-max",
+                       "ModelID should be read from assistant's top-level $.modelID field")
+    }
+
+    /// Old-schema events carry `data.model.providerID` and `data.model.modelID`
+    /// directly on the assistant message (no parent participation). The unified
+    /// SQL must continue extracting these via the assistant fallback path when
+    /// no parent is reachable.
+    func testFallbackToAssistantDataWhenNoParent() async throws {
+        let dir = try await createOldShapeOrphanDB()
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+
+        let extractor = OpenCodeExtractor(rootPath: dir)
+        let events = (try? await extractor.extractAll()) ?? []
+
+        XCTAssertEqual(events.count, 1,
+                       "Orphan assistant with inline model.providerID must still be extracted via fallback")
+        let event = events.first
+        XCTAssertEqual(event?.provider, .claude,
+                       "model 'claude-sonnet-4-5' with providerID 'anthropic' (from assistant data) must classify as .claude")
+        XCTAssertEqual(event?.model, "claude-sonnet-4-5",
+                       "modelID should be read from assistant's inline $.model.modelID (old-schema path)")
+    }
+
+    /// Regression guard: across a mixed DB of new-schema (parent JOIN) and
+    /// old-schema (assistant inline) assistant messages, every extracted event
+    /// must have a non-empty `provider_id`. The unified SQL's COALESCE always
+    /// picks one of the two sources so neither shape returns NULL.
+    func testAllExtractedEventsHaveNonEmptyProviderID() async throws {
+        // Build a DB containing one event of every shape:
+        //   new-schema with parent    -> providerID from parent
+        //   old-schema orphan         -> providerID from assistant inline
+        //   new-schema orphan (parent ID references missing row) -> still must
+        //     yield a non-empty providerID via assistant inline fallback if
+        //     available
+        let dir = NSTemporaryDirectory() + "opencode_coalesce_guard_\(UUID().uuidString)"
+        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+        let path = dir + "/opencode.db"
+        var db: OpaquePointer?
+        sqlite3_open(path, &db)
+        sqlite3_exec(db, """
+            CREATE TABLE message (
+                id TEXT PRIMARY KEY,
+                session_id TEXT,
+                time_created INTEGER,
+                time_updated INTEGER,
+                data TEXT
+            )
+        """, nil, nil, nil)
+        sqlite3_exec(db, """
+            INSERT INTO message VALUES
+            ('p_new', 'ses_x', 1000, 1000, '{"role":"user","model":{"providerID":"minimax-cn","modelID":"MiniMax-M3"}}'),
+            ('ev_new', 'ses_x', 2000, 2000, '{"role":"assistant","parentID":"p_new","tokens":{"input":1,"output":2,"cache":{"read":0,"write":0}},"modelID":"MiniMax-M3","time":{"created":1700000001000}}'),
+            ('ev_old', 'ses_y', 3000, 3000, '{"role":"assistant","tokens":{"input":1,"output":2,"cache":{"read":0,"write":0}},"model":{"providerID":"anthropic","modelID":"claude-sonnet-4-5"},"time":{"created":1700000002000}}')
+        """, nil, nil, nil)
+        sqlite3_close(db)
+
+        let extractor = OpenCodeExtractor(rootPath: dir)
+        let events = (try? await extractor.extractAll()) ?? []
+
+        XCTAssertEqual(events.count, 2,
+                       "Both shapes must be extracted via the unified SQL")
+        for event in events {
+            // Every extracted event must have a non-empty provider_id flowing
+            // through TokenNormalizer. The old code's WHERE clause would drop
+            // events with no providerID fallback and the remaining ones with
+            // unknown shapes would fall through to `.nanoGpt` silently.
+            XCTAssertNotEqual(event.provider, .nanoGpt,
+                              "Event \(event.sourceId) (\(event.model)) misclassified as .nanoGpt — the bug resurfacing")
+        }
+    }
+
+    // MARK: - Helpers for COALESCE regression tests
+
+    /// Builds a production-shape DB: parent user message has
+    /// `$.model.providerID`, assistant has top-level `$.modelID` (no inline
+    /// `$.model.providerID`). Mirrors the real row that the user reported.
+    private func createProductionShapeDB() async throws -> String {
+        let dir = NSTemporaryDirectory() + "opencode_prod_shape_\(UUID().uuidString)"
+        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        let path = dir + "/opencode.db"
+        var db: OpaquePointer?
+        sqlite3_open(path, &db)
+        sqlite3_exec(db, """
+            CREATE TABLE message (
+                id TEXT PRIMARY KEY,
+                session_id TEXT,
+                time_created INTEGER,
+                time_updated INTEGER,
+                data TEXT
+            )
+        """, nil, nil, nil)
+        sqlite3_exec(db, """
+            INSERT INTO message VALUES
+            ('user_parent', 'ses_real', 1000, 1000, '{"role":"user","model":{"providerID":"xiaomi-token-plan-cn","modelID":"qwen3.7-max"}}'),
+            ('asst_msg', 'ses_real', 2000, 2000, '{"role":"assistant","parentID":"user_parent","tokens":{"input":452509,"output":574,"reasoning":0,"cache":{"read":1920,"write":0}},"modelID":"qwen3.7-max","time":{"created":1781070432579}}')
+        """, nil, nil, nil)
+        sqlite3_close(db)
+        return dir
+    }
+
+    /// Builds an old-schema DB with no parent at all (assistant has inline
+    /// `$.model.providerID` and `$.model.modelID`). Used to verify the
+    /// fallback path through the assistant's own data.
+    private func createOldShapeOrphanDB() async throws -> String {
+        let dir = NSTemporaryDirectory() + "opencode_old_orphan_\(UUID().uuidString)"
+        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        let path = dir + "/opencode.db"
+        var db: OpaquePointer?
+        sqlite3_open(path, &db)
+        sqlite3_exec(db, """
+            CREATE TABLE message (
+                id TEXT PRIMARY KEY,
+                session_id TEXT,
+                time_created INTEGER,
+                time_updated INTEGER,
+                data TEXT
+            )
+        """, nil, nil, nil)
+        sqlite3_exec(db, """
+            INSERT INTO message VALUES
+            ('asst_old', 'ses_o', 2000, 2000, '{"role":"assistant","tokens":{"input":10,"output":5,"cache":{"read":0,"write":0}},"model":{"providerID":"anthropic","modelID":"claude-sonnet-4-5"},"time":{"created":1782000000000}}')
+        """, nil, nil, nil)
+        sqlite3_close(db)
+        return dir
+    }
+
+    /// When the assistant message has BOTH an inline `$.model.providerID`
+    /// AND a reachable parent with a different `$.model.providerID`,
+    /// the unified SQL must prefer the parent providerID (the user's chosen
+    /// provider). The old two-path code would have routed the event through
+    /// the old-schema branch and used the assistant's own providerID — losing
+    /// the parent signal. This test exercises the COALESCE's preference for
+    /// parent data.
+    func testPrefersParentProviderIDWhenAssistantAlsoHasInline() async throws {
+        let dir = NSTemporaryDirectory() + "opencode_prefer_parent_\(UUID().uuidString)"
+        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+        let path = dir + "/opencode.db"
+        var db: OpaquePointer?
+        sqlite3_open(path, &db)
+        sqlite3_exec(db, """
+            CREATE TABLE message (
+                id TEXT PRIMARY KEY,
+                session_id TEXT,
+                time_created INTEGER,
+                time_updated INTEGER,
+                data TEXT
+            )
+        """, nil, nil, nil)
+        sqlite3_exec(db, """
+            INSERT INTO message VALUES
+            ('p_kimi', 'ses_kp', 1000, 1000, '{"role":"user","model":{"providerID":"kimi-cn","modelID":"kimi-for-coding"}}'),
+            ('asst_both', 'ses_kp', 2000, 2000, '{"role":"assistant","parentID":"p_kimi","tokens":{"input":10,"output":5,"cache":{"read":0,"write":0}},"model":{"providerID":"anthropic","modelID":"claude-sonnet-4-5"},"modelID":"kimi-for-coding","time":{"created":1700000001000}}')
+        """, nil, nil, nil)
+        sqlite3_close(db)
+
+        let extractor = OpenCodeExtractor(rootPath: dir)
+        let events = (try? await extractor.extractAll()) ?? []
+
+        XCTAssertEqual(events.count, 1,
+                       "One event expected after COALESCE unification (old two-path code emitted ONE event via old-schema path; unified SQL still emits one but with a different providerID source)")
+        let event = events.first
+        XCTAssertEqual(event?.provider, .kimiCN,
+                       "When both inline and parent providerID exist, parent (kimi-cn) must win — old two-path code would emit .claude from the inline anthropic value")
+        XCTAssertEqual(event?.model, "kimi-for-coding",
+                       "modelID should also prefer parent (kimi-for-coding) over assistant's inline claude-sonnet-4-5")
     }
 }

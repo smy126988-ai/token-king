@@ -7,10 +7,16 @@ private let openCodeExtractorLogger = Logger(subsystem: "com.opencodeproviders",
 /// OpenCode SQLite reader (per-message.data JSON blob).
 /// Path: ~/.local/share/opencode/opencode.db (overridable via $OPENCODE_DATA_DIR).
 ///
-/// F2b: handles both JSON schemas emitted by OpenCode:
-///   - Old schema: data.model.providerID + data.model.modelID nested object
-///   - New schema: data.modelID (top-level, camelCase) + providerID looked up
-///     via parentID -> user message's data.model.providerID
+/// F2b: unified extraction path covering both JSON schemas emitted by OpenCode:
+///   - Old schema: data.model.providerID + data.model.modelID nested object on
+///     the assistant message itself.
+///   - New schema: top-level data.modelID (camelCase) on the assistant; the
+///     providerID lives on the parent user message and is recovered via a
+///     LEFT JOIN on data.parentID.
+/// One SQL with `COALESCE` prefers the parent user message (the user's chosen
+/// model/provider) and falls back to the assistant's own data. This avoids the
+/// fragility of two divergent WHERE branches and means every assistant message
+/// with valid tokens is classified using the best available signal.
 struct OpenCodeExtractor: TokenExtractorProtocol {
     let rootPath: String
 
@@ -28,81 +34,55 @@ struct OpenCodeExtractor: TokenExtractorProtocol {
         guard sqlite3_open(dbPath, &db) == SQLITE_OK, let db = db else { return [] }
         defer { sqlite3_close(db) }
 
-        var events: [TokenEvent] = []
-        // `tokens.cache.read` / `tokens.cache.write` in the OpenCode SQLite
-        // schema are session-cumulative counters (total cache hits/writes
-        // since session start). To avoid double-counting, every event must
-        // store the per-event DELTA. We track the previously-seen cumulative
-        // value per session_id and convert on the fly. The map must be
-        // shared across old-schema and new-schema calls so a session that
-        // spans both schemas tracks consistently.
         var cacheStateBySession: [String: CacheState] = [:]
-        events.append(contentsOf: extractOldSchema(from: db, cacheState: &cacheStateBySession))
-        events.append(contentsOf: extractNewSchema(from: db, cacheState: &cacheStateBySession))
-        return events
+        return Self.extractUnified(from: db, cacheState: &cacheStateBySession)
     }
 
-    /// Old schema: `data.model.providerID` and `data.model.modelID` live on the
-    /// assistant message itself.
-    private func extractOldSchema(from db: OpaquePointer, cacheState: inout [String: CacheState]) -> [TokenEvent] {
-        let sql = """
-            SELECT id,
-                   json_extract(data, '$.tokens.input')      AS input,
-                   json_extract(data, '$.tokens.output')     AS output,
-                   json_extract(data, '$.tokens.reasoning')  AS reasoning,
-                   json_extract(data, '$.tokens.cache.read') AS cache_read,
-                   json_extract(data, '$.tokens.cache.write') AS cache_write,
-                   json_extract(data, '$.model.providerID')  AS provider_id,
-                   json_extract(data, '$.model.modelID')     AS model_id,
-                   json_extract(data, '$.sessionID')         AS session_id,
-                   json_extract(data, '$.time.created')      AS ts_ms
-            FROM message
-            WHERE json_valid(data)
-              AND json_extract(data, '$.role') = 'assistant'
-              AND json_extract(data, '$.tokens') IS NOT NULL
-              AND json_extract(data, '$.model.providerID') IS NOT NULL
+    /// Single SQL covering both JSON schemas. The assistant message `a` carries
+    /// the token counters; the optional parent user message `u` (joined via
+    /// `a.data.parentID`) carries the user's chosen providerID / modelID in the
+    /// new schema. `COALESCE` prefers the parent (which is the explicit user
+    /// choice) and falls back to the assistant's own data when the parent is
+    /// unreachable or the parent lacks the field (old-schema orphan).
+    ///
+    /// Schema notes:
+    ///   - New schema drops `data.sessionID` on assistant messages; the
+    ///     session identity is read from `message.session_id` (the table
+    ///     column) so per-session cache delta tracking keys correctly.
+    ///   - `tokens.cache.read` / `tokens.cache.write` in the OpenCode schema
+    ///     are session-cumulative counters (total cache hits/writes since
+    ///     session start). Converted to per-event deltas in `iterateRows`
+    ///     using `cacheState` keyed on session_id.
+    private static let unifiedSQL = """
+        SELECT
+            a.id,
+            json_extract(a.data, '$.tokens.input') AS input,
+            json_extract(a.data, '$.tokens.output') AS output,
+            json_extract(a.data, '$.tokens.reasoning') AS reasoning,
+            json_extract(a.data, '$.tokens.cache.read') AS cache_read,
+            json_extract(a.data, '$.tokens.cache.write') AS cache_write,
+            COALESCE(
+                json_extract(u.data, '$.model.providerID'),
+                json_extract(a.data, '$.model.providerID')
+            ) AS provider_id,
+            COALESCE(
+                json_extract(u.data, '$.model.modelID'),
+                json_extract(a.data, '$.model.modelID'),
+                json_extract(a.data, '$.modelID')
+            ) AS model_id,
+            a.session_id AS session_id,
+            json_extract(a.data, '$.time.created') AS ts_ms
+        FROM message a
+        LEFT JOIN message u ON u.id = json_extract(a.data, '$.parentID')
+        WHERE json_valid(a.data)
+          AND json_extract(a.data, '$.role') = 'assistant'
+          AND json_extract(a.data, '$.tokens') IS NOT NULL
         """
-        var stmt: OpaquePointer?
-        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt = stmt else {
-            openCodeExtractorLogger.warning("F2b: failed to prepare old-schema statement")
-            return []
-        }
-        defer { sqlite3_finalize(stmt) }
-        return Self.iterateRows(stmt: stmt, cacheState: &cacheState)
-    }
 
-    /// New schema: `data.modelID` is camelCase top-level, `data.model.providerID`
-    /// is absent on the assistant message. We join to the parent (user-role) message
-    /// via `data.parentID` to recover the provider ID. New schema also drops the
-    /// `data.sessionID` field on assistant messages, so the session identity is
-    /// read directly from `message.session_id` (the table column). Reading it
-    /// from JSON would fall back to the per-event message id and break the
-    /// per-session cache delta tracking.
-    private func extractNewSchema(from db: OpaquePointer, cacheState: inout [String: CacheState]) -> [TokenEvent] {
-        let sql = """
-            SELECT a.id,
-                   json_extract(a.data, '$.tokens.input')      AS input,
-                   json_extract(a.data, '$.tokens.output')     AS output,
-                   json_extract(a.data, '$.tokens.reasoning')  AS reasoning,
-                   json_extract(a.data, '$.tokens.cache.read') AS cache_read,
-                   json_extract(a.data, '$.tokens.cache.write') AS cache_write,
-                   json_extract(u.data, '$.model.providerID')  AS provider_id,
-                   json_extract(a.data, '$.modelID')           AS model_id,
-                   a.session_id                              AS session_id,
-                   json_extract(a.data, '$.time.created')      AS ts_ms
-            FROM message a
-            LEFT JOIN message u ON u.id = json_extract(a.data, '$.parentID')
-            WHERE json_valid(a.data)
-              AND json_extract(a.data, '$.role') = 'assistant'
-              AND json_extract(a.data, '$.tokens') IS NOT NULL
-              AND json_extract(a.data, '$.model.providerID') IS NULL
-              AND json_extract(a.data, '$.modelID') IS NOT NULL
-              AND u.id IS NOT NULL
-              AND json_extract(u.data, '$.model.providerID') IS NOT NULL
-        """
+    private static func extractUnified(from db: OpaquePointer, cacheState: inout [String: CacheState]) -> [TokenEvent] {
         var stmt: OpaquePointer?
-        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt = stmt else {
-            openCodeExtractorLogger.warning("F2b: failed to prepare new-schema statement")
+        guard sqlite3_prepare_v2(db, unifiedSQL, -1, &stmt, nil) == SQLITE_OK, let stmt else {
+            openCodeExtractorLogger.warning("F2b: failed to prepare unified OpenCode statement")
             return []
         }
         defer { sqlite3_finalize(stmt) }

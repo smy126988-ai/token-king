@@ -181,6 +181,88 @@ final class TokenUsageStoreOpenCodeKimiCodePurgeTests: XCTestCase {
         XCTAssertEqual(deleted, 0, "Closed store should be a no-op, not throw")
     }
 
+    // MARK: - purgeMismatchedOpencodeAsNanoGpt
+
+    /// Two misclassified `opencode + nanoGpt` rows (pre-fix bug) plus one
+    /// correctly-classified `opencode + kimi` row. Only the nanoGpt pair
+    /// must be deleted; the correctly classified kimi row survives.
+    func testPurgeMismatchedOpencodeAsNanoGptDeletesOnlyMisclassified() async throws {
+        try insertRow(.init(provider: "nanoGpt", source: "opencode",
+                            sessionId: "m1", sourceId: "opencode:m1:main:a1",
+                            tsMs: healthyMs(year: 2026, month: 5, day: 1),
+                            input: 100, output: 50, cached: 80, cachedWrite: 0))
+        try insertRow(.init(provider: "nanoGpt", source: "opencode",
+                            sessionId: "m2", sourceId: "opencode:m2:main:a2",
+                            tsMs: healthyMs(year: 2026, month: 5, day: 2),
+                            input: 200, output: 70, cached: 150, cachedWrite: 5))
+        try insertRow(.init(provider: "kimi", source: "opencode",
+                            sessionId: "k1", sourceId: "opencode:k1:main:k1",
+                            tsMs: healthyMs(year: 2026, month: 5, day: 3),
+                            input: 300, output: 90, cached: 220, cachedWrite: 10))
+
+        let deleted = try await store.purgeMismatchedOpencodeAsNanoGpt()
+
+        XCTAssertEqual(deleted, 2, "Both misclassified opencode + nanoGpt rows are removed")
+        XCTAssertEqual(rawCount(), 1, "The correctly-classified opencode + kimi row survives")
+        XCTAssertEqual(countRows(matching: "source = ? AND provider = ?",
+                                 args: ["opencode", "nanoGpt"]), 0,
+                       "No opencode + nanoGpt rows should remain")
+    }
+
+    /// Real-world: the `NanoGPTExtractor` also writes `source = 'nanoGpt'` /
+    /// `provider = 'nanoGpt'` for its own data. The purge must scope on
+    /// `source = 'opencode'`, leaving NanoGPT's own rows intact.
+    func testPurgeMismatchedOpencodeAsNanoGptPreservesNanoGPTExtractorRows() async throws {
+        try insertRow(.init(provider: "nanoGpt", source: "opencode",
+                            sessionId: "o1", sourceId: "opencode:o1:main:a1",
+                            tsMs: healthyMs(year: 2026, month: 5, day: 1),
+                            input: 100, output: 50, cached: 80, cachedWrite: 0))
+        try insertRow(.init(provider: "nanoGpt", source: "nanoGptCli",
+                            sessionId: "n1", sourceId: "nanoGptCli:n1:main:n1",
+                            tsMs: healthyMs(year: 2026, month: 5, day: 2),
+                            input: 400, output: 100, cached: 300, cachedWrite: 0))
+
+        let deleted = try await store.purgeMismatchedOpencodeAsNanoGpt()
+
+        XCTAssertEqual(deleted, 1, "Only the (opencode, nanoGpt) row is removed")
+        XCTAssertEqual(rawCount(), 1, "The NanoGPT-Extractor row (source='nanoGptCli') survives")
+    }
+
+    /// Re-running the purge is a no-op once the misclassified rows are gone.
+    func testPurgeMismatchedOpencodeAsNanoGptIsIdempotent() async throws {
+        try insertRow(.init(provider: "nanoGpt", source: "opencode",
+                            sessionId: "o1", sourceId: "opencode:o1:main:a1",
+                            tsMs: healthyMs(year: 2026, month: 5, day: 1),
+                            input: 100, output: 50, cached: 80, cachedWrite: 0))
+
+        let first = try await store.purgeMismatchedOpencodeAsNanoGpt()
+        let second = try await store.purgeMismatchedOpencodeAsNanoGpt()
+
+        XCTAssertEqual(first, 1, "First run removes the misclassified row")
+        XCTAssertEqual(second, 0, "Second run finds nothing to delete")
+    }
+
+    /// When no misclassified rows exist, the purge returns 0 without throwing.
+    func testPurgeMismatchedOpencodeAsNanoGptWithNoMatches() async throws {
+        try insertRow(.init(provider: "kimi", source: "opencode",
+                            sessionId: "k1", sourceId: "opencode:k1:main:k1",
+                            tsMs: healthyMs(year: 2026, month: 5, day: 1),
+                            input: 100, output: 50, cached: 80, cachedWrite: 0))
+
+        let deleted = try await store.purgeMismatchedOpencodeAsNanoGpt()
+
+        XCTAssertEqual(deleted, 0, "No opencode + nanoGpt rows means zero deletions")
+        XCTAssertEqual(rawCount(), 1, "The correctly-classified row is untouched")
+    }
+
+    /// Closed store is a no-op, mirrors the other purge methods' behavior.
+    func testPurgeMismatchedOpencodeAsNanoGptWhenStoreClosed() async throws {
+        try await store.close()
+
+        let deleted = try await store.purgeMismatchedOpencodeAsNanoGpt()
+        XCTAssertEqual(deleted, 0, "Closed store should be a no-op, not throw")
+    }
+
     // MARK: - purgeAllKimiCodeEvents
 
     func testPurgeAllKimiCodeEventsDeletesEverything() async throws {

@@ -362,6 +362,49 @@ actor TokenUsageStore {
         return Int(sqlite3_changes(db))
     }
 
+    /// One-shot cleanup for OpenCode rows that were misclassified as
+    /// `.nanoGpt` by the pre-fix two-path extractor. Old behavior routed
+    /// events through divergent SQL WHERE branches; events whose providerID
+    /// was not recoverable from either branch ended up with an empty
+    /// providerID flowing into `TokenNormalizer`, which falls through every
+    /// `if` and lands on the `.nanoGpt` default. This produced a single
+    /// `provider = 'nanoGpt'` bucket mixing real OpenCode usage from many
+    /// underlying providers.
+    ///
+    /// After the unified-SQL fix in `OpenCodeExtractor`, the next refresh
+    /// would not re-emit those rows (the `source_id UNIQUE` constraint
+    /// would dedupe them). Deleting them lets the refresh write correctly
+    /// classified rows from scratch.
+    ///
+    /// Scoped on `source = 'opencode' AND provider = 'nanoGpt'` so:
+    ///   - OpenCode rows with valid classification (e.g. .kimi, .claude,
+    ///     .minimaxCN, .xiaomiTokenPlanCN) are preserved.
+    ///   - `.nanoGpt` rows from non-OpenCode sources (.nanoGpt extractor
+    ///     wrote its own row category) are preserved.
+    ///
+    /// - Returns: number of rows deleted. Idempotent — returns 0 when no
+    ///   misclassified opencode rows remain. Returns 0 silently when the
+    ///   store is closed / uninitialized so callers can invoke it on
+    ///   startup without exception handling.
+    /// - Note: not auto-invoked from `AppDelegate` because it is
+    ///   destructive. Run once via debug menu or migration script after
+    ///   the fix deploys:
+    ///     `DELETE FROM token_events WHERE source = 'opencode' AND provider = 'nanoGpt'`
+    func purgeMismatchedOpencodeAsNanoGpt() async throws -> Int {
+        guard initError == nil, let db else { return 0 }
+        let sql = "DELETE FROM token_events WHERE source = ? AND provider = ?"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else {
+            return 0
+        }
+        defer { sqlite3_finalize(stmt) }
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        sqlite3_bind_text(stmt, 1, TokenSource.opencode.rawValue, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_text(stmt, 2, Provider.nanoGpt.rawValue, -1, SQLITE_TRANSIENT)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { return 0 }
+        return Int(sqlite3_changes(db))
+    }
+
     /// One-shot migration that deletes EVERY KimiCode row from
     /// `token_events`. Use after the KimiCode extractor fix that converts
     /// `inputCacheRead` / `inputCacheCreation` from session-cumulative
