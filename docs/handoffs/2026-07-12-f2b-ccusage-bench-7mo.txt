@@ -1,0 +1,242 @@
+
+==================================================================
+  F2b vs ccusage benchmark — compare
+  provider : codex
+  window   : 2026-07-01 .. 2026-07-31
+  tolerance: 0.05 (cacheRead + totalCacheRead)
+  f2b db   : /Users/simengyu/Library/Application Support/TokenKing/f2b.sqlite
+  ccusage  : npx --yes ccusage@latest --offline
+  captured : 2026-07-12 12:27:17 UTC
+==================================================================
+date	cc(metric)	f2b(metric)	delta	deviation%
+------	-----------	----------	-----	----------
+  2026-07-01  cc=7335552      f2b=7335552      delta=0 dev=0%
+  2026-07-02  cc=115180032    f2b=114355712    delta=-824320 dev=0.72%
+  2026-07-03  cc=226745216    f2b=222931584    delta=-3813632 dev=1.68%
+  2026-07-04  cc=240564224    f2b=229406336    delta=-11157888 dev=4.64%
+  2026-07-05  cc=259536768    f2b=259536768    delta=0 dev=0%
+  2026-07-06  cc=135569920    f2b=135569920    delta=0 dev=0%
+  2026-07-07  cc=136049920    f2b=136049920    delta=0 dev=0%
+  2026-07-08  cc=54600320     f2b=54600320     delta=0 dev=0%
+  2026-07-09  cc=26093440     f2b=26093440     delta=0 dev=0%
+  2026-07-10  cc=1323764480   f2b=2816719616   delta=1492955136 dev=112.78%
+  2026-07-11  cc=448581888    f2b=290554368    delta=-158027520 dev=35.23%
+  2026-07-12  cc=256298496    f2b=0            delta=-256298496 dev=100%
+  total  cc=3230320256   f2b=4293153536                         max_dev=112.78102400813776%
+  2026-07-01  cc=333723       f2b=333723       delta=0 dev=0%
+  2026-07-02  cc=5666280      f2b=5586830      delta=-79450 dev=1.4%
+  2026-07-03  cc=14256964     f2b=13259223     delta=-997741 dev=7%
+  2026-07-04  cc=17885430     f2b=16178656     delta=-1706774 dev=9.54%
+  2026-07-05  cc=22710070     f2b=22710070     delta=0 dev=0%
+  2026-07-06  cc=9868621      f2b=9868621      delta=0 dev=0%
+  2026-07-07  cc=11668041     f2b=11668041     delta=0 dev=0%
+  2026-07-08  cc=2969754      f2b=2969754      delta=0 dev=0%
+  2026-07-09  cc=1564150      f2b=1564150      delta=0 dev=0%
+  2026-07-10  cc=36954788     f2b=106534756    delta=69579968 dev=188.28%
+  2026-07-11  cc=14664227     f2b=8815454      delta=-5848773 dev=39.88%
+  2026-07-12  cc=7059689      f2b=0            delta=-7059689 dev=100%
+  total  cc=145601737    f2b=199489278                          max_dev=188.28404048752762%
+  2026-07-01  cc=28986        f2b=20171        delta=-8815 dev=30.41%
+  2026-07-02  cc=550720       f2b=376016       delta=-174704 dev=31.72%
+  2026-07-03  cc=1143928      f2b=773139       delta=-370789 dev=32.41%
+  2026-07-04  cc=1547416      f2b=874063       delta=-673353 dev=43.51%
+  2026-07-05  cc=1404804      f2b=859687       delta=-545117 dev=38.8%
+  2026-07-06  cc=697149       f2b=377429       delta=-319720 dev=45.86%
+  2026-07-07  cc=658560       f2b=403741       delta=-254819 dev=38.69%
+  2026-07-08  cc=210754       f2b=122523       delta=-88231 dev=41.86%
+  2026-07-09  cc=89526        f2b=52558        delta=-36968 dev=41.29%
+  2026-07-10  cc=3594946      f2b=4886027      delta=1291081 dev=35.91%
+  2026-07-11  cc=1381865      f2b=487134       delta=-894731 dev=64.75%
+  2026-07-12  cc=703194       f2b=0            delta=-703194 dev=100%
+  total  cc=12011848     f2b=9232488                            max_dev=100%
+  2026-07-01  cc=8815         f2b=8815         delta=0 dev=0%
+  2026-07-02  cc=169385       f2b=150498       delta=-18887 dev=11.15%
+  2026-07-03  cc=344899       f2b=278957       delta=-65942 dev=19.12%
+  2026-07-04  cc=602619       f2b=522294       delta=-80325 dev=13.33%
+  2026-07-05  cc=545117       f2b=545117       delta=0 dev=0%
+  2026-07-06  cc=319720       f2b=319720       delta=0 dev=0%
+  2026-07-07  cc=254819       f2b=254819       delta=0 dev=0%
+  2026-07-08  cc=88231        f2b=88231        delta=0 dev=0%
+  2026-07-09  cc=36968        f2b=36968        delta=0 dev=0%
+  2026-07-10  cc=1520132      f2b=3397958      delta=1877826 dev=123.53%
+  2026-07-11  cc=579350       f2b=436500       delta=-142850 dev=24.66%
+  2026-07-12  cc=276645       f2b=0            delta=-276645 dev=100%
+  total  cc=4746700      f2b=6039877                            max_dev=123.53045656561403%
+  cacheRead sum  cc=3230320256  f2b=4293153536  ratio(f2b/cc)=1.329
+  ⚠️  ALERT: codex cache_read sum deviates 32.90% > tolerance 0.05
+
+==================================================================
+  F2b vs ccusage benchmark — compare
+  provider : opencode
+  window   : 2026-07-01 .. 2026-07-31
+  tolerance: 0.05 (cacheRead + totalCacheRead)
+  f2b db   : /Users/simengyu/Library/Application Support/TokenKing/f2b.sqlite
+  ccusage  : npx --yes ccusage@latest --offline
+  captured : 2026-07-12 12:27:20 UTC
+==================================================================
+date	cc(metric)	f2b(metric)	delta	deviation%
+------	-----------	----------	-----	----------
+  2026-07-01  cc=327567296    f2b=327567296    delta=0 dev=0%
+  2026-07-02  cc=504593408    f2b=504593408    delta=0 dev=0%
+  2026-07-03  cc=116778590    f2b=116778590    delta=0 dev=0%
+  2026-07-04  cc=302476170    f2b=302476170    delta=0 dev=0%
+  2026-07-05  cc=343700865    f2b=343700865    delta=0 dev=0%
+  2026-07-06  cc=129286769    f2b=129286769    delta=0 dev=0%
+  2026-07-07  cc=283942385    f2b=283942385    delta=0 dev=0%
+  2026-07-08  cc=258408356    f2b=258408356    delta=0 dev=0%
+  2026-07-09  cc=94105038     f2b=94105038     delta=0 dev=0%
+  2026-07-10  cc=127840482    f2b=127840482    delta=0 dev=0%
+  2026-07-11  cc=250597625    f2b=228664372    delta=-21933253 dev=8.75%
+  2026-07-12  cc=87322024     f2b=0            delta=-87322024 dev=100%
+  total  cc=2826619008   f2b=2717363731                         max_dev=100%
+  2026-07-01  cc=5738973      f2b=5738973      delta=0 dev=0%
+  2026-07-02  cc=10317722     f2b=10317722     delta=0 dev=0%
+  2026-07-03  cc=4651512      f2b=4651512      delta=0 dev=0%
+  2026-07-04  cc=12102594     f2b=12102594     delta=0 dev=0%
+  2026-07-05  cc=6268854      f2b=6268854      delta=0 dev=0%
+  2026-07-06  cc=6350121      f2b=6350121      delta=0 dev=0%
+  2026-07-07  cc=21906866     f2b=21906866     delta=0 dev=0%
+  2026-07-08  cc=12940965     f2b=12940965     delta=0 dev=0%
+  2026-07-09  cc=4780168      f2b=4780168      delta=0 dev=0%
+  2026-07-10  cc=10777049     f2b=10777049     delta=0 dev=0%
+  2026-07-11  cc=9849292      f2b=7863955      delta=-1985337 dev=20.16%
+  2026-07-12  cc=4243548      f2b=0            delta=-4243548 dev=100%
+  total  cc=109927664    f2b=103698779                          max_dev=100%
+  2026-07-01  cc=201245       f2b=201245       delta=0 dev=0%
+  2026-07-02  cc=658755       f2b=658755       delta=0 dev=0%
+  2026-07-03  cc=357106       f2b=357106       delta=0 dev=0%
+  2026-07-04  cc=752952       f2b=752952       delta=0 dev=0%
+  2026-07-05  cc=708491       f2b=708491       delta=0 dev=0%
+  2026-07-06  cc=450359       f2b=450359       delta=0 dev=0%
+  2026-07-07  cc=1299689      f2b=1299689      delta=0 dev=0%
+  2026-07-08  cc=673370       f2b=673370       delta=0 dev=0%
+  2026-07-09  cc=237308       f2b=237308       delta=0 dev=0%
+  2026-07-10  cc=455200       f2b=455200       delta=0 dev=0%
+  2026-07-11  cc=642331       f2b=609534       delta=-32797 dev=5.11%
+  2026-07-12  cc=266644       f2b=0            delta=-266644 dev=100%
+  total  cc=6703450      f2b=6404009                            max_dev=100%
+  2026-07-01  cc=0            f2b=150881       delta=150881 dev=n/a
+  2026-07-02  cc=0            f2b=250812       delta=250812 dev=n/a
+  2026-07-03  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-04  cc=0            f2b=18561        delta=18561 dev=n/a
+  2026-07-05  cc=0            f2b=40           delta=40 dev=n/a
+  2026-07-06  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-07  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-08  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-09  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-10  cc=0            f2b=6101         delta=6101 dev=n/a
+  2026-07-11  cc=0            f2b=62373        delta=62373 dev=n/a
+  2026-07-12  cc=0            f2b=0            delta=0 dev=n/a
+  total  cc=0            f2b=488768                             max_dev=0%
+  cacheRead sum  cc=2826619008  f2b=2717363731  ratio(f2b/cc)=0.961
+
+==================================================================
+  F2b vs ccusage benchmark — compare
+  provider : claude
+  window   : 2026-07-01 .. 2026-07-31
+  tolerance: 0.05 (cacheRead + totalCacheRead)
+  f2b db   : /Users/simengyu/Library/Application Support/TokenKing/f2b.sqlite
+  ccusage  : npx --yes ccusage@latest --offline
+  captured : 2026-07-12 12:27:22 UTC
+==================================================================
+date	cc(metric)	f2b(metric)	delta	deviation%
+------	-----------	----------	-----	----------
+  2026-07-01  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-02  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-03  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-04  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-05  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-06  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-07  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-08  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-09  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-10  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-11  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-12  cc=0            f2b=0            delta=0 dev=n/a
+  total  cc=0            f2b=0                                  max_dev=0%
+  2026-07-01  cc=380487296    f2b=214829226    delta=-165658070 dev=43.54%
+  2026-07-02  cc=124212785    f2b=217252547    delta=93039762 dev=74.9%
+  2026-07-03  cc=122510058    f2b=240029722    delta=117519664 dev=95.93%
+  2026-07-04  cc=71025808     f2b=131725725    delta=60699917 dev=85.46%
+  2026-07-05  cc=5307866      f2b=5824954      delta=517088 dev=9.74%
+  2026-07-06  cc=28895602     f2b=44838503     delta=15942901 dev=55.17%
+  2026-07-07  cc=14875206     f2b=21812594     delta=6937388 dev=46.64%
+  2026-07-08  cc=68939900     f2b=97528415     delta=28588515 dev=41.47%
+  2026-07-09  cc=136038872    f2b=231168793    delta=95129921 dev=69.93%
+  2026-07-10  cc=89055270     f2b=152789361    delta=63734091 dev=71.57%
+  2026-07-11  cc=5288533      f2b=0            delta=-5288533 dev=100%
+  2026-07-12  cc=9830379      f2b=0            delta=-9830379 dev=100%
+  total  cc=1056467575   f2b=1357799840                         max_dev=100%
+  2026-07-01  cc=898388       f2b=485598       delta=-412790 dev=45.95%
+  2026-07-02  cc=775086       f2b=941588       delta=166502 dev=21.48%
+  2026-07-03  cc=416997       f2b=559482       delta=142485 dev=34.17%
+  2026-07-04  cc=193787       f2b=260105       delta=66318 dev=34.22%
+  2026-07-05  cc=64219        f2b=65243        delta=1024 dev=1.59%
+  2026-07-06  cc=201877       f2b=225738       delta=23861 dev=11.82%
+  2026-07-07  cc=103787       f2b=110268       delta=6481 dev=6.24%
+  2026-07-08  cc=613403       f2b=640713       delta=27310 dev=4.45%
+  2026-07-09  cc=453989       f2b=565522       delta=111533 dev=24.57%
+  2026-07-10  cc=273792       f2b=315239       delta=41447 dev=15.14%
+  2026-07-11  cc=67784        f2b=0            delta=-67784 dev=100%
+  2026-07-12  cc=29941        f2b=0            delta=-29941 dev=100%
+  total  cc=4093050      f2b=4169496                            max_dev=100%
+  2026-07-01  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-02  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-03  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-04  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-05  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-06  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-07  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-08  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-09  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-10  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-11  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-12  cc=0            f2b=0            delta=0 dev=n/a
+  total  cc=0            f2b=0                                  max_dev=0%
+  cacheRead sum  cc=0  f2b=0  (one side empty)
+
+==================================================================
+  F2b vs ccusage benchmark — compare
+  provider : kimi
+  window   : 2026-07-01 .. 2026-07-31
+  tolerance: 0.05 (cacheRead + totalCacheRead)
+  f2b db   : /Users/simengyu/Library/Application Support/TokenKing/f2b.sqlite
+  ccusage  : npx --yes ccusage@latest --offline
+  captured : 2026-07-12 12:27:24 UTC
+==================================================================
+date	cc(metric)	f2b(metric)	delta	deviation%
+------	-----------	----------	-----	----------
+  2026-07-01  cc=37118208     f2b=58093824     delta=20975616 dev=56.51%
+  2026-07-02  cc=159906205    f2b=221682032    delta=61775827 dev=38.63%
+  2026-07-03  cc=171833105    f2b=118357379    delta=-53475726 dev=31.12%
+  2026-07-04  cc=9043712      f2b=18087424     delta=9043712 dev=100%
+  2026-07-08  cc=82672896     f2b=53306368     delta=-29366528 dev=35.52%
+  total  cc=460574126    f2b=469527027                          max_dev=100%
+  2026-07-01  cc=494995       f2b=723749       delta=228754 dev=46.21%
+  2026-07-02  cc=5235758      f2b=6550512      delta=1314754 dev=25.11%
+  2026-07-03  cc=6766251      f2b=3238620      delta=-3527631 dev=52.14%
+  2026-07-04  cc=232721       f2b=465442       delta=232721 dev=100%
+  2026-07-08  cc=3412016      f2b=2160779      delta=-1251237 dev=36.67%
+  total  cc=16141741     f2b=13139102                           max_dev=100%
+  2026-07-01  cc=99034        f2b=154522       delta=55488 dev=56.03%
+  2026-07-02  cc=609859       f2b=583731       delta=-26128 dev=4.28%
+  2026-07-03  cc=808230       f2b=396262       delta=-411968 dev=50.97%
+  2026-07-04  cc=16952        f2b=33904        delta=16952 dev=100%
+  2026-07-08  cc=488273       f2b=210620       delta=-277653 dev=56.86%
+  total  cc=2022348      f2b=1379039                            max_dev=100%
+  2026-07-01  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-02  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-03  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-04  cc=0            f2b=0            delta=0 dev=n/a
+  2026-07-08  cc=0            f2b=0            delta=0 dev=n/a
+  total  cc=0            f2b=0                                  max_dev=0%
+  cacheRead sum  cc=460574126  f2b=469527027  ratio(f2b/cc)=1.019
+
+==================================================================
+  Benchmark summary
+==================================================================
+  Alerts: codex opencode claude kimi
+  Investigate:
+    - dup snapshot handling (ccusage PR #824)
+    - timezone alignment (F2b uses UTC; ccusage defaults to local)
+    - provider name / model dimension splits
