@@ -111,12 +111,16 @@ final class TokenNormalizerTests: XCTestCase {
         XCTAssertEqual(TokenNormalizer.matchProvider(model: "unknown", providerID: "openai"), .codex)
     }
 
-    func testKimiModelAnthropicProvider() {
-        XCTAssertEqual(TokenNormalizer.matchProvider(model: "kimi-special", providerID: "anthropic"), .kimi)
+    // providerID-first resolution: when the providerID directly identifies a
+    // specific provider (e.g. "anthropic"), the model name is irrelevant.
+    // This guarantees cost attribution always lands on the subscription plan
+    // the user actually invoked, not on the model brand.
+    func testKimiModelAnthropicProviderUsesProviderID() {
+        XCTAssertEqual(TokenNormalizer.matchProvider(model: "kimi-special", providerID: "anthropic"), .claude)
     }
 
-    func testZaiModelOpenAIProvider() {
-        XCTAssertEqual(TokenNormalizer.matchProvider(model: "glm-4.5", providerID: "openai"), .zai)
+    func testZaiModelOpenAIProviderUsesProviderID() {
+        XCTAssertEqual(TokenNormalizer.matchProvider(model: "glm-4.5", providerID: "openai"), .codex)
     }
 
     // MARK: - 真实 user 本机数据 (5 tests)
@@ -133,8 +137,11 @@ final class TokenNormalizerTests: XCTestCase {
         XCTAssertEqual(TokenNormalizer.matchProvider(model: "kimi-code-new", providerID: "kimi"), .kimi)
     }
 
-    func testRealOpenCodeKimiProvider() {
-        XCTAssertEqual(TokenNormalizer.matchProvider(model: "kimi-k2", providerID: "opencode-kimi"), .kimi)
+    // opencode-kimi routes via the "opencode" parent match to the OpenCode Go
+    // subscription, NOT to Moonshot Kimi. This is intentional: the user paid
+    // for the OpenCode Go subscription, so the cost must attribute there.
+    func testRealOpenCodeKimiProviderUsesProviderID() {
+        XCTAssertEqual(TokenNormalizer.matchProvider(model: "kimi-k2", providerID: "opencode-kimi"), .opencodeGo)
     }
 
     func testRealCodexGpt54Mini() {

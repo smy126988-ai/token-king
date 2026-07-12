@@ -49,7 +49,6 @@ struct ClaudeCodeExtractor: TokenExtractorProtocol {
             }
 
             let model = (message["model"] as? String) ?? ""
-            let messageId = (message["id"] as? String) ?? "\(lineIndex)"
             guard let usage = message["usage"] as? [String: Any] else { continue }
 
             let inputTokens = intValue(usage["input_tokens"])
@@ -61,14 +60,30 @@ struct ClaudeCodeExtractor: TokenExtractorProtocol {
                 input: inputTokens, output: outputTokens,
                 cacheRead: cacheRead, cacheWrite: cacheWrite
             )
-            let provider = TokenNormalizer.matchProvider(model: model, providerID: "anthropic")
+            // Pass providerID="" so TokenNormalizer routes by model name.
+            // Hard-coding "anthropic" caused subagent sessions that call
+            // through Xiaomi (mimo-v2.5-pro) or other providers to be
+            // mis-classified as .claude, hiding the real spend. Model-based
+            // routing correctly sends `mimo-*` to .xiaomi / .xiaomiTokenPlanCN
+            // and keeps `claude-*` on .claude.
+            let provider = TokenNormalizer.matchProvider(model: model, providerID: "")
             let timestamp = parseTimestamp(json["timestamp"]) ?? Date(timeIntervalSince1970: 0)
+
+            // Source id includes the line index because some Claude Code
+            // subagent chains reuse the same `message.id` across multiple
+            // assistant turns (up to ~12 in observed data). Without the
+            // line index the F2b `source_id UNIQUE` constraint would silently
+            // drop duplicates via `INSERT OR IGNORE` — losing the events that
+            // carry the actual usage deltas.
+            //
+            // Stable across runs so dedup at insert time still works.
+            let sourceId = "claudeCode:\(sessionId):main:line:\(lineIndex)"
 
             events.append(TokenEvent(
                 provider: provider, model: model, source: .claudeCode,
                 sessionId: sessionId, timestamp: timestamp,
                 tokens: tokens,
-                sourceId: "claudeCode:\(sessionId):main:\(messageId)"
+                sourceId: sourceId
             ))
         }
         return events
@@ -84,7 +99,10 @@ struct ClaudeCodeExtractor: TokenExtractorProtocol {
 
     private func parseTimestamp(_ any: Any?) -> Date? {
         if let ts = any as? Double { return Date(timeIntervalSince1970: ts) }
-        if let s = any as? String, let ts = Double(s) { return Date(timeIntervalSince1970: ts) }
+        if let s = any as? String {
+            if let d = CodeISO8601DateParser.parse(s) { return d }
+            if let ts = Double(s) { return Date(timeIntervalSince1970: ts) }
+        }
         return nil
     }
 }

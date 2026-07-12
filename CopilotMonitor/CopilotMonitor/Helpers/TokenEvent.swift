@@ -1,23 +1,34 @@
 import Foundation
 
-/// Provider 归一化后枚举 (F2b 主视角, F1/F3/F4 扩展).
-/// - `.kimi`:    kimi Global — kimi-for-coding / k2p* / "moonshot" providerID
-/// - `.kimiCN`:  kimi CN — kimi 模型但 providerID 含 'cn' / 'kimi-cn'
-/// - `.claude`:  claude-* / anthropic providerID
-/// - `.codex`:   gpt-* / o3-* / o4-* / openai providerID
-/// - `.zai`:     glm-* / z-ai providerID
-/// - `.nanoGpt`: 兜底 (任何未识别的 model + providerID)
+/// Provider normalization enum (F2b internal perspective).
+/// Cases follow the cross-tool normalized routing used by `TokenNormalizer`.
+/// - `.kimi`, `.kimiCN`:    Moonshot Kimi (Global / China)
+/// - `.claude`:             Anthropic Claude family
+/// - `.codex`:              OpenAI GPT family
+/// - `.minimax`, `.minimaxCN`: MiniMax brand (used by minimax-cn providerID)
+/// - `.xiaomi`, `.xiaomiTokenPlanCN`: Xiaomi MiMo (used by xiaomi / xiaomi-token-plan-cn providerID)
+/// - `.opencodeGo`:         OpenCode Go subscription
+/// - `.zai`, `.nanoGpt`:    legacy cases (Z.AI / Nano-GPT API)
 enum Provider: String, Codable, CaseIterable, Hashable {
-    case kimi, kimiCN, claude, codex, zai, nanoGpt
+    case kimi, kimiCN, claude, codex
+    case minimax, minimaxCN
+    case xiaomi, xiaomiTokenPlanCN
+    case opencodeGo
+    case zai, nanoGpt
 
     var displayName: String {
         switch self {
-        case .kimi:    return "Kimi Global"
-        case .kimiCN:  return "Kimi CN"
-        case .claude:  return "Claude"
-        case .codex:   return "Codex"
-        case .zai:     return "Z.AI"
-        case .nanoGpt: return "NanoGpt"
+        case .kimi:               return "Kimi Global"
+        case .kimiCN:             return "Kimi CN"
+        case .claude:             return "Claude"
+        case .codex:              return "Codex"
+        case .minimax:            return "MiniMax"
+        case .minimaxCN:          return "MiniMax CN"
+        case .xiaomi:             return "MiMo"
+        case .xiaomiTokenPlanCN:  return "MiMo (Token Plan CN)"
+        case .opencodeGo:         return "OpenCode Go"
+        case .zai:                return "Z.AI"
+        case .nanoGpt:            return "NanoGpt"
         }
     }
 }
