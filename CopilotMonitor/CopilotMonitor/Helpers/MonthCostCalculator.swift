@@ -24,57 +24,59 @@ struct MonthCostCalculator {
         self.pricingTable = pricingTable
     }
 
-    /// Compute the cost-equivalent for a single month_aggregate.
-    ///
-    /// Rate precedence (round 9, 2026-07-12):
-    ///   1. **If the model name is an OpenAI GPT-* family string AND the
-    ///      provider is `.codex`**, use `pricingTable.modelRate(for: model)`
-    ///      — exact model pricing sourced from OpenAI's public list page
-    ///      (covers gpt-5.6-sol/terra/luna, gpt-5.5/pro, gpt-5.4/pro/mini/nano,
-    ///      the `gpt-5.6` plain alias, and the Codex-CLI preview alias
-    ///      `gpt-5.3-codex-spark`).
-    ///   2. **Otherwise** (non-OpenAI providers, or non-OpenAI model names
-    ///      under any provider), use `pricingTable.rate(for: providerId)` —
-    ///      the provider-level representative rate (e.g. .kimi → kimi-k2.6,
-    ///      .claude → sonnet-4-5, .codex → gpt-4o).
-    ///   3. `nil` when the provider is itself unknown to F2a (e.g. .copilot
-    ///      Premium request model), or when the lookup returns a rate
-    ///      whose input + output are both 0 (degenerate rate).
-    ///
-    /// The previous `representativeModel: [.codex: "gpt-4o"]` strict-equal
-    /// gate was removed in round 9: it incorrectly filtered every GPT-5.x
-    /// row to nil, hiding the model-level rate that PricingTable already
-    /// resolved. Restricting model-level overrides to OpenAI-on-Codex
-    /// prevents the symmetric bug — applying OpenAI list prices to e.g.
-    /// a Kimi or Claude model name.
+    /// Compute the cost-equivalent for a single month_aggregate. Thin
+    /// wrapper over `calculateWithSource(...)` that drops the
+    /// `usedFallback` flag. Existing call sites that only need the
+    /// cost number (TokenEventKimiCNTests, 11 legacy test cases) keep
+    /// using this entry point; new code that needs to flag
+    /// "estimated" rows uses `calculateWithSource(...)` directly.
     func calculate(provider: String, model: String, tokens: TokenBreakdown) -> Double? {
+        calculateWithSource(provider: provider, model: model, tokens: tokens)?.costRMB
+    }
+
+    /// Source-resolved cost (round 10, 2026-07-12). Returns both the
+    /// computed RMB cost AND whether the row was priced via the
+    /// provider-level fallback (i.e. modelRate(for:) was queried but
+    /// returned nil). The `usedFallback` flag is the signal that
+    /// `calculateMonthlyTotals` aggregates into `MonthlyTotal.hasUnknownPricing`
+    /// so the UI can show an "estimated" badge on those rows.
+    ///
+    /// Returned nil when the provider is itself unknown to F2a, or the
+    /// rate lookup returns a degenerate (input + output both 0) value.
+    ///
+    /// `usedFallback` is set ONLY when:
+    ///   - the model name matches an OpenAI `gpt-*` / `o1` / `o3` / `o4-*`
+    ///     prefix AND
+    ///   - the provider is `.codex` AND
+    ///   - `pricingTable.modelRate(for: model)` returned nil.
+    ///
+    /// Other providers (kimi / claude / zai / nanogpt) don't have a
+    /// `modelRate(for:)` switch entry today, so their rows always
+    /// resolve via `rate(for: providerId)`. That's the canonical path
+    /// for that provider, not a fallback. `usedFallback` is false in
+    /// those cases so we don't spam the UI with false "estimated" badges
+    /// for non-OpenAI providers.
+    func calculateWithSource(provider: String, model: String, tokens: TokenBreakdown) -> CostEstimate? {
         guard let providerId = providerStringToIdentifier(provider) else { return nil }
 
-        // Model-level rate applies ONLY to OpenAI model names under .codex.
-        // This is the only family PricingTable's `modelRate(for:)` switch
-        // covers today; expanding it is round-10+ work.
-        //
-        // The ?: vs ?? precedence: Swift parses `cond ? A : B ?? C` as
-        // `cond ? A : (B ?? C)`, NOT `(cond ? A : B) ?? C`. Wrap the
-        // ternary in parens so modelRate(nil-fallback) chains with the
-        // provider-rate ?? as intended.
         let looksLikeOpenAIModel = model.hasPrefix("gpt-")
                                   || model.hasPrefix("o1")
                                   || model.hasPrefix("o3")
                                   || model.hasPrefix("o4-")
-        let modelRate: PayAsYouGoRate? = (looksLikeOpenAIModel && providerId == .codex)
+        let queriedModelRate: Bool = (looksLikeOpenAIModel && providerId == .codex)
+        let modelRate: PayAsYouGoRate? = queriedModelRate
             ? pricingTable.modelRate(for: model)
             : nil
         let rate = modelRate ?? pricingTable.rate(for: providerId)
-
         guard let rate = rate, rate.input > 0 || rate.output > 0 else { return nil }
 
         let inputCost = Double(tokens.input) * rate.input / 1_000_000
         let outputCost = Double(tokens.output) * rate.output / 1_000_000
-        // rate.cache is the cache-READ rate; cache-write is intentionally
-        // excluded (F2a consensus: cache-write cost is simplified away).
         let cacheReadCost = Double(tokens.cacheRead) * (rate.cache ?? 0) / 1_000_000
-        return inputCost + outputCost + cacheReadCost
+        return CostEstimate(
+            costRMB: inputCost + outputCost + cacheReadCost,
+            usedFallback: queriedModelRate && modelRate == nil
+        )
     }
 
     /// Aggregate `month_aggregates` into a per-provider `MonthlyTotal`.
@@ -84,7 +86,8 @@ struct MonthCostCalculator {
     func calculateMonthlyTotals(_ aggregates: [MonthAggregate]) -> [MonthlyTotal] {
         var totals: [String: MonthlyTotal] = [:]
         for agg in aggregates {
-            let cost = calculate(provider: agg.provider, model: agg.model, tokens: agg.tokens)
+            let estimate = calculateWithSource(provider: agg.provider, model: agg.model, tokens: agg.tokens)
+            let cost = estimate?.costRMB
             let existing = totals[agg.provider]
             totals[agg.provider] = MonthlyTotal(
                 provider: agg.provider,
@@ -94,7 +97,8 @@ struct MonthCostCalculator {
                 totalTokens: (existing?.totalTokens ?? TokenBreakdown())
                     .adding(agg.tokens),
                 totalCostRMB: (existing?.totalCostRMB ?? 0) + (cost ?? 0),
-                hasUnknownPricing: (existing?.hasUnknownPricing ?? false) || (cost == nil)
+                hasUnknownPricing: (existing?.hasUnknownPricing ?? false)
+                    || (estimate == nil || estimate?.usedFallback == true)
             )
         }
         return Array(totals.values)
@@ -139,6 +143,16 @@ struct ModelCost {
     let model: String
     let tokens: TokenBreakdown
     let costRMB: Double?
+}
+
+/// Per-row pricing result from `MonthCostCalculator.calculateWithSource(...)`.
+/// `usedFallback` is true when the row was priced via the provider-level
+/// representative rate because `modelRate(for: model)` was queried
+/// (model name matches an OpenAI prefix AND provider is `.codex`) but
+/// returned nil. UI surfaces this as an "estimated" badge.
+struct CostEstimate {
+    let costRMB: Double
+    let usedFallback: Bool
 }
 
 extension TokenBreakdown {

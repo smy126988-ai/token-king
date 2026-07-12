@@ -47,11 +47,15 @@ final class MonthCostCalculatorTests: XCTestCase {
     }
 
     func testCodexBasic() {
-        // codex representative (gpt-4o): input=16.98, output=67.90, cache=8.49.
+        // codex modelRate (gpt-4o) entry added in round 10:
+        // input = 2.50 * 6.79 = 16.975, output = 10.00 * 6.79 = 67.90, cache = 1.25 * 6.79 = 8.4875.
+        // Older test (round 9 and earlier) used the provider-level rate(for: .codex)
+        // representative which rounded input to 16.98. Round 10 prefers the
+        // model-level rate, hence the looser accuracy bound.
         let tokens = TokenBreakdown(input: 1_000_000, output: 100_000)
         let cost = calc.calculate(provider: "codex", model: "gpt-4o", tokens: tokens)
-        // 1 * 16.98 + 0.1 * 67.90 = 16.98 + 6.79 = 23.77
-        XCTAssertEqual(cost ?? -1, 23.77, accuracy: 1e-9)
+        // 1 * 16.975 + 0.1 * 67.90 = 16.975 + 6.79 = 23.765
+        XCTAssertEqual(cost ?? -1, 23.765, accuracy: 0.01)
     }
 
     func testZAIBasic() {
@@ -63,7 +67,11 @@ final class MonthCostCalculatorTests: XCTestCase {
     }
 
     func testNanoGptBasic() {
-        // nanoGpt representative (gpt-4o): input=16.98, output=67.90, cache=nil.
+        // nanoGpt representative (gpt-4o): rate(for: .nanoGpt) gives
+        // input=16.98, output=67.90, cache=nil. The modelRate switch does
+        // not query nanoGpt (only OpenAI-on-Codex), so this path falls
+        // through to the provider rate. Sums the same way as testCodexBasic
+        // but nanoGpt's rate caches out to nil, so cache contributes 0.
         let tokens = TokenBreakdown(input: 1_000_000, output: 100_000)
         let cost = calc.calculate(provider: "nanogpt", model: "gpt-4o", tokens: tokens)
         // 1 * 16.98 + 0.1 * 67.90 = 23.77 (cache=nil contributes 0).
@@ -204,20 +212,21 @@ final class MonthCostCalculatorTests: XCTestCase {
 
     func testRealUserData() {
         // User real data: 14M input + 1.4M output + 473M cacheRead for codex gpt-4o.
-        // F2a codex gpt-4o rate: input=16.98, output=67.90, cache=8.49 (RMB/M).
+        // F2a codex gpt-4o rate (round 10 modelRate entry, USD $2.50/$10/$1.25
+        // × FX 6.79): input=16.975, output=67.90, cache=8.4875 (RMB/M).
         // Formula:
-        //   14 * 16.98 + 1.4 * 67.90 + 473 * 8.49
-        //   = 237.72 + 95.06 + 4015.77
-        //   = 4348.55 RMB.
-        // (Note: F2b plan mentioned "~4640 RMB" based on an older rate model;
-        //  current F2a PricingTable values yield 4348.55.)
+        //   14 * 16.975 + 1.4 * 67.90 + 473 * 8.4875
+        //   = 237.65 + 95.06 + 4014.5875
+        //   = 4347.2975 RMB.
+        // Round-9 expected 4348.55 RMB; round-10 picks up the modelRate
+        // preference (more precise) so the new value is 1.25 RMB lower.
         let tokens = TokenBreakdown(
             input: 14_000_000,
             output: 1_400_000,
             cacheRead: 473_000_000
         )
         let cost = calc.calculate(provider: "codex", model: "gpt-4o", tokens: tokens)
-        XCTAssertEqual(cost ?? 0, 4348.55, accuracy: 0.01)
+        XCTAssertEqual(cost ?? 0, 4347.2975, accuracy: 0.01)
     }
 
     func testProviderZaiMapping() {
@@ -312,10 +321,114 @@ final class MonthCostCalculatorTests: XCTestCase {
         let tokens = TokenBreakdown(input: 1_000_000, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0)
         // If the modelRate lookup wrongly applied, we'd get 1M * $5 = ¥33.95.
         // Correct behavior: gpt-5.6-sol under .kimi falls through to .kimi
-        // representative (kimi-k2.6) rate = 1M * ¥6.50 = ¥6.50.
+        // representative (kimi-k2.6) rate = 1M input × 6.50 RMB/M = 6.50 RMB.
         let costRMB = calc.calculate(provider: "kimi", model: "gpt-5.6-sol", tokens: tokens)
         XCTAssertNotNil(costRMB)
         XCTAssertEqual(costRMB ?? -1, 6.50, accuracy: 0.05,
                        "OpenAI modelRate must not leak into .kimi provider; kimi representative applies")
+    }
+
+    // MARK: - calculateWithSource (round 10) — hasUnknownPricing fallback signal
+
+    /// Known model under .codex resolves via modelRate; the row is
+    /// "fully priced" (no fallback). UI can show this as a normal cost.
+    func testCalculateWithSourceKnownModelNotFallback() {
+        let tokens = TokenBreakdown(input: 1, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0)
+        guard let est = calc.calculateWithSource(
+            provider: "codex", model: "gpt-5.6-sol", tokens: tokens
+        ) else { return XCTFail("gpt-5.6-sol must resolve") }
+        XCTAssertFalse(est.usedFallback,
+                       "Known model under .codex must not flag as fallback")
+        XCTAssertGreaterThanOrEqual(est.costRMB, 0)
+    }
+
+    /// Unknown OpenAI-prefix model under .codex (e.g. "gpt-zzz-9") triggers
+    /// a modelRate query that returns nil. The row falls back to the
+    /// gpt-4o representative rate. UI should show "estimated".
+    func testCalculateWithSourceUnknownGptModelFallsBack() {
+        let tokens = TokenBreakdown(input: 1, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0)
+        guard let est = calc.calculateWithSource(
+            provider: "codex", model: "gpt-zzz-9", tokens: tokens
+        ) else { return XCTFail("unknown gpt- model under .codex must fall back to gpt-4o") }
+        XCTAssertTrue(est.usedFallback,
+                      "gpt-zzz-9 under .codex must flag as fallback (gpt-4o rate used)")
+    }
+
+    /// Kimi representative model path: kimi doesn't have a modelRate entry,
+    /// so modelRate is never queried. usedFallback must be false even
+    /// though the row is "model-specific" — kimi's representative rate
+    /// is the canonical path for that provider, not a fallback.
+    func testCalculateWithSourceKimiRepresentativeIsNotFallback() {
+        let tokens = TokenBreakdown(input: 1, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0)
+        guard let est = calc.calculateWithSource(
+            provider: "kimi", model: "kimi-k2.6", tokens: tokens
+        ) else { return XCTFail("kimi must resolve") }
+        XCTAssertFalse(est.usedFallback,
+                       "kimi representative model is the canonical path, not a fallback")
+    }
+
+    /// `hasUnknownPricing` flag wiring: a monthly aggregate with a mix
+    /// of fully-priced + fallback rows must flag hasUnknownPricing=true
+    /// (was previously true *only* on nil-cost rows, which is now
+    /// unreachable under round-9 fallback semantics).
+    func testMonthlyTotalsFlagsFallbackRows() {
+        let aggs = [
+            MonthAggregate(provider: "codex", model: "gpt-5.6-sol",
+                           tokens: TokenBreakdown(input: 1_000_000),
+                           yearMonth: "2026-07"),
+            MonthAggregate(provider: "codex", model: "gpt-zzz-9",
+                           tokens: TokenBreakdown(input: 1_000_000),
+                           yearMonth: "2026-07"),
+            MonthAggregate(provider: "codex", model: "gpt-5.6-terra",
+                           tokens: TokenBreakdown(input: 1_000_000),
+                           yearMonth: "2026-07"),
+        ]
+        let totals = calc.calculateMonthlyTotals(aggs)
+        let codex = totals.first(where: { $0.provider == "codex" })
+        XCTAssertNotNil(codex)
+        XCTAssertTrue(codex?.hasUnknownPricing ?? false,
+                      "codex total with at least one fallback row must flag hasUnknownPricing")
+        // Re-verify the flag is sticky across further rows — a later
+        // fully-priced row must NOT clear it.
+        XCTAssertEqual(codex?.modelBreakdown.count, 3)
+        XCTAssertTrue(codex?.hasUnknownPricing ?? false,
+                      "a fully-priced row added after a fallback row must not clear the flag")
+    }
+
+    /// Round 10 lock-down: `gpt-4o` (the canonical Codex model) must
+    /// resolve via the model-level lookup, not via the gpt-4o
+    /// representative rate. Without this entry in the modelRate switch
+    /// (PricingTable.swift), a Codex row tagged `gpt-4o` would be
+    /// mis-marked as `usedFallback` because the model-level query
+    /// returns nil and the codex representative rate catches it.
+    func testCalculateWithSourceGpt4oIsNotFallback() {
+        let tokens = TokenBreakdown(input: 1, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0)
+        guard let est = calc.calculateWithSource(
+            provider: "codex", model: "gpt-4o", tokens: tokens
+        ) else { return XCTFail("gpt-4o must resolve") }
+        XCTAssertFalse(est.usedFallback,
+                       "gpt-4o is a known canonical model, must not flag as fallback")
+    }
+
+    /// `hasUnknownPricing` flag wiring: a monthly aggregate with all
+    /// fully-priced rows must NOT flag. Previously (round 9 module 2)
+    /// this test asserted true when an unknown-model row was mixed in;
+    /// round 10 retires that since unknown-model rows now produce a
+    /// fallback cost instead of nil.
+    func testMonthlyTotalsCleanRunDoesNotFlag() {
+        let aggs = [
+            MonthAggregate(provider: "codex", model: "gpt-5.6-sol",
+                           tokens: TokenBreakdown(input: 1_000_000),
+                           yearMonth: "2026-07"),
+            MonthAggregate(provider: "kimi", model: "kimi-k2.6",
+                           tokens: TokenBreakdown(input: 1_000_000),
+                           yearMonth: "2026-07"),
+        ]
+        let totals = calc.calculateMonthlyTotals(aggs)
+        XCTAssertEqual(totals.count, 2)
+        for t in totals {
+            XCTAssertFalse(t.hasUnknownPricing,
+                           "fully-priced rows must not flag hasUnknownPricing")
+        }
     }
 }

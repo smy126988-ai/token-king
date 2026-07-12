@@ -162,6 +162,18 @@ enum PricingTable {
                 cache:   0.50 * fx
             )
 
+        // gpt-4o: legacy canonical model. Lives both in
+        // `rate(for: .codex)` (representative) AND here so the model-level
+        // lookup returns non-nil for it. Without this entry, a Codex row
+        // tagged `gpt-4o` would be mis-marked as `usedFallback` because the
+        // modelRate query returns nil. Public list $2.50 / $10.00 / $1.25.
+        case "gpt-4o":
+            return PayAsYouGoRate(
+                input:   2.50 * fx,
+                output: 10.00 * fx,
+                cache:   1.25 * fx
+            )
+
         case "gpt-5.6-terra":
             // USD list: $2.50 / $0.25 / $15.00.
             return PayAsYouGoRate(
