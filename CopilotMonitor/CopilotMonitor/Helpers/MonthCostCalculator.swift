@@ -26,20 +26,53 @@ struct MonthCostCalculator {
 
     /// Compute the cost-equivalent for a single month_aggregate.
     ///
-    /// Returns `nil` when:
-    /// - the provider string is not one of the 5 known F2b providers,
-    /// - the model does not match the representative model for that provider,
-    /// - F2a PricingTable has no public rate for that provider
-    ///   (e.g. `.copilot` Premium-request model).
+    /// Rate precedence (round 9, 2026-07-12):
+    ///   1. **If the model name is an OpenAI GPT-* family string AND the
+    ///      provider is `.codex`**, use `pricingTable.modelRate(for: model)`
+    ///      — exact model pricing sourced from OpenAI's public list page
+    ///      (covers gpt-5.6-sol/terra/luna, gpt-5.5/pro, gpt-5.4/pro/mini/nano,
+    ///      the `gpt-5.6` plain alias, and the Codex-CLI preview alias
+    ///      `gpt-5.3-codex-spark`).
+    ///   2. **Otherwise** (non-OpenAI providers, or non-OpenAI model names
+    ///      under any provider), use `pricingTable.rate(for: providerId)` —
+    ///      the provider-level representative rate (e.g. .kimi → kimi-k2.6,
+    ///      .claude → sonnet-4-5, .codex → gpt-4o).
+    ///   3. `nil` when the provider is itself unknown to F2a (e.g. .copilot
+    ///      Premium request model), or when the lookup returns a rate
+    ///      whose input + output are both 0 (degenerate rate).
+    ///
+    /// The previous `representativeModel: [.codex: "gpt-4o"]` strict-equal
+    /// gate was removed in round 9: it incorrectly filtered every GPT-5.x
+    /// row to nil, hiding the model-level rate that PricingTable already
+    /// resolved. Restricting model-level overrides to OpenAI-on-Codex
+    /// prevents the symmetric bug — applying OpenAI list prices to e.g.
+    /// a Kimi or Claude model name.
     func calculate(provider: String, model: String, tokens: TokenBreakdown) -> Double? {
         guard let providerId = providerStringToIdentifier(provider) else { return nil }
-        guard Self.representativeModel[providerId] == model else { return nil }
-        guard let rate = pricingTable.rate(for: providerId),
-              rate.input > 0 || rate.output > 0
-        else { return nil }
+
+        // Model-level rate applies ONLY to OpenAI model names under .codex.
+        // This is the only family PricingTable's `modelRate(for:)` switch
+        // covers today; expanding it is round-10+ work.
+        //
+        // The ?: vs ?? precedence: Swift parses `cond ? A : B ?? C` as
+        // `cond ? A : (B ?? C)`, NOT `(cond ? A : B) ?? C`. Wrap the
+        // ternary in parens so modelRate(nil-fallback) chains with the
+        // provider-rate ?? as intended.
+        let looksLikeOpenAIModel = model.hasPrefix("gpt-")
+                                  || model.hasPrefix("o1")
+                                  || model.hasPrefix("o3")
+                                  || model.hasPrefix("o4-")
+        let modelRate: PayAsYouGoRate? = (looksLikeOpenAIModel && providerId == .codex)
+            ? pricingTable.modelRate(for: model)
+            : nil
+        let rate = modelRate ?? pricingTable.rate(for: providerId)
+
+        guard let rate = rate, rate.input > 0 || rate.output > 0 else { return nil }
 
         let inputCost = Double(tokens.input) * rate.input / 1_000_000
         let outputCost = Double(tokens.output) * rate.output / 1_000_000
+        // rate.cache is the cache-READ rate; cache-write is intentionally
+        // excluded (F2a consensus: cache-write cost is simplified away).
         let cacheReadCost = Double(tokens.cacheRead) * (rate.cache ?? 0) / 1_000_000
         return inputCost + outputCost + cacheReadCost
     }
@@ -84,19 +117,6 @@ struct MonthCostCalculator {
         default:        return nil
         }
     }
-
-    /// Representative model name per provider. Source: F2a `PricingTable.swift`
-    /// line 33-96 in-line docs (one rate per provider, attributed to a single
-    /// representative model). When F2a updates its representative model, this
-    /// mapping must be updated to match.
-    private static let representativeModel: [ProviderIdentifier: String] = [
-        .kimi:          "kimi-k2.6",
-        .kimiCN:        "kimi-k2.6",
-        .claude:        "claude-sonnet-4-5",
-        .zaiCodingPlan: "glm-4.6",
-        .nanoGpt:       "gpt-4o",
-        .codex:         "gpt-4o",
-    ]
 }
 
 /// Per-provider monthly rollup. One entry per `Provider` raw value seen in

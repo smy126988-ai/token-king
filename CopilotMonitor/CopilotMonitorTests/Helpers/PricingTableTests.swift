@@ -88,4 +88,161 @@ final class PricingTableTests: XCTestCase {
             ".kimi and .kimiCN must return identical rates (same Moonshot platform)"
         )
     }
+
+    // MARK: - Per-model rates (GPT-5.x family)
+
+    /// Test-driven surface for model-level public list prices. The current
+    /// `rate(for: ProviderIdentifier)` fall-back to a single representative
+    /// model (e.g. gpt-4o for .codex) — under-bills real GPT-5.x spend.
+    /// Each model below was sourced from
+    /// https://developers.openai.com/api/docs/pricing (2026-07-12).
+    func testGpt56SolModelRate() {
+        // Source: https://developers.openai.com/api/docs/models/gpt-5.6
+        // USD per 1M tokens: input $5.00 / cached input $0.50 / output $30.00.
+        // PayAsYouGoRate stores the unified RMB figure (USD * FX 6.79) so
+        // downstream MonthCostCalculator treats every provider's rate in a
+        // single currency without ad-hoc per-call conversions.
+        let fx = 6.79
+        guard let rate = PricingTable.modelRate(for: "gpt-5.6-sol") else {
+            return XCTFail("gpt-5.6-sol should resolve to an explicit rate")
+        }
+        XCTAssertEqual(rate.input,  5.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.output, 30.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.cache!, 0.50 * fx, accuracy: 0.01,
+                       "cache field stores cache-read rate on PayAsYouGoRate")
+    }
+
+    func testGpt55ModelRate() {
+        // Source: https://developers.openai.com/api/docs/pricing (Standard tier, <272K).
+        // USD per 1M tokens: input $5.00 / cached input $0.50 / output $30.00.
+        let fx = 6.79
+        guard let rate = PricingTable.modelRate(for: "gpt-5.5") else {
+            return XCTFail("gpt-5.5 should resolve")
+        }
+        XCTAssertEqual(rate.input,  5.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.output, 30.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.cache!, 0.50 * fx, accuracy: 0.01)
+    }
+
+    func testGpt55ProModelRate() {
+        // Standard tier, 6× input / output of plain gpt-5.5; no cache page line.
+        let fx = 6.79
+        guard let rate = PricingTable.modelRate(for: "gpt-5.5-pro") else {
+            return XCTFail("gpt-5.5-pro should resolve")
+        }
+        XCTAssertEqual(rate.input,  30.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.output, 180.00 * fx, accuracy: 0.01)
+        XCTAssertNil(rate.cache, "gpt-5.5-pro has no public cache-read rate")
+    }
+
+    func testGpt56TerraModelRate() {
+        let fx = 6.79
+        guard let rate = PricingTable.modelRate(for: "gpt-5.6-terra") else {
+            return XCTFail("gpt-5.6-terra should resolve")
+        }
+        XCTAssertEqual(rate.input,  2.50 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.output, 15.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.cache!, 0.25 * fx, accuracy: 0.01)
+    }
+
+    func testGpt56LunaModelRate() {
+        let fx = 6.79
+        guard let rate = PricingTable.modelRate(for: "gpt-5.6-luna") else {
+            return XCTFail("gpt-5.6-luna should resolve")
+        }
+        XCTAssertEqual(rate.input,  1.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.output,  6.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.cache!, 0.10 * fx, accuracy: 0.01)
+    }
+
+    func testGpt54MiniModelRate() {
+        // Standard tier: USD $0.75 / $0.075 / $4.50.
+        let fx = 6.79
+        guard let rate = PricingTable.modelRate(for: "gpt-5.4-mini") else {
+            return XCTFail("gpt-5.4-mini should resolve")
+        }
+        XCTAssertEqual(rate.input,  0.75 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.output, 4.50 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.cache!, 0.075 * fx, accuracy: 0.01)
+    }
+
+    func testGpt54ProModelRate() {
+        let fx = 6.79
+        guard let rate = PricingTable.modelRate(for: "gpt-5.4-pro") else {
+            return XCTFail("gpt-5.4-pro should resolve")
+        }
+        XCTAssertEqual(rate.input,  30.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.output, 180.00 * fx, accuracy: 0.01)
+        XCTAssertNil(rate.cache, "gpt-5.4-pro has no public cache-read rate")
+    }
+
+    /// Aliases for the same model must resolve identically (OpenAI alias
+    /// `gpt-5.6` routes to `gpt-5.6-sol` per
+    /// https://openai.com/index/gpt-5-6/).
+    func testGpt56AliasResolvesToSolRate() {
+        XCTAssertEqual(
+            PricingTable.modelRate(for: "gpt-5.6"),
+            PricingTable.modelRate(for: "gpt-5.6-sol"),
+            "gpt-5.6 plain alias must map to gpt-5.6-sol"
+        )
+    }
+
+    /// Previously-broken: pre-5.6 Codex CLI sometimes emitted `gpt-5.3-codex-spark`
+    /// as an alias for `gpt-5.6-sol` (preview). Verify it's mapped.
+    func testGpt53CodexSparkAliasResolvesToSolRate() {
+        guard let sol = PricingTable.modelRate(for: "gpt-5.6-sol"),
+              let spark = PricingTable.modelRate(for: "gpt-5.3-codex-spark")
+        else {
+            return XCTFail("both aliases should resolve")
+        }
+        XCTAssertEqual(spark.input, sol.input, accuracy: 0.001)
+        XCTAssertEqual(spark.output, sol.output, accuracy: 0.001)
+    }
+
+    func testUnknownModelReturnsNil() {
+        XCTAssertNil(PricingTable.modelRate(for: "gpt-future-99-ultra"))
+        XCTAssertNil(PricingTable.modelRate(for: ""))
+        XCTAssertNil(PricingTable.modelRate(for: "some/random/path"))
+    }
+
+    func testModelRateOutputNotLowerThanInput() {
+        // Industry-standard invariant: output ≥ input. Catches data-entry
+        // typos (e.g. swapping input/output columns). Exceptions: Pro
+        // variants listed below are excluded since their input rate
+        // ($30) still satisfies the invariant ($180 ≥ $30), keep them in.
+        let covered: [String] = [
+            "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna",
+            "gpt-5.5", "gpt-5.5-pro",
+            "gpt-5.4", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.4-nano",
+        ]
+        for m in covered {
+            guard let rate = PricingTable.modelRate(for: m) else {
+                XCTFail("\(m) returned nil"); continue
+            }
+            XCTAssertGreaterThanOrEqual(
+                rate.output, rate.input,
+                "\(m): output (\(rate.output)) must be >= input (\(rate.input))"
+            )
+            if let cache = rate.cache {
+                XCTAssertGreaterThan(cache, 0, "\(m): cache must be > 0")
+            }
+        }
+    }
+
+    func testKnownModelsSetMembership() {
+        // Lock down which models the audit branch claims to know about.
+        // Adding a new model: add to PricingTable.modelRate(for:) AND below.
+        let known: Set<String> = [
+            // GPT-5.6 family.
+            "gpt-5.6", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna",
+            "gpt-5.3-codex-spark",
+            // GPT-5.5 family.
+            "gpt-5.5", "gpt-5.5-pro",
+            // GPT-5.4 family.
+            "gpt-5.4", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.4-nano",
+        ]
+        for m in known {
+            XCTAssertNotNil(PricingTable.modelRate(for: m), "\(m) should resolve")
+        }
+    }
 }
