@@ -70,11 +70,21 @@ struct CodexExtractor: TokenExtractorProtocol {
         var model = ""
         var events: [TokenEvent] = []
         var lineIndex = 0
-        // Per-session cumulative tracker used ONLY by the older
-        // `total_token_usage`-only fallback path. The `last_token_usage`
-        // path doesn't need it because Anthropic's per-request values are
-        // already what we want to store.
+        // Per-session cumulative trackers used by BOTH paths:
+        // - `last_token_usage` path: tracks the previous 5 fields of
+        //   `last_token_usage` to skip duplicate snapshots Codex CLI
+        //   re-emits between billable turns (see ccusage PR #824 + issue
+        //   #876 — raw-sum otherwise double-counts and inflates cache_read
+        //   by ~30% on busy sessions like 7月10/11 2026).
+        // - fallback path: tracks the previous `total_token_usage.total_tokens`
+        //   for proportional delta split. Each tracker is initialized to
+        //   nil so the first event always emits.
         var prevFallbackTotal: Int? = nil
+        var prevLastInput: Int? = nil
+        var prevLastCached: Int? = nil
+        var prevLastOutput: Int? = nil
+        var prevLastReasoning: Int? = nil
+        var prevLastTotal: Int? = nil
 
         for line in content.split(separator: "\n", omittingEmptySubsequences: true) {
             defer { lineIndex += 1 }
@@ -109,8 +119,43 @@ struct CodexExtractor: TokenExtractorProtocol {
                 let timestamp = parseTimestamp(json["timestamp"]) ?? Date(timeIntervalSince1970: 0)
                 let msgId = (json["id"] as? String) ?? "\(lineIndex)"
 
+                // Apply dedup. Two-step:
+                //   1. If `last_token_usage` is complete, compare its 5 fields
+                //      to the previous `last_token_usage`. Skip when every
+                //      field is identical — Codex CLI re-emits the same
+                //      snapshot between billable turns. (ccusage PR #824.)
+                //   2. If `last_token_usage` is missing, the fallback path
+                //      uses `prevFallbackTotal` to compute a cumulative
+                //      delta and self-dedups. We also gate that branch on
+                //      `input | cached | output | reasoning` equality vs the
+                //      previous `total_token_usage` so identical snapshots
+                //      are dropped.
                 let breakdown: TokenBreakdown
                 if isCompleteLastUsage(lastUsage) {
+                    let curInput = intValue(lastUsage!["input_tokens"])
+                    let curCached = intValue(lastUsage!["cached_input_tokens"])
+                    let curOutput = intValue(lastUsage!["output_tokens"])
+                    let curReasoning = intValue(lastUsage!["reasoning_output_tokens"])
+                    let curTotal = intValue(lastUsage!["total_tokens"])
+                    if let pIn = prevLastInput, let pC = prevLastCached,
+                       let pO = prevLastOutput, let pR = prevLastReasoning,
+                       let pT = prevLastTotal,
+                       curInput == pIn, curCached == pC,
+                       curOutput == pO, curReasoning == pR, curTotal == pT {
+                        // Duplicate snapshot — Codex CLI re-emitted the same
+                        // per-request value (no billable work between events).
+                        prevLastInput = curInput
+                        prevLastCached = curCached
+                        prevLastOutput = curOutput
+                        prevLastReasoning = curReasoning
+                        prevLastTotal = curTotal
+                        continue
+                    }
+                    prevLastInput = curInput
+                    prevLastCached = curCached
+                    prevLastOutput = curOutput
+                    prevLastReasoning = curReasoning
+                    prevLastTotal = curTotal
                     breakdown = perRequestBreakdown(
                         lastUsage: lastUsage!,
                         providerID: effectiveModel // use provider as id field hint

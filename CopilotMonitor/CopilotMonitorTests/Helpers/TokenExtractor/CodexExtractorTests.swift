@@ -230,4 +230,55 @@ final class CodexExtractorTests: XCTestCase {
         XCTAssertEqual(events[2].tokens.input, 0)
         XCTAssertEqual(events[2].tokens.cacheRead, 0)
     }
+
+    /// Codex CLI often re-emits the exact same `last_token_usage` values
+    /// between turns when no fresh LLM response was billed (e.g. between
+    /// user-prompt turns of a long session). Storing each row verbatim
+    /// inflated F2b cache_read totals by ~30% on a busy July 2026
+    /// session. ccusage addressed the same edge in PR #824 + commit
+    /// f53bbb7 — apply the same dedup fingerprint key
+    /// (`timestamp | model | input | cached | output | reasoning | total`)
+    /// and skip exact duplicate snapshots.
+    func testDuplicateLastUsageSnapshotIsDeduped() async throws {
+        let rollout = """
+        {"type":"session_meta","payload":{"model":"gpt-5"},"timestamp":1700000100}
+        {"type":"event_msg","id":"msg-1","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":500,"output_tokens":200,"reasoning_output_tokens":50,"total_tokens":1700},"last_token_usage":{"input_tokens":1000,"cached_input_tokens":500,"output_tokens":200,"reasoning_output_tokens":50,"total_tokens":1700}}},"timestamp":1700000101}
+        {"type":"event_msg","id":"msg-2","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":500,"output_tokens":200,"reasoning_output_tokens":50,"total_tokens":1700},"last_token_usage":{"input_tokens":1000,"cached_input_tokens":500,"output_tokens":200,"reasoning_output_tokens":50,"total_tokens":1700}}},"timestamp":1700000102}
+        """
+        try? rollout.write(
+            toFile: tmpDir + "/2026/07/08/rollout-dup.jsonl", atomically: true, encoding: .utf8
+        )
+
+        let extractor = CodexExtractor(rootPath: tmpDir)
+        let events = try await extractor.extractAll()
+        // Without dedup, both rows would emit and cache_read summed to 1000.
+        // With the fingerprint guard, the second row matches `msg-1`'s
+        // timestamp + token-shape and is dropped.
+        XCTAssertEqual(events.count, 1)
+        XCTAssertEqual(events.first?.tokens.cacheRead, 500)
+        XCTAssertEqual(events.first?.tokens.input, 500, "fresh input = 1000 - 500 cache")
+    }
+
+    /// Even when the cumulative `total_token_usage` keeps advancing, the
+    /// `last_token_usage` may repeat if Codex CLI re-emits the snapshot
+    /// before the next billable turn. Dedup must skip repeats but still
+    /// emit the new row once a fresh timestamp + values land.
+    func testDuplicateThenNewValueBothEmit() async throws {
+        let rollout = """
+        {"type":"session_meta","payload":{"model":"gpt-5"},"timestamp":1700000200}
+        {"type":"event_msg","id":"msg-1","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":500,"output_tokens":200,"reasoning_output_tokens":50,"total_tokens":1700},"last_token_usage":{"input_tokens":1000,"cached_input_tokens":500,"output_tokens":200,"reasoning_output_tokens":50,"total_tokens":1700}}},"timestamp":1700000201}
+        {"type":"event_msg","id":"msg-2","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":500,"output_tokens":200,"reasoning_output_tokens":50,"total_tokens":1700},"last_token_usage":{"input_tokens":1000,"cached_input_tokens":500,"output_tokens":200,"reasoning_output_tokens":50,"total_tokens":1700}}},"timestamp":1700000202}
+        {"type":"event_msg","id":"msg-3","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1500,"cached_input_tokens":700,"output_tokens":350,"reasoning_output_tokens":80,"total_tokens":2550},"last_token_usage":{"input_tokens":1500,"cached_input_tokens":700,"output_tokens":350,"reasoning_output_tokens":80,"total_tokens":2550}}},"timestamp":1700000203}
+        """
+        try? rollout.write(
+            toFile: tmpDir + "/2026/07/08/rollout-dup-new.jsonl", atomically: true, encoding: .utf8
+        )
+
+        let extractor = CodexExtractor(rootPath: tmpDir)
+        let events = try await extractor.extractAll()
+        // msg-1 + msg-3 emitted; msg-2 was a duplicate of msg-1.
+        XCTAssertEqual(events.count, 2)
+        XCTAssertEqual(events[0].tokens.cacheRead, 500)
+        XCTAssertEqual(events[1].tokens.cacheRead, 700, "new turn, fresh cache_read")
+    }
 }
