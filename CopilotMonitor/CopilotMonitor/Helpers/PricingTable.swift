@@ -188,6 +188,23 @@ enum PricingTable {
                 cache:   1.25 * fx
             )
 
+        // Kimi Code subscription alias. The model name reported by
+        // `kimi-code` CLI sessions is `kimi-code/kimi-for-coding`,
+        // which auto-resolves to `kimi-k2-7-code` since 2026-06-12.
+        // Standard-tier list (CNY per 1M):
+        //   input  ¥6.50  /  cache read  ¥1.30  /  output  ¥27.00
+        // Source: https://platform.kimi.com/docs/pricing/chat-k27-code
+        // (captured 2026-07-13). Distinct from plain kimi-k2.6, which
+        // is the F2a `rate(for: .kimi)` representative; the k2.6 cache
+        // rate is ¥1.10/M. Mixing them was a known source of ¥94 (15%)
+        // under-cost on kimiCode 7月 totals.
+        case "kimi-code/kimi-for-coding", "kimi-for-coding", "kimi-k2-7-code":
+            return PayAsYouGoRate(
+                input:   6.50 * fx,
+                output: 27.00 * fx,
+                cache:   1.30 * fx
+            )
+
         case "gpt-5.6-terra":
             // USD list: $2.50 / $0.25 / $15.00.
             return PayAsYouGoRate(

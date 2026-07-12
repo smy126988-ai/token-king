@@ -242,6 +242,8 @@ final class PricingTableTests: XCTestCase {
             "gpt-5.4", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.4-nano",
             // gpt-4o legacy canonical model.
             "gpt-4o",
+            // Kimi Code subscription alias.
+            "kimi-code/kimi-for-coding", "kimi-for-coding", "kimi-k2-7-code",
         ]
         for m in known {
             XCTAssertNotNil(PricingTable.modelRate(for: m), "\(m) should resolve")
