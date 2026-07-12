@@ -165,6 +165,49 @@ enum PricingTable {
         let fx: Double = 6.79
 
         switch model {
+        // OpenCode Go (opencode-go tier) routes the user's deepseek-v4-pro
+        // and deepseek-v4-flash calls through OpenCode's own product tier,
+        // not DeepSeek's direct API. OpenCode Go prices are higher than
+        // upstream DeepSeek by ~4× on V4-Pro (verified 2026-07-13 from
+        // https://opencode.ai/docs/go/). opencode-go uses automatic prefix
+        // caching (not explicit / per-message). Cache-read factor is
+        // V4-Pro 1/120 of Go input, V4-Flash 1/50 of Go input.
+        case "deepseek-v4-pro":
+            return PayAsYouGoRate(
+                input:  1.74 * fx,
+                output: 3.48 * fx,
+                cache:   0.0145 * fx
+            )
+        case "deepseek-v4-flash", "deepseek-v4-flash-free":
+            // opencode-go names the model "deepseek-v4-flash"; the
+            // "deepseek-v4-flash-free" alias from older opencode-go
+            // builds resolves to the same model+rate. (Direct DeepSeek
+            // API's "deepseek-v4-flash-free" is a separate free tier
+            // that does NOT apply through opencode-go.)
+            return PayAsYouGoRate(
+                input:  0.14 * fx,
+                output: 0.28 * fx,
+                cache:  0.0028 * fx
+            )
+
+        // MiniMax-M3 direct API via the user's own key. China-domestic
+        // list price (CNY per 1M); standard tier, ≤512K context. Above
+        // 512K input the request is billed at the long-context tier
+        // (2× the standard rate; ¥8.40 / ¥1.68 / ¥33.60). International
+        // `minimax.io` publishes the same model at $0.30/$0.06/$1.20
+        // after a permanent 50% off promo — that's a different
+        // product. Capture the China-domestic rate because the user
+        // pays in CNY via their direct key.
+        //   input ¥4.20 / cache_read ¥0.84 / output ¥16.80
+        // Source: https://platform.minimaxi.com/docs/guides/pricing-paygo
+        // (captured 2026-07-13).
+        case "MiniMax-M3", "minimax-m3":
+            return PayAsYouGoRate(
+                input:   4.20,
+                output: 16.80,
+                cache:   0.84
+            )
+
         // GPT-5.6 family (released GA 2026-07-09). Headline routes:
         case "gpt-5.6", "gpt-5.6-sol", "gpt-5.3-codex-spark":
             // Standard short-context; >272K ctx is 2x input / 1.5x output

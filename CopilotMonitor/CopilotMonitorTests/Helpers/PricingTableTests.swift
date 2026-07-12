@@ -244,6 +244,10 @@ final class PricingTableTests: XCTestCase {
             "gpt-4o",
             // Kimi Code subscription alias.
             "kimi-code/kimi-for-coding", "kimi-for-coding", "kimi-k2-7-code",
+            // OpenCode Go (opencode-go tier) deepseek routes.
+            "deepseek-v4-pro", "deepseek-v4-flash", "deepseek-v4-flash-free",
+            // MiniMax direct API (user's own key).
+            "MiniMax-M3", "minimax-m3",
         ]
         for m in known {
             XCTAssertNotNil(PricingTable.modelRate(for: m), "\(m) should resolve")
