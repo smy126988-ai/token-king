@@ -61,7 +61,7 @@ struct CostCoverage: Equatable {
 
 - Kimi Code/Kimi CLI 归 Kimi 计费，K2.7 原生 CNY，不乘汇率。
 - `opencodeGo` 的 DeepSeek/MiniMax/Kimi/MiMo 使用 OpenCode Go 官方 USD 价格。
-- `minimaxCN` 使用 MiniMax 中国直连价格；不得套 OpenCode Go 或国际促销价。
+- `minimaxCN` 使用 MiniMax 当前官方中国直连价格：M3 标准层 ≤512K 为 ¥2.10 input / ¥0.42 cache read / ¥8.40 output；不得套 OpenCode Go、划线原价或国际价格。事件缺少 context length 时只能以 standard estimate 计价并记录 tier 假设。
 - `xiaomiTokenPlanCN` 使用对应 MiMo 模型公开价格并保留来源假设。
 - Codex/OpenAI 按具体 GPT 模型；reasoning 默认按 output 价格，除非官方另有定义。
 - Claude 只有精确官方模型价格才计价；未知新模型不回退为 Sonnet 精确值。
@@ -92,7 +92,7 @@ struct CostCoverage: Equatable {
 至少覆盖：
 
 - Kimi K2.7 原生 CNY；
-- MiniMax M3 中国直连；
+- MiniMax M3 中国直连 standard estimate；
 - OpenCode Go DeepSeek V4 Pro/Flash；
 - MiMo V2.5 Pro；
 - GPT-5.4/5.5/5.6 系列；
