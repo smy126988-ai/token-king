@@ -240,9 +240,39 @@ final class PricingTableTests: XCTestCase {
             "gpt-5.5", "gpt-5.5-pro",
             // GPT-5.4 family.
             "gpt-5.4", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.4-nano",
+            // gpt-4o legacy canonical model.
+            "gpt-4o",
         ]
         for m in known {
             XCTAssertNotNil(PricingTable.modelRate(for: m), "\(m) should resolve")
+        }
+    }
+
+    /// Round 10 module 2: every rate in this table must carry a
+    /// `currency: String` that signals the unit of `input / output /
+    /// cache`. The round-9 contract is "CNY per 1M tokens" (USD public
+    /// prices are converted via FX 6.79 inside `modelRate(for:)`). The
+    /// default is "CNY" and the regression lock below is a guardrail
+    /// against an explicit non-CNY call slipping in (round-10 follow-up
+    /// if we ever need raw USD is to add a new string + `convertTo(_:)`).
+    func testAllRatesHaveCNYCurrency() {
+        for provider in PricingTable.providersWithPublicPricing {
+            guard let rate = PricingTable.rate(for: provider) else { continue }
+            XCTAssertEqual(rate.currency, "CNY",
+                           "\(provider) rate.currency must be CNY; got \(rate.currency)")
+        }
+        let knownModels: [String] = [
+            "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna",
+            "gpt-5.5", "gpt-5.5-pro",
+            "gpt-5.4", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.4-nano",
+            "gpt-4o",
+        ]
+        for m in knownModels {
+            guard let rate = PricingTable.modelRate(for: m) else {
+                XCTFail("\(m) should resolve to assert currency"); continue
+            }
+            XCTAssertEqual(rate.currency, "CNY",
+                           "\(m) rate.currency must be CNY; got \(rate.currency)")
         }
     }
 }

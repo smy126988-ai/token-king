@@ -1,12 +1,18 @@
 import Foundation
 
-/// Represents the "hypothetical pay-as-you-go rate" for a single provider,
-/// based on its representative model's public pricing page.
+/// Represents the "hypothetical pay-as-you-go rate" for a single provider
+/// or model, based on the public pricing page.
 ///
-/// Per F2a design (2026-07-07): stored in RMB ¥ per million tokens, NOT USD.
-/// This is an accepted deviation from project "USD is single source of truth"
-/// principle - see spec section 2 in
-/// `docs/superpowers/specs/2026-07-07-f2a-pay-as-you-go-pricing-table-design.md`.
+/// Per F2a design (2026-07-07) and round-9 alignment: `input / output /
+/// cache` fields are stored in **RMB per million tokens** (CNY × 1e-6
+/// per token). OpenAI public list prices (USD) are converted to RMB
+/// internally by `modelRate(for:)` via FX 6.79, so callers never have
+/// to do per-call currency math. The `currency` field is the explicit
+/// surface for that contract: a value of `"CNY"` is the only valid
+/// string in this table as of round 10 — see `testAllRatesHaveCNYCurrency`
+/// for the regression lock. Future revisions that need a different
+/// unit (e.g. raw USD for a new panel) should add a new string and a
+/// `convertTo(_:)` method rather than mutating existing call sites.
 ///
 /// `cache == nil` when the provider either has no public cache pricing or
 /// does not differentiate cache as a separate line item.
@@ -14,6 +20,14 @@ struct PayAsYouGoRate: Equatable {
     let input: Double
     let output: Double
     let cache: Double?
+    let currency: String
+
+    init(input: Double, output: Double, cache: Double?, currency: String = "CNY") {
+        self.input = input
+        self.output = output
+        self.cache = cache
+        self.currency = currency
+    }
 }
 
 /// Compile-time-constant table of "hypothetical pay-as-you-go rates" for
