@@ -84,7 +84,15 @@ actor RefreshActor {
 
         for raw in rawEventsPerExtractor {
             do {
-                try await store.upsertEvent(raw)
+                // Periodic API snapshots (Z.AI / NanoGPT) use a stable source_id
+                // and carry CUMULATIVE counters, so they must REPLACE the previous
+                // snapshot in-place. Streaming sources (OpenCode / Claude Code /
+                // Codex / Kimi) keep `INSERT OR IGNORE` so per-batch dedup stays.
+                if Self.isSnapshotSource(raw.source) {
+                    try await store.upsertSnapshot(raw)
+                } else {
+                    try await store.upsertEvent(raw)
+                }
             } catch {
                 logger.error("upsertEvent failed: \(error.localizedDescription, privacy: .public)")
             }
@@ -111,6 +119,18 @@ actor RefreshActor {
             return
         }
         await tick()
+    }
+
+    /// True when `source` is a periodic API quota snapshot (cumulative counters,
+    /// stable source_id). Snapshot rows must be REPLACED, not deduped, otherwise
+    /// the user sees the first-ever reading forever.
+    static func isSnapshotSource(_ source: TokenSource) -> Bool {
+        switch source {
+        case .zaiApi, .nanoGptApi:
+            return true
+        case .opencode, .claudeCode, .codexCli, .kimiCli, .kimiCode:
+            return false
+        }
     }
 
     /// 当前月 provider 维度汇总 (UI consumption).
