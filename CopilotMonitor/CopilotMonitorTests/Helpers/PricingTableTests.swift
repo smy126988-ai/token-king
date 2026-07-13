@@ -14,6 +14,23 @@ final class PricingTableTests: XCTestCase {
         }
     }
 
+    /// t1.2 (predecessor of feat(pricing): route 3 raw-API providers):
+    /// the `.openCodeGo` representative rate used to return nil because
+    /// the case was bundled into the multi-case "no public pricing"
+    /// list. MonthCostCalculator therefore computed nil cost for any
+    /// SQLite `month_aggregates` row whose `modelRate` lookup missed.
+    /// Verifying `.openCodeGo` itself resolves to deepseek-v4-pro USD*fx
+    /// locks the regression.
+    func testOpenCodeGoRateResolves() {
+        let fx = 6.79
+        guard let rate = PricingTable.rate(for: .openCodeGo) else {
+            return XCTFail(".openCodeGo must resolve post-Commit A; was nil pre-t1.2")
+        }
+        XCTAssertEqual(rate.input,  1.74 * fx, accuracy: 1e-6)
+        XCTAssertEqual(rate.output, 3.48 * fx, accuracy: 1e-6)
+        XCTAssertEqual(rate.cache!, 0.0145 * fx, accuracy: 1e-6)
+    }
+
     func testProvidersWithPublicPricingContainsExactly6() {
         XCTAssertEqual(
             PricingTable.providersWithPublicPricing.count, 6,

@@ -109,10 +109,32 @@ enum PricingTable {
                 cache: 8.49
             )
 
+        case .openCodeGo:
+            // Pre-t1.2 fix: this case previously returned nil
+            // (provider was bundled into the multi-case "no public
+            // pricing" list below). All SQLite `month_aggregates` rows
+            // with provider="opencodeGo" therefore had nil cost under
+            // F2b MonthCostCalculator, even when the (provider, model)
+            // pair had a modelRate registered. The representative rate
+            // below covers any (opencodeGo, unknown-model) fallback path;
+            // known opencode-go models (deepseek-v4-pro / -flash / -flash-free)
+            // still resolve through `modelRate(for:)` first.
+            // Source: https://opencode.ai/docs/go/ + https://models.dev/api.json
+            // (captured 2026-07-13 for t1.2 audit/p0-batch-1-t1.2).
+            // Representative model: deepseek-v4-pro (opencode-go tier).
+            // USD per 1M tokens: $1.74 / $3.48 / $0.0145.
+            // FX: 1 USD = 6.79 CNY (2026-07-13, same FX as the rest of
+            // the table: round 11 / round 9 baseline 6.79).
+            return PayAsYouGoRate(
+                input: 1.74 * 6.79,
+                output: 3.48 * 6.79,
+                cache: 0.0145 * 6.79
+            )
+
         case .copilot, .antigravity, .mimo, .volcanoArk, .hunyuan,
              .zhipuGLM, .grok, .commandCode, .cursor, .kiro,
              .synthetic, .chutes, .geminiCLI, .openRouter, .openCode,
-             .openCodeZen, .openCodeGo, .minimaxCodingPlan,
+             .openCodeZen, .minimaxCodingPlan,
              .minimaxCodingPlanCN, .tavilySearch, .braveSearch:
             // No public per-token pricing available, or out of F2a scope.
             return nil
