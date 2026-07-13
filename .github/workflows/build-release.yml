@@ -84,13 +84,13 @@ jobs:
         if: ${{ env.IS_RELEASE != 'true' }}
         run: |
           mkdir -p CopilotMonitor/build/export
-          cp -R "CopilotMonitor/build/CopilotMonitor.xcarchive/Products/Applications/OpenCode Bar.app" CopilotMonitor/build/export/
+          cp -R "CopilotMonitor/build/CopilotMonitor.xcarchive/Products/Applications/Token King.app" CopilotMonitor/build/export/
 
       - name: Verify Universal Binary (Unsigned)
         if: ${{ env.IS_RELEASE != 'true' }}
         run: |
-          APP_PATH="CopilotMonitor/build/export/OpenCode Bar.app"
-          MAIN_BIN="$APP_PATH/Contents/MacOS/OpenCode Bar"
+          APP_PATH="CopilotMonitor/build/export/Token King.app"
+          MAIN_BIN="$APP_PATH/Contents/MacOS/Token King"
           MAIN_ARCHS=$(lipo -archs "$MAIN_BIN")
           echo "Main binary architectures: $MAIN_ARCHS"
           if ! lipo -archs "$MAIN_BIN" | grep -q "x86_64"; then
@@ -129,8 +129,8 @@ jobs:
       - name: Verify Universal Binary (Signed)
         if: env.IS_RELEASE == 'true'
         run: |
-          APP_PATH="$RUNNER_TEMP/export/OpenCode Bar.app"
-          MAIN_BIN="$APP_PATH/Contents/MacOS/OpenCode Bar"
+          APP_PATH="$RUNNER_TEMP/export/Token King.app"
+          MAIN_BIN="$APP_PATH/Contents/MacOS/Token King"
           MAIN_ARCHS=$(lipo -archs "$MAIN_BIN")
           echo "Main binary architectures: $MAIN_ARCHS"
           if ! lipo -archs "$MAIN_BIN" | grep -q "x86_64"; then
@@ -160,8 +160,8 @@ jobs:
       - name: Verify Code Signing
         if: env.IS_RELEASE == 'true'
         run: |
-          codesign --verify --deep --strict --verbose=2 "$RUNNER_TEMP/export/OpenCode Bar.app"
-          codesign -dv --verbose=4 "$RUNNER_TEMP/export/OpenCode Bar.app" 2>&1 | grep "Authority"
+          codesign --verify --deep --strict --verbose=2 "$RUNNER_TEMP/export/Token King.app"
+          codesign -dv --verbose=4 "$RUNNER_TEMP/export/Token King.app" 2>&1 | grep "Authority"
       
       - name: Notarize App
         if: env.IS_RELEASE == 'true'
@@ -171,16 +171,16 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           cd "$RUNNER_TEMP/export"
-          ditto -c -k --keepParent "OpenCode Bar.app" "OpenCode Bar.zip"
+          ditto -c -k --keepParent "Token King.app" "Token King.zip"
           
-          xcrun notarytool submit "OpenCode Bar.zip" \
+          xcrun notarytool submit "Token King.zip" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_APP_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
             --wait \
             --timeout 30m
           
-          xcrun stapler staple "OpenCode Bar.app"
+          xcrun stapler staple "Token King.app"
       
       - name: Install create-dmg
         if: env.IS_RELEASE == 'true'
@@ -190,10 +190,10 @@ jobs:
         if: ${{ env.IS_RELEASE != 'true' }}
         run: |
           mkdir -p dmg_temp
-          cp -R "CopilotMonitor/build/export/OpenCode Bar.app" dmg_temp/
+          cp -R "CopilotMonitor/build/export/Token King.app" dmg_temp/
           ln -s /Applications dmg_temp/Applications
           
-           hdiutil create -volname "OpenCode Bar" \
+           hdiutil create -volname "Token King" \
              -srcfolder dmg_temp \
              -ov -format UDZO \
              OpenCode-Bar.dmg
@@ -204,28 +204,28 @@ jobs:
         if: env.IS_RELEASE == 'true'
         run: |
           VERSION="${{ env.VERSION_INPUT }}"
-          DMG_NAME="OpenCode-Bar-${VERSION}.dmg"
+          DMG_NAME="Token-King-${VERSION}.dmg"
           
           # Create clean staging directory with ONLY the app and Applications symlink
           # This prevents extra files (Packaging.log, DistributionSummary.plist, etc.) from being included
           DMG_STAGING="$RUNNER_TEMP/dmg_staging"
           mkdir -p "$DMG_STAGING"
-          cp -R "$RUNNER_TEMP/export/OpenCode Bar.app" "$DMG_STAGING/"
+          cp -R "$RUNNER_TEMP/export/Token King.app" "$DMG_STAGING/"
           ln -s /Applications "$DMG_STAGING/Applications"
           
            create-dmg \
-             --volname "OpenCode Bar" \
+             --volname "Token King" \
              --window-pos 200 120 \
             --window-size 600 400 \
             --icon-size 100 \
-            --icon "OpenCode Bar.app" 150 200 \
+            --icon "Token King.app" 150 200 \
             --app-drop-link 450 200 \
-            --hide-extension "OpenCode Bar.app" \
+            --hide-extension "Token King.app" \
             "$DMG_NAME" \
             "$DMG_STAGING" || true
           
            if [ ! -f "$DMG_NAME" ]; then
-             hdiutil create -volname "OpenCode Bar ${VERSION}" \
+             hdiutil create -volname "Token King ${VERSION}" \
                -srcfolder "$DMG_STAGING" -ov -format UDZO "$DMG_NAME"
           fi
           
@@ -242,7 +242,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           VERSION="${{ env.VERSION_INPUT }}"
-          DMG_NAME="OpenCode-Bar-${VERSION}.dmg"
+          DMG_NAME="Token-King-${VERSION}.dmg"
           
           xcrun notarytool submit "$DMG_NAME" \
             --apple-id "$APPLE_ID" \
@@ -265,10 +265,11 @@ jobs:
         if: env.IS_RELEASE == 'true'
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          APPCAST_FEED_URL: ${{ vars.APPCAST_FEED_URL }}
         run: |
           VERSION="${{ env.VERSION_INPUT }}"
-          DMG_NAME="OpenCode-Bar-${VERSION}.dmg"
-          DOWNLOAD_URL="https://github.com/opgginc/opencode-bar/releases/download/${VERSION}/${DMG_NAME}"
+          DMG_NAME="Token-King-${VERSION}.dmg"
+          DOWNLOAD_URL="https://github.com/smy126988-ai/token-king/releases/download/${VERSION}/${DMG_NAME}"
           
           echo "$SPARKLE_PRIVATE_KEY" > "$RUNNER_TEMP/sparkle_key"
           # Extract just the signature string from the output
@@ -277,11 +278,15 @@ jobs:
           SIGNATURE=$(echo "$FULL_OUTPUT" | awk -F '"' '{print $2}')
           DMG_SIZE=$(stat -f%z "$DMG_NAME")
           
+          # GitHub Pages is the primary feed (smy126988-ai.github.io).
+          # Defaults to that URL but can be overridden via APPCAST_FEED_URL var.
+          FEED_URL="${APPCAST_FEED_URL:-https://smy126988-ai.github.io/token-king/appcast.xml}"
+          
           printf '%s\n' '<?xml version="1.0" encoding="utf-8"?>' \
             '<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">' \
             '  <channel>' \
-            '    <title>OpenCode Bar Updates</title>' \
-            '    <link>https://github.com/opgginc/opencode-bar/releases/latest/download/appcast.xml</link>' \
+            '    <title>Token King Updates</title>' \
+            "    <link>${FEED_URL}</link>" \
             '    <description>Most recent changes with links to updates.</description>' \
             '    <language>en</language>' \
             '    <item>' \
@@ -316,9 +321,9 @@ jobs:
         if: env.IS_RELEASE == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: OpenCode-Bar-Release
+          name: Token-King-Release
           path: |
-            OpenCode-Bar-*.dmg
+            Token-King-*.dmg
             appcast.xml
 
   release:
@@ -333,7 +338,7 @@ jobs:
       - name: Download Artifact
         uses: actions/download-artifact@v4
         with:
-          name: OpenCode-Bar-Release
+          name: Token-King-Release
       
       - name: Get Version
         id: version
@@ -348,11 +353,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
-          name: OpenCode Bar ${{ steps.version.outputs.version }}
+          name: Token King ${{ steps.version.outputs.version }}
           draft: false
           prerelease: false
           files: |
-            OpenCode-Bar-${{ steps.version.outputs.version }}.dmg
+            Token-King-${{ steps.version.outputs.version }}.dmg
             appcast.xml
           generate_release_notes: true
         env:
