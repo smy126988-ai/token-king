@@ -60,6 +60,14 @@ struct TokenNormalizer {
         if p.contains("z-ai") || p.contains("zai") {
             return .zai
         }
+        // P0-3 fix: NanoGPT routes via its own providerID, regardless of model
+        // name. Without this branch, NanoGPT API responses carrying OpenAI-style
+        // models (e.g. `gpt-4o`) would fall through to the model-based fallback
+        // and be misclassified as `.codex`. The providerID is the strongest
+        // signal — when it points at NanoGPT, we trust it over the model.
+        if p.contains("nanogpt") || p.contains("nano-gpt") || p.contains("nano_gpt") {
+            return .nanoGpt
+        }
 
         // model-based routing as fallback when providerID is generic or empty.
         if m.contains("kimi") || m.hasPrefix("k2p") {

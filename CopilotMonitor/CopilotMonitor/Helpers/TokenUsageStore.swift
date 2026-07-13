@@ -82,9 +82,55 @@ actor TokenUsageStore {
     }
 
     /// Insert raw event (dedup by source_id UNIQUE).
+    ///
+    /// This is the streaming path: each event has a unique `source_id`
+    /// (e.g. `claudeCode:<session>:<offset>`), so duplicates are silently
+    /// dropped by `INSERT OR IGNORE`. Use this for high-frequency event
+    /// streams where each batch is naturally distinct.
     func upsertEvent(_ event: TokenEvent) throws {
         try ensureOpen()
         let sql = "INSERT OR IGNORE INTO token_events (provider, model, source, session_id, ts_ms, input, output, cache_read, cache_write, reasoning, source_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+        var stmt: OpaquePointer?
+        let prepareCode = sqlite3_prepare_v2(db, sql, -1, &stmt, nil)
+        guard prepareCode == SQLITE_OK, let stmt else {
+            throw SQLiteError.prepareFailed(sql: sql, code: prepareCode, message: errorMessage(at: prepareCode))
+        }
+        defer { sqlite3_finalize(stmt) }
+
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        try bindText(stmt, index: 1, text: event.provider.rawValue, destructor: SQLITE_TRANSIENT)
+        try bindText(stmt, index: 2, text: event.model, destructor: SQLITE_TRANSIENT)
+        try bindText(stmt, index: 3, text: event.source.rawValue, destructor: SQLITE_TRANSIENT)
+        try bindText(stmt, index: 4, text: event.sessionId, destructor: SQLITE_TRANSIENT)
+        try bindInt64(stmt, index: 5, value: Int64(event.timestamp.timeIntervalSince1970 * 1000))
+        try bindInt64(stmt, index: 6, value: Int64(event.tokens.input))
+        try bindInt64(stmt, index: 7, value: Int64(event.tokens.output))
+        try bindInt64(stmt, index: 8, value: Int64(event.tokens.cacheRead))
+        try bindInt64(stmt, index: 9, value: Int64(event.tokens.cacheWrite))
+        try bindInt64(stmt, index: 10, value: Int64(event.tokens.reasoning))
+        try bindText(stmt, index: 11, text: event.sourceId, destructor: SQLITE_TRANSIENT)
+
+        let stepCode = sqlite3_step(stmt)
+        guard stepCode == SQLITE_DONE else {
+            throw SQLiteError.stepFailed(sql: sql, code: stepCode, message: errorMessage(at: stepCode))
+        }
+    }
+
+    /// Upsert periodic API snapshot (replace on source_id conflict).
+    ///
+    /// **P0-3 fix**: periodic API quota snapshots (Z.AI, NanoGPT) use a stable
+    /// `source_id` like `"zai:api:snapshot:month"`. With `INSERT OR IGNORE` the
+    /// first snapshot wins forever, leaving the user looking at stale quota
+    /// numbers. Snapshots from these providers carry CUMULATIVE counters, so
+    /// the latest reading is what matters — `INSERT OR REPLACE` overwrites the
+    /// previous snapshot's row in-place, keeping aggregates consistent with
+    /// the current API state.
+    ///
+    /// Callers MUST be snapshot sources (e.g. `.zaiApi`, `.nanoGptApi`).
+    /// Streaming sources MUST keep using `upsertEvent`.
+    func upsertSnapshot(_ event: TokenEvent) throws {
+        try ensureOpen()
+        let sql = "INSERT OR REPLACE INTO token_events (provider, model, source, session_id, ts_ms, input, output, cache_read, cache_write, reasoning, source_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
         var stmt: OpaquePointer?
         let prepareCode = sqlite3_prepare_v2(db, sql, -1, &stmt, nil)
         guard prepareCode == SQLITE_OK, let stmt else {
