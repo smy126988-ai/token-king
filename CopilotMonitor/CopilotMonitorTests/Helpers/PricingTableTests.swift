@@ -14,30 +14,18 @@ final class PricingTableTests: XCTestCase {
         }
     }
 
-    /// t1.2 (predecessor of feat(pricing): route 3 raw-API providers):
-    /// the `.openCodeGo` representative rate used to return nil because
-    /// the case was bundled into the multi-case "no public pricing"
-    /// list. MonthCostCalculator therefore computed nil cost for any
-    /// SQLite `month_aggregates` row whose `modelRate` lookup missed.
-    /// Verifying `.openCodeGo` itself resolves to deepseek-v4-pro USD*fx
-    /// locks the regression.
-    func testOpenCodeGoRateResolves() {
-        let fx = 6.79
-        guard let rate = PricingTable.rate(for: .openCodeGo) else {
-            return XCTFail(".openCodeGo must resolve post-Commit A; was nil pre-t1.2")
-        }
-        XCTAssertEqual(rate.input,  1.74 * fx, accuracy: 1e-6)
-        XCTAssertEqual(rate.output, 3.48 * fx, accuracy: 1e-6)
-        XCTAssertEqual(rate.cache!, 0.0145 * fx, accuracy: 1e-6)
-    }
-
-    func testProvidersWithPublicPricingContainsExactly6() {
+    func testProvidersWithPublicPricingContainsExactly9() {
+        // t1.2 (audit/p0-batch-1-t1.2): added 3 new raw-API-rate providers
+        // (.minimaxCN, .openCodeGo, .xiaomiTokenPlanCN) on top of the 6
+        // pre-existing covered providers. copilot remains intentionally nil
+        // (Premium-request model, no per-token pricing).
         XCTAssertEqual(
-            PricingTable.providersWithPublicPricing.count, 6,
-            "Expected 6 covered providers (kimi/kimiCN/claude/zai/nanoGpt/codex); copilot intentionally nil due to Premium-request model"
+            PricingTable.providersWithPublicPricing.count, 9,
+            "Expected 9 covered providers post-t1.2 (kimi/kimiCN/claude/zai/nanoGpt/codex + minimaxCN/openCodeGo/xiaomiTokenPlanCN)"
         )
         let expected: Set<ProviderIdentifier> = [
             .kimi, .kimiCN, .claude, .zaiCodingPlan, .nanoGpt, .codex,
+            .minimaxCN, .openCodeGo, .xiaomiTokenPlanCN,
         ]
         XCTAssertEqual(
             Set(PricingTable.providersWithPublicPricing), expected
@@ -265,11 +253,15 @@ final class PricingTableTests: XCTestCase {
             "deepseek-v4-pro", "deepseek-v4-flash", "deepseek-v4-flash-free",
             // MiniMax direct API (user's own key).
             "MiniMax-M3", "minimax-m3",
+            // t1.2 (audit/p0-batch-1-t1.2) — opencode-go additions.
+            "qwen3.7-max", "mimo-v2.5-pro", "mimo-v2.5",
         ]
         for m in known {
             XCTAssertNotNil(PricingTable.modelRate(for: m), "\(m) should resolve")
         }
     }
+
+    // MARK: - t1.1 — Kimi K2.7 Code native CNY, no FX
 
     func testKimiK27CodeNoFX() {
         guard let rate = PricingTable.modelRate(for: "kimi-k2-7-code") else {
@@ -279,6 +271,84 @@ final class PricingTableTests: XCTestCase {
         XCTAssertEqual(rate.output, 27.00, accuracy: 1e-9)
         XCTAssertEqual(rate.cache ?? -1, 1.30, accuracy: 1e-9)
         XCTAssertEqual(rate.currency, "CNY")
+    }
+
+    // MARK: - t1.2 — provider-aware modelRate override for mimo-v2.5-pro
+
+    /// Same model name (`mimo-v2.5-pro`) has different list prices depending
+    /// on which provider routed the call:
+    /// - opencode-go: USD $1.74 / $3.48 / $0.0145 → ¥11.8146 / ¥23.6292 / ¥0.0984555
+    /// - Xiaomi Token Plan CN: native CNY ¥3.00 / ¥6.00 / ¥0.025
+    /// Using the wrong rate inflates the xiaomiTokenPlanCN cost ~4×.
+    func testMimoV25ProOpencodeGoRate() {
+        let fx = 6.79
+        guard let rate = PricingTable.modelRate(
+            for: "mimo-v2.5-pro", provider: .openCodeGo
+        ) else { return XCTFail("mimo-v2.5-pro under opencodeGo must resolve") }
+        XCTAssertEqual(rate.input,  1.74 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.output, 3.48 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.cache!, 0.0145 * fx, accuracy: 0.001)
+    }
+
+    func testMimoV25ProXiaomiTokenPlanCNRate() {
+        // Xiaomi domestic CNY per 1M (no FX conversion).
+        guard let rate = PricingTable.modelRate(
+            for: "mimo-v2.5-pro", provider: .xiaomiTokenPlanCN
+        ) else { return XCTFail("mimo-v2.5-pro under xiaomiTokenPlanCN must resolve") }
+        XCTAssertEqual(rate.input,  3.00, accuracy: 1e-9)
+        XCTAssertEqual(rate.output, 6.00, accuracy: 1e-9)
+        XCTAssertEqual(rate.cache!, 0.025, accuracy: 1e-9)
+    }
+
+    /// Provider-agnostic `modelRate(for:)` defaults to opencode-go USD*fx
+    /// for `mimo-v2.5-pro`. The provider-aware overload is the explicit
+    /// path when the caller knows the provider.
+    func testMimoV25ProProviderAgnosticDefaultsToOpencodeGoRate() {
+        let fx = 6.79
+        guard let agnostic = PricingTable.modelRate(for: "mimo-v2.5-pro"),
+              let viaProvider = PricingTable.modelRate(
+                for: "mimo-v2.5-pro", provider: .openCodeGo
+              )
+        else { return XCTFail("both lookups should resolve") }
+        XCTAssertEqual(agnostic.input,  viaProvider.input,  accuracy: 1e-9)
+        XCTAssertEqual(agnostic.output, viaProvider.output, accuracy: 1e-9)
+        XCTAssertEqual(agnostic.cache!, viaProvider.cache!, accuracy: 1e-9)
+        XCTAssertEqual(agnostic.input, 1.74 * fx, accuracy: 0.01)
+    }
+
+    // MARK: - t1.2 — provider-level representative rates
+
+    func testMinimaxCNRate() {
+        // Source: https://platform.minimaxi.com/docs/guides/pricing-paygo (2026-07-13)
+        // Native CNY: input ¥4.20 / cache_read ¥0.84 / output ¥16.80.
+        guard let rate = PricingTable.rate(for: .minimaxCN) else {
+            return XCTFail(".minimaxCN must resolve to a representative rate")
+        }
+        XCTAssertEqual(rate.input,  4.20, accuracy: 1e-9)
+        XCTAssertEqual(rate.output, 16.80, accuracy: 1e-9)
+        XCTAssertEqual(rate.cache!, 0.84, accuracy: 1e-9)
+    }
+
+    func testOpenCodeGoRate() {
+        // Pre-t1.2: returned nil. Post-t1.2: deepseek-v4-pro USD*fx.
+        let fx = 6.79
+        guard let rate = PricingTable.rate(for: .openCodeGo) else {
+            return XCTFail(".openCodeGo must resolve post-t1.2 (was nil pre-t1.2)")
+        }
+        XCTAssertEqual(rate.input,  1.74 * fx, accuracy: 1e-6)
+        XCTAssertEqual(rate.output, 3.48 * fx, accuracy: 1e-6)
+        XCTAssertEqual(rate.cache!, 0.0145 * fx, accuracy: 1e-6)
+    }
+
+    func testXiaomiTokenPlanCNRate() {
+        // Source: https://mimo.mi.com/docs/en-US/price/pay-as-you-go (2026-07-13)
+        // Native CNY: input ¥3.00 / cache_read ¥0.025 / output ¥6.00.
+        guard let rate = PricingTable.rate(for: .xiaomiTokenPlanCN) else {
+            return XCTFail(".xiaomiTokenPlanCN must resolve")
+        }
+        XCTAssertEqual(rate.input,  3.00, accuracy: 1e-9)
+        XCTAssertEqual(rate.output, 6.00, accuracy: 1e-9)
+        XCTAssertEqual(rate.cache!, 0.025, accuracy: 1e-9)
     }
 
     /// Round 10 module 2: every rate in this table must carry a

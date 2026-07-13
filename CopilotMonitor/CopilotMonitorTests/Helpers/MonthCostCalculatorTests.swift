@@ -427,7 +427,7 @@ final class MonthCostCalculatorTests: XCTestCase {
         }
     }
 
-    // MARK: - Kimi K2.7 Code routing
+    // MARK: - Kimi K2.7 Code routing (t1.1)
 
     func testKimiK27CodeBasic() {
         let tokens = TokenBreakdown(input: 1_000_000, output: 500_000)
@@ -459,5 +459,214 @@ final class MonthCostCalculatorTests: XCTestCase {
         }
         XCTAssertEqual(estimate.costRMB, 21.10, accuracy: 1e-9)
         XCTAssertTrue(estimate.usedFallback)
+    }
+
+    // MARK: - t1.2 (audit/p0-batch-1-t1.2) — 3 new raw-API-rate providers
+
+    /// Pre-t1.2: `providerStringToIdentifier("minimaxCN")` returned nil,
+    /// causing `month_aggregates` rows with provider="minimaxCN" to drop
+    /// to nil cost. Post-t1.2: routed to .minimaxCN representative rate
+    /// (¥4.20 / ¥16.80 / ¥0.84 from MiniMax-M3 standard tier).
+    /// 1M input * ¥4.20/M = ¥4.20.
+    func testMinimaxCNBasic() {
+        let tokens = TokenBreakdown(input: 1_000_000)
+        let cost = calc.calculate(provider: "minimaxCN", model: "MiniMax-M3", tokens: tokens)
+        XCTAssertEqual(cost ?? -1, 4.20, accuracy: 1e-9)
+    }
+
+    /// Unknown model under .minimaxCN falls back to the provider-level
+    /// representative rate. `usedProviderFallback` is true (since modelRate
+    /// was queried via the new `isNewProviderWithModelRate` path).
+    func testMinimaxCNUnknownFallsBack() {
+        let tokens = TokenBreakdown(input: 1_000_000)
+        guard let est = calc.calculateWithSource(
+            provider: "minimaxCN", model: "MiniMax-unknown", tokens: tokens
+        ) else { return XCTFail("unknown model under minimaxCN must fall back, not nil") }
+        XCTAssertEqual(est.costRMB, 4.20, accuracy: 1e-9)
+        XCTAssertTrue(est.usedFallback,
+                      "Unknown model under .minimaxCN must flag as fallback (provider-level rate used)")
+    }
+
+    /// Pre-t1.2: `providerStringToIdentifier("opencodeGo")` returned nil.
+    /// Post-t1.2: routed to .openCodeGo representative rate
+    /// (USD $1.74/$3.48/$0.0145 × FX 6.79 = ¥11.8146 / ¥23.6292 / ¥0.0984555).
+    /// 1M input * ¥11.8146/M = ¥11.8146.
+    /// Note: modelRate for deepseek-v4-pro is also $1.74 input, so this
+    /// resolves via the modelRate lookup (preferred over provider-level).
+    func testOpencodeGoDeepseekV4Pro() {
+        let tokens = TokenBreakdown(input: 1_000_000)
+        let cost = calc.calculate(provider: "opencodeGo", model: "deepseek-v4-pro", tokens: tokens)
+        XCTAssertEqual(cost ?? -1, 1.74 * 6.79, accuracy: 1e-6)
+    }
+
+    /// mimo-v2.5-pro through opencodeGo uses the opencode-go USD*fx rate
+    /// ($1.74 / $3.48 / $0.0145). 1M input → ¥11.8146.
+    func testOpencodeGoMimo() {
+        let tokens = TokenBreakdown(input: 1_000_000)
+        guard let cost = calc.calculate(
+            provider: "opencodeGo", model: "mimo-v2.5-pro", tokens: tokens
+        ) else { return XCTFail("mimo-v2.5-pro under opencodeGo must resolve via modelRate") }
+        XCTAssertEqual(cost, 1.74 * 6.79, accuracy: 1e-6,
+                       "opencodeGo routes mimo-v2.5-pro at opencode-go tier (USD*fx)")
+    }
+
+    /// mimo-v2.5-pro through xiaomiTokenPlanCN uses Xiaomi's direct CNY
+    /// rate (¥3.00 / ¥6.00 / ¥0.025), NOT the opencode-go USD*fx rate.
+    /// This is the **provider-aware** override added in t1.2.
+    /// 1M input * ¥3.00/M = ¥3.00 — ~4× cheaper than opencodeGo's path.
+    func testXiaomiTokenPlanCNMimo() {
+        let tokens = TokenBreakdown(input: 1_000_000)
+        guard let cost = calc.calculate(
+            provider: "xiaomiTokenPlanCN", model: "mimo-v2.5-pro", tokens: tokens
+        ) else { return XCTFail("mimo-v2.5-pro under xiaomiTokenPlanCN must resolve") }
+        XCTAssertEqual(cost, 3.00, accuracy: 1e-9,
+                       "xiaomiTokenPlanCN uses Xiaomi's direct CNY rate, not opencode-go USD*fx")
+    }
+
+    /// Cross-provider divergence: same model, different providers, different
+    /// prices. Verifies the opencodeGo vs xiaomiTokenPlanCN price split
+    /// for mimo-v2.5-pro.
+    func testMimoV25ProPriceDivergesAcrossProviders() {
+        let tokens = TokenBreakdown(input: 1_000_000)
+        let opencodeGoCost = calc.calculate(
+            provider: "opencodeGo", model: "mimo-v2.5-pro", tokens: tokens
+        ) ?? -1
+        let xiaomiTokenPlanCNCost = calc.calculate(
+            provider: "xiaomiTokenPlanCN", model: "mimo-v2.5-pro", tokens: tokens
+        ) ?? -1
+        XCTAssertGreaterThan(opencodeGoCost, xiaomiTokenPlanCNCost,
+                             "opencodeGo must price higher than direct Xiaomi API (~4×)")
+    }
+
+    /// qwen3.7-max through opencodeGo uses the opencode-go USD*fx rate
+    /// ($2.50 / $7.50 / $0.50 → ¥16.975 / ¥50.925 / ¥3.395).
+    /// 1M input * ¥16.975/M = ¥16.975.
+    func testQwen37MaxOpencodeGo() {
+        let tokens = TokenBreakdown(input: 1_000_000)
+        guard let cost = calc.calculate(
+            provider: "opencodeGo", model: "qwen3.7-max", tokens: tokens
+        ) else { return XCTFail("qwen3.7-max under opencodeGo must resolve via modelRate") }
+        XCTAssertEqual(cost, 2.50 * 6.79, accuracy: 1e-6)
+    }
+
+    /// Pre-t1.2: xiaomiTokenPlanCN returned nil. Post-t1.2: routed to
+    /// .xiaomiTokenPlanCN representative rate (¥3.00 / ¥6.00 / ¥0.025
+    /// from mimo-v2.5-pro Xiaomi domestic). Uses an unknown model so the
+    /// call falls through `modelRate` (nil) to `rate(for: .xiaomiTokenPlanCN)`.
+    /// 1M input + 100K output = 1 * 3.00 + 0.1 * 6.00 = 3.60.
+    func testXiaomiTokenPlanCNBasic() {
+        let tokens = TokenBreakdown(input: 1_000_000, output: 100_000)
+        let cost = calc.calculate(
+            provider: "xiaomiTokenPlanCN", model: "mimo-v2.5-pro", tokens: tokens
+        )
+        XCTAssertEqual(cost ?? -1, 3.60, accuracy: 1e-9)
+    }
+
+    /// t1.2: mimo-v2.5-pro cache read under xiaomiTokenPlanCN uses ¥0.025/M.
+    /// 1M cacheRead * 0.025 = 0.025.
+    func testXiaomiTokenPlanCNMimoCacheRead() {
+        let tokens = TokenBreakdown(cacheRead: 1_000_000)
+        let cost = calc.calculate(
+            provider: "xiaomiTokenPlanCN", model: "mimo-v2.5-pro", tokens: tokens
+        )
+        XCTAssertEqual(cost ?? -1, 0.025, accuracy: 1e-9)
+    }
+
+    /// `calculateMonthlyTotals` regression: the 3 new providers used to drop
+    /// out of the totals entirely (pre-t1.2 returned nil). Post-t1.2: each
+    /// provider row appears in totals with a non-nil cost.
+    func testMonthlyTotalsIncludesNewProviders() {
+        let aggs = [
+            MonthAggregate(provider: "minimaxCN", model: "MiniMax-M3",
+                           tokens: TokenBreakdown(input: 1_000_000),
+                           yearMonth: "2026-07"),
+            MonthAggregate(provider: "opencodeGo", model: "deepseek-v4-pro",
+                           tokens: TokenBreakdown(input: 1_000_000),
+                           yearMonth: "2026-07"),
+            MonthAggregate(provider: "xiaomiTokenPlanCN", model: "mimo-v2.5-pro",
+                           tokens: TokenBreakdown(input: 1_000_000),
+                           yearMonth: "2026-07"),
+        ]
+        let totals = calc.calculateMonthlyTotals(aggs)
+        XCTAssertEqual(totals.count, 3, "all 3 new providers should appear in totals")
+        let minimax = totals.first(where: { $0.provider == "minimaxCN" })
+        XCTAssertNotNil(minimax)
+        XCTAssertEqual(minimax?.totalCostRMB ?? -1, 4.20, accuracy: 1e-9)
+        let opencodeGo = totals.first(where: { $0.provider == "opencodeGo" })
+        XCTAssertNotNil(opencodeGo)
+        XCTAssertEqual(opencodeGo?.totalCostRMB ?? -1, 1.74 * 6.79, accuracy: 1e-6)
+        let xiaomiTokenPlanCN = totals.first(where: { $0.provider == "xiaomiTokenPlanCN" })
+        XCTAssertNotNil(xiaomiTokenPlanCN)
+        XCTAssertEqual(xiaomiTokenPlanCN?.totalCostRMB ?? -1, 3.00, accuracy: 1e-9)
+    }
+
+    /// Snapshot regression against the SQLite `month_aggregates`
+    /// snapshot captured 2026-07-13 (post-t1.2 implementation). The
+    /// numbers below are HARD-CODED `MonthAggregate` instances
+    /// (NOT a live SQLite query at runtime) — keeps CI hermetic and
+    /// free of F2b SQLite I/O. This test confirms that for the 3
+    /// previously-zero-cost provider rows, MonthCostCalculator now
+    /// produces non-nil, sensible RMB totals using the new rates.
+    ///
+    /// Live SQLite drift (e.g. the opencodeGo / minimax-m3 / etc.
+    /// volume delta from one day to the next) is NOT captured here;
+    /// see t2 (P0-2 day-vs-month token integrity) for the day-by-day
+    /// reconciliation job. To regenerate this snapshot:
+    ///   sqlite3 ~/Library/Application\ Support/TokenKing/f2b.sqlite \
+    ///     "SELECT provider, model, SUM(input), SUM(output), SUM(cache_read) \
+    ///      FROM month_aggregates \
+    ///      WHERE provider IN ('minimaxCN','opencodeGo','xiaomiTokenPlanCN') \
+    ///        AND year_month = '2026-07' \
+    ///      GROUP BY provider, model;"
+    /// then update the `MonthAggregate(...)` literals below.
+    func testCostMathMatchesSnapshottedMonthAggregates202607() {
+        let aggs = [
+            // minimaxCN|MiniMax-M3: 95.88M in / 5.74M out / 1.96B cr
+            // ¥4.20 * 95.88 + ¥16.80 * 5.74 + ¥0.84 * 1959.63 ≈ ¥2145.21
+            MonthAggregate(provider: "minimaxCN", model: "MiniMax-M3",
+                           tokens: TokenBreakdown(input: 95_880_430, output: 5_739_658, cacheRead: 1_959_627_380),
+                           yearMonth: "2026-07"),
+            // opencodeGo|deepseek-v4-flash-free: 95.7K in / 14.3K out / 6.33M cr
+            // opencode-go USD*fx: 0.14*6.79 / 0.28*6.79 / 0.0028*6.79 ≈ ¥0.24
+            MonthAggregate(provider: "opencodeGo", model: "deepseek-v4-flash-free",
+                           tokens: TokenBreakdown(input: 95_714, output: 14_295, cacheRead: 6_333_184),
+                           yearMonth: "2026-07"),
+            // opencodeGo|deepseek-v4-pro: 6.40M in / 568K out / 175.04M cr
+            // opencode-go USD*fx: 1.74*6.79 / 3.48*6.79 / 0.0145*6.79 ≈ ¥106.24
+            MonthAggregate(provider: "opencodeGo", model: "deepseek-v4-pro",
+                           tokens: TokenBreakdown(input: 6_398_613, output: 567_637, cacheRead: 175_037_568),
+                           yearMonth: "2026-07"),
+            // opencodeGo|minimax-m3: 59.1K in / 127 out / 1.9K cr
+            // MiniMax-M3 native CNY: ¥4.20 / ¥16.80 / ¥0.84 ≈ ¥0.25
+            MonthAggregate(provider: "opencodeGo", model: "minimax-m3",
+                           tokens: TokenBreakdown(input: 59_133, output: 127, cacheRead: 1_906),
+                           yearMonth: "2026-07"),
+            // xiaomiTokenPlanCN|mimo-v2.5-pro: 16.06M in / 860K out / 832.16M cr
+            // Xiaomi direct CNY: ¥3.00 / ¥6.00 / ¥0.025 ≈ ¥74.13
+            MonthAggregate(provider: "xiaomiTokenPlanCN", model: "mimo-v2.5-pro",
+                           tokens: TokenBreakdown(input: 16_056_695, output: 860_000, cacheRead: 832_160_704),
+                           yearMonth: "2026-07"),
+        ]
+        let totals = calc.calculateMonthlyTotals(aggs)
+        XCTAssertEqual(totals.count, 3,
+                       "expected 3 distinct provider rows in totals (minimaxCN/opencodeGo/xiaomiTokenPlanCN)")
+        // No row should flag hasUnknownPricing (all 5 rows have explicit rates).
+        for t in totals {
+            XCTAssertFalse(t.hasUnknownPricing,
+                           "\(t.provider) should be fully-priced post-t1.2")
+        }
+        // Provider totals (¥).
+        let fx = 6.79
+        let minimax = totals.first(where: { $0.provider == "minimaxCN" })
+        XCTAssertEqual(minimax?.totalCostRMB ?? -1, 2145.21, accuracy: 0.1)
+        let opencodeGo = totals.first(where: { $0.provider == "opencodeGo" })
+        // Two deepseek + one minimax-m3 sum:
+        //   v4-flash-free ≈ 0.24
+        //   v4-pro        ≈ 106.24
+        //   minimax-m3    ≈ 0.25
+        // total ≈ 106.73
+        XCTAssertEqual(opencodeGo?.totalCostRMB ?? -1, 106.73, accuracy: 0.1)
+        let xiaomiTokenPlanCN = totals.first(where: { $0.provider == "xiaomiTokenPlanCN" })
+        XCTAssertEqual(xiaomiTokenPlanCN?.totalCostRMB ?? -1, 74.13, accuracy: 0.1)
     }
 }
