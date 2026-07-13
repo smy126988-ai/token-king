@@ -35,11 +35,13 @@ import Foundation
 /// fallback that compares against the prior cumulative total.
 struct CodexExtractor: TokenExtractorProtocol {
     let rootPath: String
+    let lookbackDays: Int?
 
-    init(rootPath: String? = nil) {
+    init(rootPath: String? = nil, lookbackDays: Int? = nil) {
         self.rootPath = rootPath
             ?? ProcessInfo.processInfo.environment["CODEX_DATA_DIR"]
             ?? "\(NSHomeDirectory())/.codex/sessions"
+        self.lookbackDays = lookbackDays
     }
 
     func extractAll() async throws -> [TokenEvent] {
@@ -47,14 +49,22 @@ struct CodexExtractor: TokenExtractorProtocol {
         guard fm.fileExists(atPath: rootPath),
               let enumerator = fm.enumerator(
                 at: URL(fileURLWithPath: rootPath),
-                includingPropertiesForKeys: nil,
+                includingPropertiesForKeys: [.contentModificationDateKey],
                 options: [.skipsHiddenFiles]
               ) else {
             return []
         }
 
+        let cutoff = lookbackDays.map { Date().addingTimeInterval(-TimeInterval($0) * 86400) }
+
         var events: [TokenEvent] = []
         for case let url as URL in enumerator where url.pathExtension == "jsonl" {
+            if let cutoff = cutoff,
+               let attrs = try? url.resourceValues(forKeys: [.contentModificationDateKey]),
+               let modified = attrs.contentModificationDate,
+               modified < cutoff {
+                continue
+            }
             events.append(contentsOf: parseFile(at: url))
         }
         return events

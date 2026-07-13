@@ -22,9 +22,9 @@ actor RefreshActor {
         self.init(
             store: store,
             extractors: [
-                OpenCodeExtractor(),
-                ClaudeCodeExtractor(),
-                CodexExtractor(),
+                OpenCodeExtractor(lookbackDays: 7),
+                ClaudeCodeExtractor(lookbackDays: 7),
+                CodexExtractor(lookbackDays: 7),
                 KimiCLILegacyExtractor(),
                 KimiCodeExtractor(),
                 ZAIExtractor(),

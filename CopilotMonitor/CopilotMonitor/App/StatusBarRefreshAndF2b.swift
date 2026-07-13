@@ -104,7 +104,7 @@ final class StatusBarRefreshAndF2b {
     func startRefreshTimer() {
         guard let controller else { return }
         controller.refreshTimer?.invalidate()
-        controller.initialRefreshTask?.cancel()
+        controller.initialRefreshTimer?.invalidate()
 
         let interval = TimeInterval(controller.refreshInterval.rawValue)
         let intervalTitle = controller.refreshInterval.title
@@ -117,13 +117,11 @@ final class StatusBarRefreshAndF2b {
         RunLoop.main.add(timer, forMode: .common)
         controller.refreshTimer = timer
 
-        controller.initialRefreshTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
-            guard !Task.isCancelled else {
-                return
-            }
+        let initialTimer = Timer(timeInterval: 1.0, repeats: false) { [weak self] _ in
             self?.triggerRefresh()
         }
+        RunLoop.main.add(initialTimer, forMode: .common)
+        controller.initialRefreshTimer = initialTimer
     }
 
     /// Entry point for any caller that wants to force a fetch now

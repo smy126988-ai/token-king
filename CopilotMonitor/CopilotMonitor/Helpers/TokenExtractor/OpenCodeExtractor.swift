@@ -41,11 +41,13 @@ import SQLite3
 /// values directly.
 struct OpenCodeExtractor: TokenExtractorProtocol {
     let rootPath: String
+    let lookbackDays: Int?
 
-    init(rootPath: String? = nil) {
+    init(rootPath: String? = nil, lookbackDays: Int? = nil) {
         self.rootPath = rootPath
             ?? ProcessInfo.processInfo.environment["OPENCODE_DATA_DIR"]
             ?? "\(NSHomeDirectory())/.local/share/opencode"
+        self.lookbackDays = lookbackDays
     }
 
     func extractAll() async throws -> [TokenEvent] {
@@ -66,6 +68,19 @@ struct OpenCodeExtractor: TokenExtractorProtocol {
         // All `data.tokens.*` fields are per-request values emitted by the LLM
         // SDK (Anthropic-style). No cumulative-state conversion needed; just sum
         // raw values across messages.
+        //
+        // When `lookbackDays` is set we only read messages from the last N days
+        // so the 30 s F2b tick does not re-scan the entire history on every run.
+        let lookbackClause: String
+        var lookbackThresholdMs: Int64?
+        if let days = lookbackDays, days > 0 {
+            lookbackThresholdMs = Int64(Date().addingTimeInterval(-TimeInterval(days) * 86400).timeIntervalSince1970 * 1000)
+            lookbackClause = "AND time_created > ?"
+        } else {
+            lookbackClause = ""
+            lookbackThresholdMs = nil
+        }
+
         let sql = """
             SELECT id,
                    session_id,
@@ -79,14 +94,19 @@ struct OpenCodeExtractor: TokenExtractorProtocol {
                    json_extract(data, '$.tokens.reasoning')  AS reasoning,
                    json_extract(data, '$.tokens.cache.read') AS cache_read,
                    json_extract(data, '$.tokens.cache.write') AS cache_write
-            FROM message
-            WHERE json_valid(data)
-              AND json_extract(data, '$.role') = 'assistant'
-              AND json_extract(data, '$.tokens') IS NOT NULL
+             FROM message
+             WHERE json_valid(data)
+               AND json_extract(data, '$.role') = 'assistant'
+               AND json_extract(data, '$.tokens') IS NOT NULL
+               \(lookbackClause)
         """
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt = stmt else { return [] }
         defer { sqlite3_finalize(stmt) }
+
+        if let threshold = lookbackThresholdMs {
+            sqlite3_bind_int64(stmt, 1, threshold)
+        }
 
         var events: [TokenEvent] = []
         while sqlite3_step(stmt) == SQLITE_ROW {

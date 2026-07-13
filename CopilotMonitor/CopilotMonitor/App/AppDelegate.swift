@@ -134,27 +134,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
 
     @MainActor
     private func observePrimaryStatusItemForImageOverwrites() {
-        // Detach any previous observers before re-attaching (idempotent across
-        // screen-configuration changes and our own item replacements).
+        // Disabled: the KVO observer fired excessively (AppKit status-bar replicant
+        // updates + file I/O per event) and made the app sluggish. B40 observability
+        // is paused until it can be throttled or sampled instead of writing every
+        // change to disk.
         _buttonImageKVOToken?.invalidate()
         _buttonTitleKVOToken?.invalidate()
-
-        guard let item = statusBarController?.statusItem, let button = item.button else {
-            Self.observ("🔍 observability: no controller.statusItem.button yet — deferring KVO")
-            return
-        }
-        let itemAddr = String(format: "%p", item)
-        Self.observ("🔍 observability: attaching KVO to button.image / button.title on item=\(itemAddr)")
-
-        _buttonImageKVOToken = button.observe(\.image, options: [.new]) { _, change in
-            // Flatten the double optional (NSImage??) produced by KVO into NSImage?.
-            let desc = Self.describeImage(change.newValue.flatMap { $0 })
-            Self.observ("🔍 KVO button.image → \(desc)")
-        }
-
-        _buttonTitleKVOToken = button.observe(\.title, options: [.new]) { button, _ in
-            Self.observ("🔍 KVO button.title → \"\(button.title)\"")
-        }
+        _buttonImageKVOToken = nil
+        _buttonTitleKVOToken = nil
     }
 
     @MainActor

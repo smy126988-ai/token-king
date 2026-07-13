@@ -171,7 +171,7 @@ final class StatusBarController: NSObject {
     var settingsMenuItem: NSMenuItem!
     var settingsSubmenu: NSMenu!
     var refreshTimer: Timer?
-    var initialRefreshTask: Task<Void, Never>?
+    var initialRefreshTimer: Timer?
     var isMainMenuTracking = false
     private var hasDeferredMenuRebuild = false
     var hasDeferredStatusBarRefresh = false
@@ -411,7 +411,7 @@ final class StatusBarController: NSObject {
 
     deinit {
         refreshTimer?.invalidate()
-        initialRefreshTask?.cancel()
+        initialRefreshTimer?.invalidate()
     }
 
     func debugLog(_ message: String) {
@@ -928,7 +928,7 @@ final class StatusBarController: NSObject {
 
     private func startRefreshTimer() {
         refreshTimer?.invalidate()
-        initialRefreshTask?.cancel()
+        initialRefreshTimer?.invalidate()
 
         let interval = TimeInterval(refreshInterval.rawValue)
         let intervalTitle = refreshInterval.title
@@ -941,13 +941,15 @@ final class StatusBarController: NSObject {
         RunLoop.main.add(timer, forMode: .common)
         refreshTimer = timer
 
-        initialRefreshTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
-            guard !Task.isCancelled else {
-                return
-            }
+        // Use a one-shot RunLoop timer for the initial refresh instead of a Task.
+        // In the SwiftUI App lifecycle we observed the Task not resuming promptly,
+        // leaving the menu in a permanent loading state until the first periodic
+        // timer fire (5 min by default).
+        let initialTimer = Timer(timeInterval: 1.0, repeats: false) { [weak self] _ in
             self?.triggerRefresh()
         }
+        RunLoop.main.add(initialTimer, forMode: .common)
+        initialRefreshTimer = initialTimer
     }
 
     func triggerRefresh() {
