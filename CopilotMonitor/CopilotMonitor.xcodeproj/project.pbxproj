@@ -213,6 +213,12 @@
 		ZA0000000000000000000TBF /* ZAIExtractorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ZA0000000000000000000TFR /* ZAIExtractorTests.swift */; };
 		ZHIPUAPP111111111111111 /* ZhipuGLMProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = ZHIPUFILE222222222222 /* ZhipuGLMProvider.swift */; };
 		ZHIPUCLI111111111111111 /* ZhipuGLMProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = ZHIPUFILE222222222222 /* ZhipuGLMProvider.swift */; };
+		69D6DDB24942483D90154E07 /* AntigravityProviderVarintTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 809C5F4DE9614EA7AFA97ABE /* AntigravityProviderVarintTests.swift */; };
+		3A5F4CE914494278AFDA260E /* CLIFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A7819F28A1A46218574EC86 /* CLIFormatterTests.swift */; };
+		01F3CEDD4DF8427C9D85D492 /* ClaudeProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2988F859C63495EA525AEA2 /* ClaudeProviderTests.swift */; };
+		6E7602C0A30D407C805EEB62 /* SubscriptionSettingsManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4122A310609449CAAE08CA5C /* SubscriptionSettingsManagerTests.swift */; };
+		36DF35D8A8344F6BAE3A1E24 /* ZaiCodingPlanProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED7AADDA053D4A6B93C34E67 /* ZaiCodingPlanProviderTests.swift */; };
+
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -425,6 +431,12 @@
 		ZA0000000000000000000EFR /* ZAIExtractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ZAIExtractor.swift; sourceTree = "<group>"; };
 		ZA0000000000000000000TFR /* ZAIExtractorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ZAIExtractorTests.swift; sourceTree = "<group>"; };
 		ZHIPUFILE222222222222 /* ZhipuGLMProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZhipuGLMProvider.swift; sourceTree = "<group>"; };
+		809C5F4DE9614EA7AFA97ABE /* AntigravityProviderVarintTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AntigravityProviderVarintTests.swift; sourceTree = "<group>"; };
+		9A7819F28A1A46218574EC86 /* CLIFormatterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CLIFormatterTests.swift; sourceTree = "<group>"; };
+		D2988F859C63495EA525AEA2 /* ClaudeProviderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClaudeProviderTests.swift; sourceTree = "<group>"; };
+		4122A310609449CAAE08CA5C /* SubscriptionSettingsManagerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SubscriptionSettingsManagerTests.swift; sourceTree = "<group>"; };
+		ED7AADDA053D4A6B93C34E67 /* ZaiCodingPlanProviderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ZaiCodingPlanProviderTests.swift; sourceTree = "<group>"; };
+
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -786,6 +798,11 @@ DLT000000000000000000002 /* DiagnosticsLoggerTests.swift */,
 				8F0ECB3B429456A48F1A4E69 /* SearchEngineTitleTests.swift */,
 				7A255270920EBB45B5176EFA /* TavilyLiveIntegrationTests.swift */,
 				4776646D4D1A4A658AEFC521 /* Helpers */,
+				809C5F4DE9614EA7AFA97ABE /* AntigravityProviderVarintTests.swift */,
+				9A7819F28A1A46218574EC86 /* CLIFormatterTests.swift */,
+				D2988F859C63495EA525AEA2 /* ClaudeProviderTests.swift */,
+				4122A310609449CAAE08CA5C /* SubscriptionSettingsManagerTests.swift */,
+				ED7AADDA053D4A6B93C34E67 /* ZaiCodingPlanProviderTests.swift */,
 			);
 			path = CopilotMonitorTests;
 			sourceTree = "<group>";
@@ -1206,6 +1223,11 @@ DLT000000000000000000001 /* DiagnosticsLoggerTests.swift in Sources */,
 				SBCCTRLMODETMBF1111 /* StatusBarControllerTestingModeTests.swift in Sources */,
 				PMBF1F3TESTBF1000000000 /* ProviderMenuBuilderF1F3Tests.swift in Sources */,
 				SBCF000000000000000000BF2 /* StatusBarControllerF4Tests.swift in Sources */,
+				69D6DDB24942483D90154E07 /* AntigravityProviderVarintTests.swift in Sources */,
+				3A5F4CE914494278AFDA260E /* CLIFormatterTests.swift in Sources */,
+				01F3CEDD4DF8427C9D85D492 /* ClaudeProviderTests.swift in Sources */,
+				6E7602C0A30D407C805EEB62 /* SubscriptionSettingsManagerTests.swift in Sources */,
+				36DF35D8A8344F6BAE3A1E24 /* ZaiCodingPlanProviderTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

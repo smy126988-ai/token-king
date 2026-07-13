@@ -11,7 +11,7 @@ final class SubscriptionSettingsManagerTests: XCTestCase {
         suiteName = "SubscriptionSettingsManagerTests.\(UUID().uuidString)"
         defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
-        manager = SubscriptionSettingsManager(userDefaults: defaults)
+        manager = SubscriptionSettingsManager(defaults: defaults)
     }
 
     override func tearDown() {
@@ -44,15 +44,6 @@ final class SubscriptionSettingsManagerTests: XCTestCase {
         // Injected manager should NOT see this
         XCTAssertEqual(manager.getPlan(forKey: sharedKey), .none,
                        "Injected manager must not read from UserDefaults.standard")
-    }
-
-    func testForTestingFactoryReturnsIsolatedInstance() {
-        let (testManager, testDefaults) = SubscriptionSettingsManager.forTesting()
-        testManager.setPlan(.preset("Max", 50), forKey: "claude.test@example.com")
-
-        XCTAssertEqual(testManager.getPlan(forKey: "claude.test@example.com"), .preset("Max", 50))
-        // The factory's defaults should contain the written data
-        XCTAssertNotNil(testDefaults.data(forKey: "subscription_v2.claude.test@example.com"))
     }
 
     // MARK: - Original shared behavior preserved

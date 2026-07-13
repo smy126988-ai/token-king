@@ -47,7 +47,7 @@ final class CLIFormatterTests: XCTestCase {
     
     func testQuotaBasedOverage() {
         let usage = ProviderUsage.quotaBased(remaining: -10, entitlement: 100, overagePermitted: true)
-        XCTAssertEqual(usage.usagePercentage, 110.0)
+        XCTAssertEqual(usage.usagePercentage, 110.0, accuracy: 0.0001)
     }
     
     // MARK: - ProviderUsage Limit Tests
