@@ -79,6 +79,46 @@ final class TokenStatsAggregatorTests: XCTestCase {
         XCTAssertEqual(snap.monthTotal.input, 1099)
     }
 
+    // P0-2 fix: `monthTotalOverride` (sourced from `month_aggregates` sum) replaces
+    // the day-derived month total. This is what the F1 "本月 Token" header and F4
+    // "本月" row use in production to avoid the 84% underreport caused by partial
+    // `day_aggregates` (which is single-day incremental).
+    func testSnapshotMonthTotalOverrideReplacesDayAggregatesMonthTotal() {
+        // day_aggregates only has 2026-07-08 (monthTotalFromDays = 100); override
+        // supplies the authoritative full-month total from month_aggregates.
+        let dayOnly = makeDay(provider: "kimi", model: "kimi-k2.5", day: "2026-07-08", input: 100)
+        let override = TokenBreakdown(input: 1_000, output: 500, cacheRead: 50_000)
+        let snap = TokenStatsAggregator.snapshot(
+            dayAggregates: [dayOnly],
+            todayString: "2026-07-08",
+            weekStart: Self.date(2026, 7, 6),
+            weekEnd: Self.date(2026, 7, 12),
+            monthPrefix: "2026-07",
+            monthTotalOverride: override
+        )
+        XCTAssertEqual(snap.monthTotal.input, 1_000, "Override must replace day-derived month total")
+        XCTAssertEqual(snap.monthTotal.output, 500)
+        XCTAssertEqual(snap.monthTotal.cacheRead, 50_000)
+        // today/week still derived from dayAggregates (override is month-only)
+        XCTAssertEqual(snap.todayTotal.input, 100)
+        XCTAssertEqual(snap.weekTotal.input, 100)
+    }
+
+    // P0-2 fix back-compat: when no override is supplied (e.g. older callers that
+    // only know about day_aggregates), behavior must match the pre-P0-2 contract
+    // — month total is summed from day_aggregates.
+    func testSnapshotWithoutOverrideFallsBackToDayAggregates() {
+        let dayOnly = makeDay(provider: "kimi", model: "kimi-k2.5", day: "2026-07-08", input: 100)
+        let snap = TokenStatsAggregator.snapshot(
+            dayAggregates: [dayOnly],
+            todayString: "2026-07-08",
+            weekStart: Self.date(2026, 7, 6),
+            weekEnd: Self.date(2026, 7, 12),
+            monthPrefix: "2026-07"
+        )
+        XCTAssertEqual(snap.monthTotal.input, 100, "Without override, must use dayAggregates (back-compat)")
+    }
+
     // MARK: - Helpers
 
     private func makeDay(provider: String, model: String, day: String, input: Int, output: Int = 0) -> DayAggregate {

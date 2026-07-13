@@ -194,6 +194,7 @@
 		TUS00000000000000000000BF1 /* TokenUsageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = TUS00000000000000000000FR1 /* TokenUsageStore.swift */; };
 		TUS00000000000000000000BF2 /* TokenUsageStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TUS00000000000000000000FR2 /* TokenUsageStoreTests.swift */; };
 		TDA000000000000000000BF2 /* TokenUsageStoreDayAggregatesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TDA000000000000000000FR2 /* TokenUsageStoreDayAggregatesTests.swift */; };
+		TMAS000000000000000000BF2 /* TokenUsageStoreMonthAggregatesSumTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TMAS000000000000000000FR2 /* TokenUsageStoreMonthAggregatesSumTests.swift */; };
 		TKN00000000000000000000BF2 /* TokenEventKimiCNTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TKN00000000000000000000FR2 /* TokenEventKimiCNTests.swift */; };
 		USAGEPCTBF1111111111 /* UsagePercentCandidatesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = USAGEPCTFR1111111111 /* UsagePercentCandidatesTests.swift */; };
 		VOLCANOPROVAPP111111111111 /* VolcanoArkProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = VOLCANOPROVFILE22222222222 /* VolcanoArkProvider.swift */; };
@@ -404,6 +405,7 @@
 		TUS00000000000000000000FR1 /* TokenUsageStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenUsageStore.swift; sourceTree = "<group>"; };
 		TUS00000000000000000000FR2 /* TokenUsageStoreTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenUsageStoreTests.swift; sourceTree = "<group>"; };
 		TDA000000000000000000FR2 /* TokenUsageStoreDayAggregatesTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenUsageStoreDayAggregatesTests.swift; sourceTree = "<group>"; };
+		TMAS000000000000000000FR2 /* TokenUsageStoreMonthAggregatesSumTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenUsageStoreMonthAggregatesSumTests.swift; sourceTree = "<group>"; };
 		TKN00000000000000000000FR2 /* TokenEventKimiCNTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenEventKimiCNTests.swift; sourceTree = "<group>"; };
 		USAGEPCTFR1111111111 /* UsagePercentCandidatesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsagePercentCandidatesTests.swift; sourceTree = "<group>"; };
 		VOLCANOPROVFILE22222222222 /* VolcanoArkProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VolcanoArkProvider.swift; sourceTree = "<group>"; };
@@ -484,6 +486,7 @@
 				TN00000000000000000000FR2 /* TokenNormalizerTests.swift */,
 				TUS00000000000000000000FR2 /* TokenUsageStoreTests.swift */,
 				TDA000000000000000000FR2 /* TokenUsageStoreDayAggregatesTests.swift */,
+				TMAS000000000000000000FR2 /* TokenUsageStoreMonthAggregatesSumTests.swift */,
 				MCST000000000000000000FR2 /* MonthCostCalculatorTests.swift */,
 				TKN00000000000000000000FR2 /* TokenEventKimiCNTests.swift */,
 				RA00100000000000000000FR2 /* RefreshActorTests.swift */,
@@ -1169,6 +1172,7 @@
 				NG0000000000000000000TBF /* NanoGPTExtractorTests.swift in Sources */,
 				TUS00000000000000000000BF2 /* TokenUsageStoreTests.swift in Sources */,
 				TDA000000000000000000BF2 /* TokenUsageStoreDayAggregatesTests.swift in Sources */,
+				TMAS000000000000000000BF2 /* TokenUsageStoreMonthAggregatesSumTests.swift in Sources */,
 				MCST000000000000000000BF2 /* MonthCostCalculatorTests.swift in Sources */,
 				TSAT000000000000000000BF2 /* TokenStatsAggregatorTests.swift in Sources */,
 				TKN00000000000000000000BF2 /* TokenEventKimiCNTests.swift in Sources */,

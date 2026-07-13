@@ -11,11 +11,20 @@ enum TokenStatsAggregator {
     }
 
     /// Compute today / week / month totals from a list of `DayAggregate`s.
+    ///
+    /// - Parameters:
+    ///   - monthTotalOverride: when non-nil, replaces the `monthTotal` derived
+    ///     from `dayAggregates`. P0-2 fix: callers that already hold a
+    ///     authoritative month total (e.g. `TokenUsageStore.fetchMonthAggregatesSum`,
+    ///     which reads `month_aggregates`) should pass it here so the F4 "本月"
+    ///     row and the F1 "本月 Token" header reflect the full month instead
+    ///     of the partial `day_aggregates` subset.
     static func snapshot(dayAggregates: [DayAggregate],
                          todayString: String,
                          weekStart: Date,
                          weekEnd: Date,
-                         monthPrefix: String) -> Snapshot {
+                         monthPrefix: String,
+                         monthTotalOverride: TokenBreakdown? = nil) -> Snapshot {
         let todayTotal = dayAggregates
             .filter { $0.day == todayString }
             .reduce(TokenBreakdown.zero) { $0.adding($1.tokens) }
@@ -25,9 +34,10 @@ enum TokenStatsAggregator {
                 return dayDate >= weekStart && dayDate <= weekEnd
             }
             .reduce(TokenBreakdown.zero) { $0.adding($1.tokens) }
-        let monthTotal = dayAggregates
+        let monthTotalFromDays = dayAggregates
             .filter { $0.day.hasPrefix(monthPrefix) }
             .reduce(TokenBreakdown.zero) { $0.adding($1.tokens) }
+        let monthTotal = monthTotalOverride ?? monthTotalFromDays
         return Snapshot(todayTotal: todayTotal, weekTotal: weekTotal, monthTotal: monthTotal)
     }
 

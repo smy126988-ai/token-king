@@ -249,6 +249,42 @@ actor TokenUsageStore {
             reasoning: Int(sqlite3_column_int64(stmt, 4))
         )
     }
+
+    /// Cross-provider sum of all token fields for the given month, sourced from
+    /// `month_aggregates` rather than `day_aggregates`.
+    ///
+    /// P0-2 fix: `day_aggregates` is INCREMENTAL (only the current day is rewritten
+    /// on every RefreshActor tick via `refreshDayAggregates(for:)`), so it can
+    /// underreport a full month's total whenever past days haven't been backfilled
+    /// into `day_aggregates` (e.g. on a fresh DB, after a schema reset, or when the
+    /// app was not running on past days). `month_aggregates` is re-derived on every
+    /// tick via `refreshMonthAggregates()` and is therefore complete for the
+    /// current month (delta vs `token_events` SUM is bounded by the most recent
+    /// 30s tick window). Prefer this over `fetchMonthTotalTokens` for any
+    /// "本月 Token" UI surface.
+    func fetchMonthAggregatesSum(yearMonth: String? = nil) -> TokenBreakdown {
+        guard initError == nil, let db = db else { return TokenBreakdown.zero }
+        let ym = yearMonth ?? currentYearMonth()
+        let sql = """
+            SELECT COALESCE(SUM(input), 0), COALESCE(SUM(output), 0),
+                   COALESCE(SUM(cache_read), 0), COALESCE(SUM(cache_write), 0),
+                   COALESCE(SUM(reasoning), 0)
+            FROM month_aggregates WHERE year_month = ?
+        """
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else { return TokenBreakdown.zero }
+        defer { sqlite3_finalize(stmt) }
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        sqlite3_bind_text(stmt, 1, ym, -1, SQLITE_TRANSIENT)
+        guard sqlite3_step(stmt) == SQLITE_ROW else { return TokenBreakdown.zero }
+        return TokenBreakdown(
+            input: Int(sqlite3_column_int64(stmt, 0)),
+            output: Int(sqlite3_column_int64(stmt, 1)),
+            cacheRead: Int(sqlite3_column_int64(stmt, 2)),
+            cacheWrite: Int(sqlite3_column_int64(stmt, 3)),
+            reasoning: Int(sqlite3_column_int64(stmt, 4))
+        )
+    }
 }
 
 // MARK: - Private helpers
