@@ -1202,12 +1202,17 @@ final class StatusBarController: NSObject {
         let dayAggregates = await store.fetchDayAggregates(yearMonth: month)
         let todayString = TokenUsageFormatter.todayUTCString()
         let (weekStart, weekEnd) = TokenUsageFormatter.currentISOWeekRange()
+        // P0-2 fix: source `monthTotal` from `month_aggregates` (refreshed on every
+        // tick for the current month) instead of `day_aggregates` (single-day
+        // incremental, can be missing past days → underreports monthly total).
+        let monthTotalFromAggregates = await store.fetchMonthAggregatesSum(yearMonth: month)
         self.cachedTokenStats = TokenStatsAggregator.snapshot(
             dayAggregates: dayAggregates,
             todayString: todayString,
             weekStart: weekStart,
             weekEnd: weekEnd,
-            monthPrefix: month
+            monthPrefix: month,
+            monthTotalOverride: monthTotalFromAggregates
         )
         self.lastTokenStatsFetchAt = Date()
         self.updateMultiProviderMenu()
