@@ -155,7 +155,7 @@ final class StatusBarController: NSObject {
     var currencyFormatter: CurrencyFormatter { initOptions.currencyFormatter }
 
     private(set) var statusItem: NSStatusItem?
-    private var statusBarIconView: StatusBarIconView?
+    var statusBarIconView: StatusBarIconView?
     var menu: NSMenu!
     private var signInItem: NSMenuItem!
     private var resetLoginItem: NSMenuItem!
@@ -170,15 +170,15 @@ final class StatusBarController: NSObject {
     var diagnosticsModeMenuItem: NSMenuItem!
     var settingsMenuItem: NSMenuItem!
     var settingsSubmenu: NSMenu!
-    private var refreshTimer: Timer?
-    private var initialRefreshTask: Task<Void, Never>?
-    private var isMainMenuTracking = false
+    var refreshTimer: Timer?
+    var initialRefreshTask: Task<Void, Never>?
+    var isMainMenuTracking = false
     private var hasDeferredMenuRebuild = false
-    private var hasDeferredStatusBarRefresh = false
+    var hasDeferredStatusBarRefresh = false
 
-    private var currentUsage: CopilotUsage?
+    var currentUsage: CopilotUsage?
     private var lastFetchTime: Date?
-    private var isFetching = false
+    var isFetching = false
 
     // History fetch properties
     private var historyFetchTimer: Timer?
@@ -189,11 +189,11 @@ final class StatusBarController: NSObject {
     private var lastHistoryFetchResult: HistoryFetchResult = .none
 
     // Multi-provider properties
-    private var providerResults: [ProviderIdentifier: ProviderResult] = [:]
-    private var loadingProviders: Set<ProviderIdentifier> = []
+    var providerResults: [ProviderIdentifier: ProviderResult] = [:]
+    var loadingProviders: Set<ProviderIdentifier> = []
     var enabledProvidersMenu: NSMenu!
     var currencyMenu: NSMenu?
-    private var lastProviderErrors: [ProviderIdentifier: String] = [:]
+    var lastProviderErrors: [ProviderIdentifier: String] = [:]
     var viewErrorDetailsItem: NSMenuItem!
     private var orphanedSubscriptionKeys: [String] = []
     private var orphanedSubscriptionTotal: Double = 0
@@ -214,17 +214,17 @@ final class StatusBarController: NSObject {
     /// periodic Task kicked off from AppDelegate after `startRefreshActor()`.
     /// Read synchronously by `updateMultiProviderMenu` (main-actor) so the
     /// menu builder does not need to be async itself.
-    private var cachedMonthlyTotals: [MonthlyTotal] = []
-    private var lastMonthlyTotalsFetchAt: Date?
+    var cachedMonthlyTotals: [MonthlyTotal] = []
+    var lastMonthlyTotalsFetchAt: Date?
     /// F2b: when the `RefreshActor`'s store fails to initialize, surface the
     /// error in the "本月 API 折算" section instead of leaving it blank.
-    private var refreshActorInitError: SQLiteError?
+    var refreshActorInitError: SQLiteError?
     /// F1 / F4: latest token snapshot for the "本月 Token" header and the
     /// "全局统计" submenu. Populated by `refreshTokenStatsCache` on the same
     /// periodic loop as `refreshMonthlyTotalsCache`. Read synchronously by
     /// `updateMultiProviderMenu` (main-actor).
-    private var cachedTokenStats: TokenStatsAggregator.Snapshot?
-    private var lastTokenStatsFetchAt: Date?
+    var cachedTokenStats: TokenStatsAggregator.Snapshot?
+    var lastTokenStatsFetchAt: Date?
 
     private var usagePredictor: UsagePredictor {
         UsagePredictor(weights: predictionPeriod.weights)
@@ -853,7 +853,7 @@ final class StatusBarController: NSObject {
         }
     }
 
-    private func isProviderEnabled(_ identifier: ProviderIdentifier) -> Bool {
+    func isProviderEnabled(_ identifier: ProviderIdentifier) -> Bool {
         guard identifier.isEnabled else { return false }
         let key = "provider.\(identifier.rawValue).enabled"
         if userDefaults.object(forKey: key) == nil {
@@ -1760,7 +1760,7 @@ final class StatusBarController: NSObject {
         statusBarIconView?.update(displayText: text, providerIcon: providerIcon)
     }
 
-    private func updateStatusBarText() {
+    func updateStatusBarText() {
         if isMainMenuTracking {
             hasDeferredStatusBarRefresh = true
             debugLog("updateStatusBarText: deferred while menu is open")
@@ -1990,7 +1990,7 @@ final class StatusBarController: NSObject {
         return (orphaned, total)
     }
 
-       private func updateMultiProviderMenu() {
+       func updateMultiProviderMenu() {
            debugLog("updateMultiProviderMenu: started")
            logMenuAnchorFingerprint("updateMultiProviderMenu-entry")
            if isMainMenuTracking {

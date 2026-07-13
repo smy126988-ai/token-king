@@ -16,6 +16,7 @@
 		46132F9E42454E918DA49B4D /* TokenManagerProviderAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 586AED36BD3C4BF0AF6BB7E1 /* TokenManagerProviderAuth.swift */; };
 		381E0D675B344773894DEAEA /* StatusBarMenuBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF11C5E6594E4F5286956E7A /* StatusBarMenuBuilder.swift */; };
 		7C1D441F289C47008A6F9C1A /* StatusBarUsageDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E9E591B17364B32936C99CA /* StatusBarUsageDisplay.swift */; };
+		205B409C50D74AD483CF7DDF /* StatusBarRefreshAndF2b.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A8188B5FB145D2A7C7C102 /* StatusBarRefreshAndF2b.swift */; };
 		84AEBB71D73B42A880B82E2E /* TokenManagerProviderAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 586AED36BD3C4BF0AF6BB7E1 /* TokenManagerProviderAuth.swift */; };
 		219CDE95F9D84CF199315B68 /* TokenManagerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A974BD938254650B40E5681 /* TokenManagerModels.swift */; };
 		11DD5CEEB9FA083728D151DD /* TavilyLiveIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A255270920EBB45B5176EFA /* TavilyLiveIntegrationTests.swift */; };
@@ -332,6 +333,7 @@
 		D22222222222222222222222 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 		FF11C5E6594E4F5286956E7A /* StatusBarMenuBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarMenuBuilder.swift; sourceTree = "<group>"; };
 		1E9E591B17364B32936C99CA /* StatusBarUsageDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarUsageDisplay.swift; sourceTree = "<group>"; };
+		36A8188B5FB145D2A7C7C102 /* StatusBarRefreshAndF2b.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarRefreshAndF2b.swift; sourceTree = "<group>"; };
 		D97B25E6EB0CE5E48A27A737 /* F2bE2ETests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = F2bE2ETests.swift; path = F2bE2ETests.swift; sourceTree = "<group>"; };
 		TSUT000000000000000000FR2 /* TokenStatsE2ETests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TokenStatsE2ETests.swift; path = TokenStatsE2ETests.swift; sourceTree = "<group>"; };
 		DBF0C48368166F3AD0C79F92 /* TokenManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenManager.swift; sourceTree = "<group>"; };
@@ -617,6 +619,7 @@
 				D22222222222222222222222 /* StatusBarController.swift */,
 				FF11C5E6594E4F5286956E7A /* StatusBarMenuBuilder.swift */,
 				1E9E591B17364B32936C99CA /* StatusBarUsageDisplay.swift */,
+				36A8188B5FB145D2A7C7C102 /* StatusBarRefreshAndF2b.swift */,
 				6279E48B0F50E99C3B23C4F3 /* ModernApp.swift */,
 			);
 			path = App;
@@ -1048,6 +1051,7 @@ DLT000000000000000000002 /* DiagnosticsLoggerTests.swift */,
 				46132F9E42454E918DA49B4D /* TokenManagerProviderAuth.swift in Sources */,
 				381E0D675B344773894DEAEA /* StatusBarMenuBuilder.swift in Sources */,
 				7C1D441F289C47008A6F9C1A /* StatusBarUsageDisplay.swift in Sources */,
+				205B409C50D74AD483CF7DDF /* StatusBarRefreshAndF2b.swift in Sources */,
 				219CDE95F9D84CF199315B68 /* TokenManagerModels.swift in Sources */,
 				87297CDD8B65F7EF0BC5D650 /* ProviderManager.swift in Sources */,
 				AD95EBD6AE3134DF4C797577 /* ClaudeProvider.swift in Sources */,
