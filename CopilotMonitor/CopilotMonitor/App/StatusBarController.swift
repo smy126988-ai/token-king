@@ -149,36 +149,36 @@ final class StatusBarController: NSObject {
     private(set) var initOptions: InitOptions
 
     /// B09: UserDefaults facade routing reads/writes through the injected suite.
-    private var userDefaults: UserDefaults { initOptions.userDefaults }
+    var userDefaults: UserDefaults { initOptions.userDefaults }
 
     /// B09: CurrencyFormatter facade routing through the injected formatter.
     var currencyFormatter: CurrencyFormatter { initOptions.currencyFormatter }
 
     private(set) var statusItem: NSStatusItem?
-    private var statusBarIconView: StatusBarIconView?
-    private(set) var menu: NSMenu!
+    var statusBarIconView: StatusBarIconView?
+    var menu: NSMenu!
     private var signInItem: NSMenuItem!
     private var resetLoginItem: NSMenuItem!
-    private var launchAtLoginItem: NSMenuItem!
-    private var installCLIItem: NSMenuItem!
-    private var refreshIntervalMenu: NSMenu!
-    private var menuBarDisplayModeMenu: NSMenu!
-    private var onlyShowModeMenu: NSMenu!
-    private var onlyShowProviderMenu: NSMenu!
-    private var criticalBadgeMenuItem: NSMenuItem!
-    private var showProviderNameMenuItem: NSMenuItem!
-    private var diagnosticsModeMenuItem: NSMenuItem!
-    private var settingsMenuItem: NSMenuItem!
-    private var settingsSubmenu: NSMenu!
-    private var refreshTimer: Timer?
-    private var initialRefreshTask: Task<Void, Never>?
-    private var isMainMenuTracking = false
+    var launchAtLoginItem: NSMenuItem!
+    var installCLIItem: NSMenuItem!
+    var refreshIntervalMenu: NSMenu!
+    var menuBarDisplayModeMenu: NSMenu!
+    var onlyShowModeMenu: NSMenu!
+    var onlyShowProviderMenu: NSMenu!
+    var criticalBadgeMenuItem: NSMenuItem!
+    var showProviderNameMenuItem: NSMenuItem!
+    var diagnosticsModeMenuItem: NSMenuItem!
+    var settingsMenuItem: NSMenuItem!
+    var settingsSubmenu: NSMenu!
+    var refreshTimer: Timer?
+    var initialRefreshTask: Task<Void, Never>?
+    var isMainMenuTracking = false
     private var hasDeferredMenuRebuild = false
-    private var hasDeferredStatusBarRefresh = false
+    var hasDeferredStatusBarRefresh = false
 
-    private var currentUsage: CopilotUsage?
+    var currentUsage: CopilotUsage?
     private var lastFetchTime: Date?
-    private var isFetching = false
+    var isFetching = false
 
     // History fetch properties
     private var historyFetchTimer: Timer?
@@ -189,12 +189,12 @@ final class StatusBarController: NSObject {
     private var lastHistoryFetchResult: HistoryFetchResult = .none
 
     // Multi-provider properties
-    private var providerResults: [ProviderIdentifier: ProviderResult] = [:]
-    private var loadingProviders: Set<ProviderIdentifier> = []
-    private var enabledProvidersMenu: NSMenu!
-    private var currencyMenu: NSMenu?
-    private var lastProviderErrors: [ProviderIdentifier: String] = [:]
-    private var viewErrorDetailsItem: NSMenuItem!
+    var providerResults: [ProviderIdentifier: ProviderResult] = [:]
+    var loadingProviders: Set<ProviderIdentifier> = []
+    var enabledProvidersMenu: NSMenu!
+    var currencyMenu: NSMenu?
+    var lastProviderErrors: [ProviderIdentifier: String] = [:]
+    var viewErrorDetailsItem: NSMenuItem!
     private var orphanedSubscriptionKeys: [String] = []
     private var orphanedSubscriptionTotal: Double = 0
     private let criticalUsageThreshold: Double = 90.0
@@ -214,17 +214,17 @@ final class StatusBarController: NSObject {
     /// periodic Task kicked off from AppDelegate after `startRefreshActor()`.
     /// Read synchronously by `updateMultiProviderMenu` (main-actor) so the
     /// menu builder does not need to be async itself.
-    private var cachedMonthlyTotals: [MonthlyTotal] = []
-    private var lastMonthlyTotalsFetchAt: Date?
+    var cachedMonthlyTotals: [MonthlyTotal] = []
+    var lastMonthlyTotalsFetchAt: Date?
     /// F2b: when the `RefreshActor`'s store fails to initialize, surface the
     /// error in the "本月 API 折算" section instead of leaving it blank.
-    private var refreshActorInitError: SQLiteError?
+    var refreshActorInitError: SQLiteError?
     /// F1 / F4: latest token snapshot for the "本月 Token" header and the
     /// "全局统计" submenu. Populated by `refreshTokenStatsCache` on the same
     /// periodic loop as `refreshMonthlyTotalsCache`. Read synchronously by
     /// `updateMultiProviderMenu` (main-actor).
-    private var cachedTokenStats: TokenStatsAggregator.Snapshot?
-    private var lastTokenStatsFetchAt: Date?
+    var cachedTokenStats: TokenStatsAggregator.Snapshot?
+    var lastTokenStatsFetchAt: Date?
 
     private var usagePredictor: UsagePredictor {
         UsagePredictor(weights: predictionPeriod.weights)
@@ -249,7 +249,7 @@ final class StatusBarController: NSObject {
         let hasNoData: Bool
     }
 
-    private var refreshInterval: RefreshInterval {
+    var refreshInterval: RefreshInterval {
         get {
             let rawValue = userDefaults.integer(forKey: "refreshInterval")
             return RefreshInterval(rawValue: rawValue) ?? .defaultInterval
@@ -284,7 +284,7 @@ final class StatusBarController: NSObject {
         }
     }
 
-    private var menuBarDisplayMode: MenuBarDisplayMode {
+    var menuBarDisplayMode: MenuBarDisplayMode {
         get {
             let rawValue = userDefaults.integer(forKey: StatusBarDisplayPreferences.modeKey)
             if let mode = MenuBarDisplayMode(rawValue: rawValue) {
@@ -309,7 +309,7 @@ final class StatusBarController: NSObject {
         }
     }
 
-    private var onlyShowMode: OnlyShowMode {
+    var onlyShowMode: OnlyShowMode {
         get {
             if let object = userDefaults.object(forKey: StatusBarDisplayPreferences.onlyShowModeKey) {
                 if let rawValue = object as? Int, let mode = OnlyShowMode(rawValue: rawValue) {
@@ -335,7 +335,7 @@ final class StatusBarController: NSObject {
         }
     }
 
-    private var menuBarDisplayProvider: ProviderIdentifier? {
+    var menuBarDisplayProvider: ProviderIdentifier? {
         get {
             guard let rawValue = userDefaults.string(forKey: StatusBarDisplayPreferences.providerKey) else {
                 return nil
@@ -349,7 +349,7 @@ final class StatusBarController: NSObject {
         }
     }
 
-    private var criticalBadgeEnabled: Bool {
+    var criticalBadgeEnabled: Bool {
         get {
             boolPreference(forKey: StatusBarDisplayPreferences.criticalBadgeKey, defaultValue: true)
         }
@@ -360,7 +360,7 @@ final class StatusBarController: NSObject {
         }
     }
 
-    private var showProviderName: Bool {
+    var showProviderName: Bool {
         get {
             boolPreference(forKey: StatusBarDisplayPreferences.showProviderNameKey, defaultValue: false)
         }
@@ -759,7 +759,7 @@ final class StatusBarController: NSObject {
         }
     }
 
-    @objc private func refreshIntervalSelected(_ sender: NSMenuItem) {
+    @objc func refreshIntervalSelected(_ sender: NSMenuItem) {
         if let interval = RefreshInterval(rawValue: sender.tag) {
             refreshInterval = interval
         }
@@ -771,20 +771,20 @@ final class StatusBarController: NSObject {
         }
     }
 
-    @objc private func menuBarDisplayModeSelected(_ sender: NSMenuItem) {
+    @objc func menuBarDisplayModeSelected(_ sender: NSMenuItem) {
         guard let mode = MenuBarDisplayMode(rawValue: sender.tag) else { return }
         debugLog("menuBarDisplayModeSelected: mode=\(mode.title)")
         menuBarDisplayMode = mode
     }
 
-    @objc private func onlyShowModeSelected(_ sender: NSMenuItem) {
+    @objc func onlyShowModeSelected(_ sender: NSMenuItem) {
         guard let mode = OnlyShowMode(rawValue: sender.tag) else { return }
         debugLog("onlyShowModeSelected: mode=\(mode.title)")
         menuBarDisplayMode = .onlyShow
         onlyShowMode = mode
     }
 
-    @objc private func menuBarOnlyShowProviderSelected(_ sender: NSMenuItem) {
+    @objc func menuBarOnlyShowProviderSelected(_ sender: NSMenuItem) {
         guard let rawValue = sender.representedObject as? String,
               let identifier = ProviderIdentifier(rawValue: rawValue) else {
             return
@@ -795,12 +795,12 @@ final class StatusBarController: NSObject {
         menuBarDisplayProvider = identifier
     }
 
-    @objc private func toggleCriticalBadge(_ sender: NSMenuItem) {
+    @objc func toggleCriticalBadge(_ sender: NSMenuItem) {
         criticalBadgeEnabled.toggle()
         debugLog("toggleCriticalBadge: value=\(criticalBadgeEnabled)")
     }
 
-    @objc private func toggleShowProviderName(_ sender: NSMenuItem) {
+    @objc func toggleShowProviderName(_ sender: NSMenuItem) {
         showProviderName.toggle()
         debugLog("toggleShowProviderName: value=\(showProviderName)")
     }
@@ -853,7 +853,7 @@ final class StatusBarController: NSObject {
         }
     }
 
-    private func isProviderEnabled(_ identifier: ProviderIdentifier) -> Bool {
+    func isProviderEnabled(_ identifier: ProviderIdentifier) -> Bool {
         guard identifier.isEnabled else { return false }
         let key = "provider.\(identifier.rawValue).enabled"
         if userDefaults.object(forKey: key) == nil {
@@ -908,7 +908,7 @@ final class StatusBarController: NSObject {
         }
     }
 
-    @objc private func selectCurrency(_ sender: NSMenuItem) {
+    @objc func selectCurrency(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String,
               let currency = Currency(rawValue: raw) else { return }
         currencyFormatter.currency = currency
@@ -1375,9 +1375,11 @@ final class StatusBarController: NSObject {
         case .volcanoArk, .mimo, .hunyuan, .zhipuGLM:
             add(details?.sevenDayUsage, priority: .weekly)
             add(details?.fiveHourUsage, priority: .hourly)
-        case .openCodeGo, .minimaxCN, .xiaomiTokenPlanCN:
+        case .openCodeGo, .minimaxCN, .minimax, .xiaomi, .xiaomiTokenPlanCN:
             // t1.2: raw-API rate-tracking providers don't have live quota
             // windows (they're tokens-priced). Don't add candidates here.
+            // r1.c: `.minimax` / `.xiaomi` are international raw-API-rate
+            // variants of `.minimaxCN` / `.xiaomiTokenPlanCN`; same logic.
             break
         case .kiro:
             add(usage.usagePercentage, priority: .monthly)
@@ -1758,7 +1760,7 @@ final class StatusBarController: NSObject {
         statusBarIconView?.update(displayText: text, providerIcon: providerIcon)
     }
 
-    private func updateStatusBarText() {
+    func updateStatusBarText() {
         if isMainMenuTracking {
             hasDeferredStatusBarRefresh = true
             debugLog("updateStatusBarText: deferred while menu is open")
@@ -1988,7 +1990,7 @@ final class StatusBarController: NSObject {
         return (orphaned, total)
     }
 
-       private func updateMultiProviderMenu() {
+       func updateMultiProviderMenu() {
            debugLog("updateMultiProviderMenu: started")
            logMenuAnchorFingerprint("updateMultiProviderMenu-entry")
            if isMainMenuTracking {
@@ -2949,7 +2951,7 @@ final class StatusBarController: NSObject {
            logMenuStructure()
     }
 
-    private func logMenuStructure() {
+    func logMenuStructure() {
         let total = menu.items.count
         let separators = menu.items.filter { $0.isSeparatorItem }.count
         let withAction = menu.items.filter { !$0.isSeparatorItem && $0.action != nil }.count
@@ -3808,9 +3810,11 @@ final class StatusBarController: NSObject {
             image = NSImage(named: "BraveSearchIcon")
         case .mimo, .volcanoArk, .hunyuan, .zhipuGLM:
             image = NSImage(systemSymbolName: identifier.iconName, accessibilityDescription: identifier.displayName)
-        case .minimaxCN:
+        case .minimaxCN, .minimax:
+            // r1.c: `.minimax` (international) shares the icon with `.minimaxCN`.
             image = NSImage(named: "MinimaxIcon")
-        case .xiaomiTokenPlanCN:
+        case .xiaomiTokenPlanCN, .xiaomi:
+            // r1.c: `.xiaomi` (international) shares the icon with `.xiaomiTokenPlanCN`.
             image = NSImage(systemSymbolName: identifier.iconName, accessibilityDescription: identifier.displayName)
         }
 
@@ -4062,7 +4066,7 @@ final class StatusBarController: NSObject {
         NotificationCenter.default.post(name: Notification.Name("sessionExpired"), object: nil)
     }
 
-    @objc private func refreshClicked() {
+    @objc func refreshClicked() {
         logger.info("⌨️ [Keyboard] ⌘R Refresh triggered")
         debugLog("⌨️ refreshClicked: ⌘R shortcut activated")
         fetchUsage()
@@ -4072,14 +4076,14 @@ final class StatusBarController: NSObject {
         if let url = URL(string: "https://github.com/settings/billing/premium_requests_usage") { NSWorkspace.shared.open(url) }
     }
 
-    @objc private func openGitHub() {
+    @objc func openGitHub() {
         logger.info("Opening GitHub repository")
         if let url = URL(string: "https://github.com/smy126988-ai/token-king") {
             NSWorkspace.shared.open(url)
         }
     }
 
-    @objc private func shareUsageSnapshotClicked() {
+    @objc func shareUsageSnapshotClicked() {
         logger.info("Share Usage Snapshot triggered")
         debugLog("shareUsageSnapshotClicked: started")
         trackGrowthEvent(.shareSnapshotClicked)
@@ -4115,7 +4119,7 @@ final class StatusBarController: NSObject {
         }
     }
     
-    @objc private func viewErrorDetailsClicked() {
+    @objc func viewErrorDetailsClicked() {
         logger.info("⌨️ [Keyboard] ⌘E View Error Details triggered")
         debugLog("⌨️ viewErrorDetailsClicked: ⌘E shortcut activated")
         showErrorDetailsAlert()
@@ -4437,34 +4441,34 @@ final class StatusBarController: NSObject {
         }
     }
 
-    @objc private func quitClicked() {
+    @objc func quitClicked() {
         logger.info("⌨️ [Keyboard] ⌘Q Quit triggered")
         debugLog("⌨️ quitClicked: ⌘Q shortcut activated")
         NSApp.terminate(nil)
     }
 
-    @objc private func launchAtLoginClicked() {
+    @objc func launchAtLoginClicked() {
         let service = SMAppService.mainApp
         try? (service.status == .enabled ? service.unregister() : service.register())
         updateLaunchAtLoginState()
     }
 
-    private func updateLaunchAtLoginState() {
+    func updateLaunchAtLoginState() {
         launchAtLoginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
     }
 
-    @objc private func toggleDiagnosticsMode(_ sender: NSMenuItem) {
+    @objc func toggleDiagnosticsMode(_ sender: NSMenuItem) {
         let newValue = !DiagnosticsLogger.shared.enabled
         DiagnosticsLogger.shared.setEnabled(newValue)
         updateDiagnosticsModeMenuState()
         debugLog("toggleDiagnosticsMode: enabled=\(newValue)")
     }
 
-    private func updateDiagnosticsModeMenuState() {
+    func updateDiagnosticsModeMenuState() {
         diagnosticsModeMenuItem.state = DiagnosticsLogger.shared.enabled ? .on : .off
     }
 
-    @objc private func installCLIClicked() {
+    @objc func installCLIClicked() {
         logger.info("⌨️ [Keyboard] Install CLI triggered")
         debugLog("⌨️ installCLIClicked: Install CLI menu item activated")
         
@@ -4512,7 +4516,7 @@ final class StatusBarController: NSObject {
         }
     }
 
-    private func updateCLIInstallState() {
+    func updateCLIInstallState() {
         let installed = FileManager.default.fileExists(atPath: "/usr/local/bin/opencodebar")
         
         if installed {
@@ -4567,7 +4571,7 @@ final class StatusBarController: NSObject {
             || calendar.component(.year, from: date) != calendar.component(.year, from: Date())
     }
 
-    private func loadCachedHistoryOnStartup() {
+    func loadCachedHistoryOnStartup() {
         guard let cached = loadHistoryCache() else {
             logger.info("No cache - skipping history load")
             return

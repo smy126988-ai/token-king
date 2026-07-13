@@ -161,7 +161,12 @@ enum PricingTable {
              .zhipuGLM, .grok, .commandCode, .cursor, .kiro,
              .synthetic, .chutes, .geminiCLI, .openRouter, .openCode,
              .openCodeZen, .minimaxCodingPlan,
-             .minimaxCodingPlanCN, .tavilySearch, .braveSearch:
+             .minimaxCodingPlanCN, .tavilySearch, .braveSearch,
+             // r1.c: international raw-API-rate cases. No public per-token
+             // pricing published for these routes (minimax.io's USD list is
+             // promotional; Xiaomi does not publish global per-token pricing).
+             // Matches the existing "no public per-token pricing" cluster.
+             .minimax, .xiaomi:
             // No public per-token pricing available, or out of F2a scope.
             return nil
         }
