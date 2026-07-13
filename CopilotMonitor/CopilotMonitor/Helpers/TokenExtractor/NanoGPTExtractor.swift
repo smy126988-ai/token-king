@@ -72,7 +72,7 @@ struct NanoGPTExtractor: TokenExtractorProtocol {
         }
         let candidates = [
             "\(NSHomeDirectory())/.nanogpt/token",
-            "\(NSHomeDirectory())/.config/nanogpt/token",
+            "\(NSHomeDirectory())/.config/nanogpt/token"
         ]
         for path in candidates {
             if let value = try? String(contentsOfFile: path, encoding: .utf8) {

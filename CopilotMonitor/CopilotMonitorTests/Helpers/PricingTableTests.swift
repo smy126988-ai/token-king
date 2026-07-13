@@ -25,7 +25,7 @@ final class PricingTableTests: XCTestCase {
         )
         let expected: Set<ProviderIdentifier> = [
             .kimi, .kimiCN, .claude, .zaiCodingPlan, .nanoGpt, .codex,
-            .minimaxCN, .openCodeGo, .xiaomiTokenPlanCN,
+            .minimaxCN, .openCodeGo, .xiaomiTokenPlanCN
         ]
         XCTAssertEqual(
             Set(PricingTable.providersWithPublicPricing), expected
@@ -111,7 +111,7 @@ final class PricingTableTests: XCTestCase {
         guard let rate = PricingTable.modelRate(for: "gpt-5.6-sol") else {
             return XCTFail("gpt-5.6-sol should resolve to an explicit rate")
         }
-        XCTAssertEqual(rate.input,  5.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.input, 5.00 * fx, accuracy: 0.01)
         XCTAssertEqual(rate.output, 30.00 * fx, accuracy: 0.01)
         XCTAssertEqual(rate.cache!, 0.50 * fx, accuracy: 0.01,
                        "cache field stores cache-read rate on PayAsYouGoRate")
@@ -124,7 +124,7 @@ final class PricingTableTests: XCTestCase {
         guard let rate = PricingTable.modelRate(for: "gpt-5.5") else {
             return XCTFail("gpt-5.5 should resolve")
         }
-        XCTAssertEqual(rate.input,  5.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.input, 5.00 * fx, accuracy: 0.01)
         XCTAssertEqual(rate.output, 30.00 * fx, accuracy: 0.01)
         XCTAssertEqual(rate.cache!, 0.50 * fx, accuracy: 0.01)
     }
@@ -135,7 +135,7 @@ final class PricingTableTests: XCTestCase {
         guard let rate = PricingTable.modelRate(for: "gpt-5.5-pro") else {
             return XCTFail("gpt-5.5-pro should resolve")
         }
-        XCTAssertEqual(rate.input,  30.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.input, 30.00 * fx, accuracy: 0.01)
         XCTAssertEqual(rate.output, 180.00 * fx, accuracy: 0.01)
         XCTAssertNil(rate.cache, "gpt-5.5-pro has no public cache-read rate")
     }
@@ -145,7 +145,7 @@ final class PricingTableTests: XCTestCase {
         guard let rate = PricingTable.modelRate(for: "gpt-5.6-terra") else {
             return XCTFail("gpt-5.6-terra should resolve")
         }
-        XCTAssertEqual(rate.input,  2.50 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.input, 2.50 * fx, accuracy: 0.01)
         XCTAssertEqual(rate.output, 15.00 * fx, accuracy: 0.01)
         XCTAssertEqual(rate.cache!, 0.25 * fx, accuracy: 0.01)
     }
@@ -155,8 +155,8 @@ final class PricingTableTests: XCTestCase {
         guard let rate = PricingTable.modelRate(for: "gpt-5.6-luna") else {
             return XCTFail("gpt-5.6-luna should resolve")
         }
-        XCTAssertEqual(rate.input,  1.00 * fx, accuracy: 0.01)
-        XCTAssertEqual(rate.output,  6.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.input, 1.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.output, 6.00 * fx, accuracy: 0.01)
         XCTAssertEqual(rate.cache!, 0.10 * fx, accuracy: 0.01)
     }
 
@@ -166,7 +166,7 @@ final class PricingTableTests: XCTestCase {
         guard let rate = PricingTable.modelRate(for: "gpt-5.4-mini") else {
             return XCTFail("gpt-5.4-mini should resolve")
         }
-        XCTAssertEqual(rate.input,  0.75 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.input, 0.75 * fx, accuracy: 0.01)
         XCTAssertEqual(rate.output, 4.50 * fx, accuracy: 0.01)
         XCTAssertEqual(rate.cache!, 0.075 * fx, accuracy: 0.01)
     }
@@ -176,7 +176,7 @@ final class PricingTableTests: XCTestCase {
         guard let rate = PricingTable.modelRate(for: "gpt-5.4-pro") else {
             return XCTFail("gpt-5.4-pro should resolve")
         }
-        XCTAssertEqual(rate.input,  30.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.input, 30.00 * fx, accuracy: 0.01)
         XCTAssertEqual(rate.output, 180.00 * fx, accuracy: 0.01)
         XCTAssertNil(rate.cache, "gpt-5.4-pro has no public cache-read rate")
     }
@@ -218,7 +218,7 @@ final class PricingTableTests: XCTestCase {
         let covered: [String] = [
             "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna",
             "gpt-5.5", "gpt-5.5-pro",
-            "gpt-5.4", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.4-nano",
+            "gpt-5.4", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.4-nano"
         ]
         for m in covered {
             guard let rate = PricingTable.modelRate(for: m) else {
@@ -249,9 +249,9 @@ final class PricingTableTests: XCTestCase {
         guard let rate = PricingTable.modelRate(for: "claude-opus-4.8") else {
             return XCTFail("claude-opus-4.8 should resolve to an explicit rate")
         }
-        XCTAssertEqual(rate.input,   5.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.input, 5.00 * fx, accuracy: 0.01)
         XCTAssertEqual(rate.output, 25.00 * fx, accuracy: 0.01)
-        XCTAssertEqual(rate.cache!,  0.50 * fx, accuracy: 0.01,
+        XCTAssertEqual(rate.cache!, 0.50 * fx, accuracy: 0.01,
                        "cache field stores cache-read rate (matches all other modelRate entries)")
     }
 
@@ -263,9 +263,9 @@ final class PricingTableTests: XCTestCase {
         guard let rate = PricingTable.modelRate(for: "claude-haiku-4.5") else {
             return XCTFail("claude-haiku-4.5 should resolve")
         }
-        XCTAssertEqual(rate.input,   1.00 * fx, accuracy: 0.01)
-        XCTAssertEqual(rate.output,  5.00 * fx, accuracy: 0.01)
-        XCTAssertEqual(rate.cache!,  0.10 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.input, 1.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.output, 5.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.cache!, 0.10 * fx, accuracy: 0.01)
     }
 
     /// Alias `claude-opus-4` (no .8) must map to the head revision (Opus 4.8).
@@ -336,7 +336,7 @@ final class PricingTableTests: XCTestCase {
             // like `claude-opus-4-7` would fall through to the Sonnet
             // representative and are intentionally NOT aliased.
             "claude-opus-4.8", "claude-opus-4",
-            "claude-haiku-4.5", "claude-haiku-4",
+            "claude-haiku-4.5", "claude-haiku-4"
         ]
         for m in known {
             XCTAssertNotNil(PricingTable.modelRate(for: m), "\(m) should resolve")
@@ -367,7 +367,7 @@ final class PricingTableTests: XCTestCase {
         guard let rate = PricingTable.modelRate(
             for: "mimo-v2.5-pro", provider: .openCodeGo
         ) else { return XCTFail("mimo-v2.5-pro under opencodeGo must resolve") }
-        XCTAssertEqual(rate.input,  1.74 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.input, 1.74 * fx, accuracy: 0.01)
         XCTAssertEqual(rate.output, 3.48 * fx, accuracy: 0.01)
         XCTAssertEqual(rate.cache!, 0.0145 * fx, accuracy: 0.001)
     }
@@ -377,7 +377,7 @@ final class PricingTableTests: XCTestCase {
         guard let rate = PricingTable.modelRate(
             for: "mimo-v2.5-pro", provider: .xiaomiTokenPlanCN
         ) else { return XCTFail("mimo-v2.5-pro under xiaomiTokenPlanCN must resolve") }
-        XCTAssertEqual(rate.input,  3.00, accuracy: 1e-9)
+        XCTAssertEqual(rate.input, 3.00, accuracy: 1e-9)
         XCTAssertEqual(rate.output, 6.00, accuracy: 1e-9)
         XCTAssertEqual(rate.cache!, 0.025, accuracy: 1e-9)
     }
@@ -392,7 +392,7 @@ final class PricingTableTests: XCTestCase {
                 for: "mimo-v2.5-pro", provider: .openCodeGo
               )
         else { return XCTFail("both lookups should resolve") }
-        XCTAssertEqual(agnostic.input,  viaProvider.input,  accuracy: 1e-9)
+        XCTAssertEqual(agnostic.input, viaProvider.input, accuracy: 1e-9)
         XCTAssertEqual(agnostic.output, viaProvider.output, accuracy: 1e-9)
         XCTAssertEqual(agnostic.cache!, viaProvider.cache!, accuracy: 1e-9)
         XCTAssertEqual(agnostic.input, 1.74 * fx, accuracy: 0.01)
@@ -406,7 +406,7 @@ final class PricingTableTests: XCTestCase {
         guard let rate = PricingTable.rate(for: .minimaxCN) else {
             return XCTFail(".minimaxCN must resolve to a representative rate")
         }
-        XCTAssertEqual(rate.input,  4.20, accuracy: 1e-9)
+        XCTAssertEqual(rate.input, 4.20, accuracy: 1e-9)
         XCTAssertEqual(rate.output, 16.80, accuracy: 1e-9)
         XCTAssertEqual(rate.cache!, 0.84, accuracy: 1e-9)
     }
@@ -417,7 +417,7 @@ final class PricingTableTests: XCTestCase {
         guard let rate = PricingTable.rate(for: .openCodeGo) else {
             return XCTFail(".openCodeGo must resolve post-t1.2 (was nil pre-t1.2)")
         }
-        XCTAssertEqual(rate.input,  1.74 * fx, accuracy: 1e-6)
+        XCTAssertEqual(rate.input, 1.74 * fx, accuracy: 1e-6)
         XCTAssertEqual(rate.output, 3.48 * fx, accuracy: 1e-6)
         XCTAssertEqual(rate.cache!, 0.0145 * fx, accuracy: 1e-6)
     }
@@ -428,7 +428,7 @@ final class PricingTableTests: XCTestCase {
         guard let rate = PricingTable.rate(for: .xiaomiTokenPlanCN) else {
             return XCTFail(".xiaomiTokenPlanCN must resolve")
         }
-        XCTAssertEqual(rate.input,  3.00, accuracy: 1e-9)
+        XCTAssertEqual(rate.input, 3.00, accuracy: 1e-9)
         XCTAssertEqual(rate.output, 6.00, accuracy: 1e-9)
         XCTAssertEqual(rate.cache!, 0.025, accuracy: 1e-9)
     }
@@ -452,7 +452,7 @@ final class PricingTableTests: XCTestCase {
             "gpt-5.4", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.4-nano",
             "gpt-4o",
             // Round 12 (2026-07-13): Anthropic Claude model-level rates.
-            "claude-opus-4.8", "claude-haiku-4.5",
+            "claude-opus-4.8", "claude-haiku-4.5"
         ]
         for m in knownModels {
             guard let rate = PricingTable.modelRate(for: m) else {

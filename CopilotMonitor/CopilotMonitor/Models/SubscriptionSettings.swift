@@ -168,31 +168,31 @@ struct ProviderSubscriptionPresets {
 
     // Kimi Global: 海外版订阅套餐
     static let kimiGlobal: [SubscriptionPreset] = [
-        SubscriptionPreset(name: "Moderato",   cost: 19),
+        SubscriptionPreset(name: "Moderato", cost: 19),
         SubscriptionPreset(name: "Allegretto", cost: 39),
-        SubscriptionPreset(name: "Allegro",    cost: 99),
-        SubscriptionPreset(name: "Vivace",     cost: 199)
+        SubscriptionPreset(name: "Allegro", cost: 99),
+        SubscriptionPreset(name: "Vivace", cost: 199)
     ]
 
     // Kimi 国内版
     static let kimiChina: [SubscriptionPreset] = [
-        SubscriptionPreset(name: "Andante",    cost: 0,   cnyCost: 49),
-        SubscriptionPreset(name: "Moderato",   cost: 19,  cnyCost: 99),
-        SubscriptionPreset(name: "Allegretto", cost: 39,  cnyCost: 199),
-        SubscriptionPreset(name: "Allegro",    cost: 99,  cnyCost: 699)
+        SubscriptionPreset(name: "Andante", cost: 0, cnyCost: 49),
+        SubscriptionPreset(name: "Moderato", cost: 19, cnyCost: 99),
+        SubscriptionPreset(name: "Allegretto", cost: 39, cnyCost: 199),
+        SubscriptionPreset(name: "Allegro", cost: 99, cnyCost: 699)
     ]
 
     // MiniMax 海外版
     static let minimaxGlobal: [SubscriptionPreset] = [
-        SubscriptionPreset(name: "Plus",  cost: 20),
-        SubscriptionPreset(name: "Max",   cost: 50),
+        SubscriptionPreset(name: "Plus", cost: 20),
+        SubscriptionPreset(name: "Max", cost: 50),
         SubscriptionPreset(name: "Ultra", cost: 120)
     ]
 
     // MiniMax 国内版
     static let minimaxChina: [SubscriptionPreset] = [
-        SubscriptionPreset(name: "Plus",  cost: 20, cnyCost: 49),
-        SubscriptionPreset(name: "Max",   cost: 50, cnyCost: 119),
+        SubscriptionPreset(name: "Plus", cost: 20, cnyCost: 49),
+        SubscriptionPreset(name: "Max", cost: 50, cnyCost: 119),
         SubscriptionPreset(name: "Ultra", cost: 120, cnyCost: 469)
     ]
 
@@ -245,36 +245,36 @@ struct ProviderSubscriptionPresets {
     // MiMo is a CN provider (region defaults to .china in ProviderProtocol.region);
     // cnyCost reflects CNY pricing tiers and is surfaced directly in RMB mode.
     static let mimo: [SubscriptionPreset] = [
-        SubscriptionPreset(name: "Lite",     cost: 6,   cnyCost: 39),
-        SubscriptionPreset(name: "Standard", cost: 16,  cnyCost: 99),
-        SubscriptionPreset(name: "Pro",      cost: 50,  cnyCost: 329),
-        SubscriptionPreset(name: "Max",      cost: 100, cnyCost: 659)
+        SubscriptionPreset(name: "Lite", cost: 6, cnyCost: 39),
+        SubscriptionPreset(name: "Standard", cost: 16, cnyCost: 99),
+        SubscriptionPreset(name: "Pro", cost: 50, cnyCost: 329),
+        SubscriptionPreset(name: "Max", cost: 100, cnyCost: 659)
     ]
 
     // 新增：火山 Ark（国内 CNY 套餐，USD 为近似折算，用于总费用汇总）
     private static let volcanoUSDMultiplier = 1.0 / 7.2
     static let volcanoArk: [SubscriptionPreset] = [
-        SubscriptionPreset(name: "Agent Plan Small",  cost: 40 * volcanoUSDMultiplier, cnyCost: 40),
+        SubscriptionPreset(name: "Agent Plan Small", cost: 40 * volcanoUSDMultiplier, cnyCost: 40),
         SubscriptionPreset(name: "Agent Plan Medium", cost: 200 * volcanoUSDMultiplier, cnyCost: 200),
-        SubscriptionPreset(name: "Agent Plan Large",  cost: 500 * volcanoUSDMultiplier, cnyCost: 500),
-        SubscriptionPreset(name: "Agent Plan Max",    cost: 1000 * volcanoUSDMultiplier, cnyCost: 1000)
+        SubscriptionPreset(name: "Agent Plan Large", cost: 500 * volcanoUSDMultiplier, cnyCost: 500),
+        SubscriptionPreset(name: "Agent Plan Max", cost: 1000 * volcanoUSDMultiplier, cnyCost: 1000)
     ]
 
     // 新增：腾讯混元 Token Plan（国内 CNY 套餐）
     private static let hunyuanUSDMultiplier = 1.0 / 7.2
     static let hunyuan: [SubscriptionPreset] = [
-        SubscriptionPreset(name: "Lite",     cost: 39 * hunyuanUSDMultiplier, cnyCost: 39),
+        SubscriptionPreset(name: "Lite", cost: 39 * hunyuanUSDMultiplier, cnyCost: 39),
         SubscriptionPreset(name: "Standard", cost: 99 * hunyuanUSDMultiplier, cnyCost: 99),
-        SubscriptionPreset(name: "Pro",      cost: 299 * hunyuanUSDMultiplier, cnyCost: 299),
-        SubscriptionPreset(name: "Max",      cost: 599 * hunyuanUSDMultiplier, cnyCost: 599)
+        SubscriptionPreset(name: "Pro", cost: 299 * hunyuanUSDMultiplier, cnyCost: 299),
+        SubscriptionPreset(name: "Max", cost: 599 * hunyuanUSDMultiplier, cnyCost: 599)
     ]
 
     // 新增：智谱 GLM Coding Plan（国内 CNY 套餐）
     private static let zhipuUSDMultiplier = 1.0 / 7.2
     static let zhipuGLM: [SubscriptionPreset] = [
         SubscriptionPreset(name: "Lite", cost: 49 * zhipuUSDMultiplier, cnyCost: 49),
-        SubscriptionPreset(name: "Pro",  cost: 149 * zhipuUSDMultiplier, cnyCost: 149),
-        SubscriptionPreset(name: "Max",  cost: 469 * zhipuUSDMultiplier, cnyCost: 469)
+        SubscriptionPreset(name: "Pro", cost: 149 * zhipuUSDMultiplier, cnyCost: 149),
+        SubscriptionPreset(name: "Max", cost: 469 * zhipuUSDMultiplier, cnyCost: 469)
     ]
 
     // MARK: - Lookup
@@ -350,9 +350,9 @@ struct ProviderSubscriptionPresets {
     }
 
     private static let legacyMiniMaxNameMap: [String: String] = [
-        "Starter":  "Plus",
-        "Plus HS":  "Plus",
-        "Max HS":   "Max",
+        "Starter": "Plus",
+        "Plus HS": "Plus",
+        "Max HS": "Max",
         "Ultra HS": "Ultra"
     ]
 }

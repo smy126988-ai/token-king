@@ -60,7 +60,6 @@ struct OpenAIAccessTokenPayload: Decodable {
     }
 }
 
-
 extension String {
     var nilIfEmpty: String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
@@ -167,7 +166,6 @@ final class TokenManager: @unchecked Sendable {
     // OpenCode / Codex / codex-lb auth readers and shared JSON helpers are
     // defined in `TokenManagerOpenCodeCodexAuth.swift` as an extension of this
     // class. See the matching `// MARK: -` sections in that file.
-
 
     // Provider-specific auth readers, token accessors, OAuth token refresh, and
     // debug environment info helpers are defined in `TokenManagerProviderAuth.swift`

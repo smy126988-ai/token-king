@@ -233,9 +233,9 @@ enum PricingTable {
         // V4-Pro 1/120 of Go input, V4-Flash 1/50 of Go input.
         case "deepseek-v4-pro":
             return PayAsYouGoRate(
-                input:  1.74 * fx,
+                input: 1.74 * fx,
                 output: 3.48 * fx,
-                cache:   0.0145 * fx
+                cache: 0.0145 * fx
             )
         case "deepseek-v4-flash", "deepseek-v4-flash-free":
             // opencode-go names the model "deepseek-v4-flash"; the
@@ -244,9 +244,9 @@ enum PricingTable {
             // API's "deepseek-v4-flash-free" is a separate free tier
             // that does NOT apply through opencode-go.)
             return PayAsYouGoRate(
-                input:  0.14 * fx,
+                input: 0.14 * fx,
                 output: 0.28 * fx,
-                cache:  0.0028 * fx
+                cache: 0.0028 * fx
             )
 
         // MiniMax-M3 direct API via the user's own key. China-domestic
@@ -262,9 +262,9 @@ enum PricingTable {
         // (captured 2026-07-13).
         case "MiniMax-M3", "minimax-m3":
             return PayAsYouGoRate(
-                input:   4.20,
+                input: 4.20,
                 output: 16.80,
-                cache:   0.84
+                cache: 0.84
             )
 
         // GPT-5.6 family (released GA 2026-07-09). Headline routes:
@@ -273,9 +273,9 @@ enum PricingTable {
             // (rarely hit in practice; F2b does not currently distinguish
             // context-size tiers). USD list price $5.00 / $0.50 / $30.00.
             return PayAsYouGoRate(
-                input:  5.00 * fx,
+                input: 5.00 * fx,
                 output: 30.00 * fx,
-                cache:   0.50 * fx
+                cache: 0.50 * fx
             )
 
         // gpt-4o: legacy canonical model. Lives both in
@@ -285,9 +285,9 @@ enum PricingTable {
         // modelRate query returns nil. Public list $2.50 / $10.00 / $1.25.
         case "gpt-4o":
             return PayAsYouGoRate(
-                input:   2.50 * fx,
+                input: 2.50 * fx,
                 output: 10.00 * fx,
-                cache:   1.25 * fx
+                cache: 1.25 * fx
             )
 
         // Kimi Code subscription alias. The model name reported by
@@ -302,9 +302,9 @@ enum PricingTable {
         // under-cost on kimiCode 7月 totals.
         case "kimi-code/kimi-for-coding", "kimi-for-coding", "kimi-k2-7-code":
             return PayAsYouGoRate(
-                input:   6.50,
+                input: 6.50,
                 output: 27.00,
-                cache:   1.30
+                cache: 1.30
             )
 
         // OpenCode Go qwen3.7-max (opencode-go tier). Source:
@@ -316,9 +316,9 @@ enum PricingTable {
         // pricing line.
         case "qwen3.7-max":
             return PayAsYouGoRate(
-                input:  2.50 * fx,
-                output:  7.50 * fx,
-                cache:   0.50 * fx
+                input: 2.50 * fx,
+                output: 7.50 * fx,
+                cache: 0.50 * fx
             )
 
         // MiMo-V2.5-Pro through opencode-go. Source:
@@ -332,17 +332,17 @@ enum PricingTable {
         // Xiaomi's direct-API rate (¥3.00 / ¥6.00 / ¥0.025) is ~4× cheaper.
         case "mimo-v2.5-pro":
             return PayAsYouGoRate(
-                input:  1.74 * fx,
-                output:  3.48 * fx,
-                cache:   0.0145 * fx
+                input: 1.74 * fx,
+                output: 3.48 * fx,
+                cache: 0.0145 * fx
             )
 
         // MiMo-V2.5 base via opencode-go (same USD as deepseek-v4-flash).
         case "mimo-v2.5":
             return PayAsYouGoRate(
-                input:  0.14 * fx,
-                output:  0.28 * fx,
-                cache:   0.0028 * fx
+                input: 0.14 * fx,
+                output: 0.28 * fx,
+                cache: 0.0028 * fx
             )
 
         // Anthropic Claude model-level rates (round 12, 2026-07-13).
@@ -376,32 +376,32 @@ enum PricingTable {
         case "claude-opus-4.8", "claude-opus-4":
             // USD $5.00 / $25.00; cache write $6.25, cache read $0.50.
             return PayAsYouGoRate(
-                input:   5.00 * fx,
+                input: 5.00 * fx,
                 output: 25.00 * fx,
-                cache:   0.50 * fx
+                cache: 0.50 * fx
             )
         case "claude-haiku-4.5", "claude-haiku-4":
             // USD $1.00 / $5.00; cache write $1.25, cache read $0.10.
             return PayAsYouGoRate(
-                input:   1.00 * fx,
-                output:  5.00 * fx,
-                cache:   0.10 * fx
+                input: 1.00 * fx,
+                output: 5.00 * fx,
+                cache: 0.10 * fx
             )
 
         case "gpt-5.6-terra":
             // USD list: $2.50 / $0.25 / $15.00.
             return PayAsYouGoRate(
-                input:  2.50 * fx,
+                input: 2.50 * fx,
                 output: 15.00 * fx,
-                cache:   0.25 * fx
+                cache: 0.25 * fx
             )
 
         case "gpt-5.6-luna":
             // USD list: $1.00 / $0.10 / $6.00.
             return PayAsYouGoRate(
-                input:  1.00 * fx,
-                output:  6.00 * fx,
-                cache:   0.10 * fx
+                input: 1.00 * fx,
+                output: 6.00 * fx,
+                cache: 0.10 * fx
             )
 
         // GPT-5.5 family (Standard tier, synchronous API). >272K ctx
@@ -410,48 +410,48 @@ enum PricingTable {
         case "gpt-5.5":
             // USD list: $5.00 / $0.50 / $30.00.
             return PayAsYouGoRate(
-                input:  5.00 * fx,
+                input: 5.00 * fx,
                 output: 30.00 * fx,
-                cache:   0.50 * fx
+                cache: 0.50 * fx
             )
         case "gpt-5.5-pro":
             // Pro variant is 6× input / output of plain 5.5; no public
             // cache-read line on the Standard page.
             // USD list: $30.00 / no-cache / $180.00.
             return PayAsYouGoRate(
-                input:  30.00 * fx,
+                input: 30.00 * fx,
                 output: 180.00 * fx,
-                cache:  nil
+                cache: nil
             )
 
         // GPT-5.4 family. Standard tier.
         case "gpt-5.4":
             // USD list: $2.50 / $0.25 / $15.00.
             return PayAsYouGoRate(
-                input:  2.50 * fx,
+                input: 2.50 * fx,
                 output: 15.00 * fx,
-                cache:   0.25 * fx
+                cache: 0.25 * fx
             )
         case "gpt-5.4-pro":
             // USD list: $30.00 / no-cache / $180.00.
             return PayAsYouGoRate(
-                input:  30.00 * fx,
+                input: 30.00 * fx,
                 output: 180.00 * fx,
-                cache:  nil
+                cache: nil
             )
         case "gpt-5.4-mini":
             // USD list: $0.75 / $0.075 / $4.50.
             return PayAsYouGoRate(
-                input:  0.75 * fx,
-                output:  4.50 * fx,
-                cache:   0.075 * fx
+                input: 0.75 * fx,
+                output: 4.50 * fx,
+                cache: 0.075 * fx
             )
         case "gpt-5.4-nano":
             // USD list: $0.20 / $0.02 / $1.25.
             return PayAsYouGoRate(
-                input:  0.20 * fx,
-                output:  1.25 * fx,
-                cache:   0.02 * fx
+                input: 0.20 * fx,
+                output: 1.25 * fx,
+                cache: 0.02 * fx
             )
 
         // Unknown model — caller falls back to provider-level rate.
@@ -488,9 +488,9 @@ enum PricingTable {
             // Source: https://mimo.mi.com/docs/en-US/price/pay-as-you-go
             // (updated 2026-06-29, captured 2026-07-13 for t1.2).
             return PayAsYouGoRate(
-                input:  3.00,
+                input: 3.00,
                 output: 6.00,
-                cache:  0.025
+                cache: 0.025
             )
         default:
             // No provider-specific override; fall back to the provider-

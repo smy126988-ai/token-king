@@ -108,7 +108,7 @@ final class ProviderMenuBuilderF1F3Tests: XCTestCase {
             DayAggregate(provider: "kimi", model: "kimi-k2.5", day: "2026-07-08", tokens: TokenBreakdown(input: 100, output: 50)),
             DayAggregate(provider: "kimi", model: "kimi-k2.5", day: "2026-07-09", tokens: TokenBreakdown(input: 200, output: 100)),
             DayAggregate(provider: "kimi", model: "kimi-k2.6", day: "2026-07-08", tokens: TokenBreakdown(input: 300, output: 150)),
-            DayAggregate(provider: "kimi", model: "kimi-k2.6", day: "2026-07-09", tokens: TokenBreakdown(input: 400, output: 200)),
+            DayAggregate(provider: "kimi", model: "kimi-k2.6", day: "2026-07-09", tokens: TokenBreakdown(input: 400, output: 200))
         ]
         let menu = NSMenu()
         controller.appendF1TokenBlocks(to: menu, identifier: .kimi, dayAggregates: aggregates)

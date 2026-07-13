@@ -1,10 +1,10 @@
 import XCTest
 @testable import OpenCode_Bar
 
-final class SubscriptionSettingsManagerIsolationTests: XCTestCase {
+final class SubscriptionSettingsIsolationTests: XCTestCase {
 
     private func freshSuite(_ suffix: String = "B12") -> (name: String, suite: UserDefaults) {
-        let name = "SubscriptionSettingsManagerIsolationTests.\(suffix).\(UUID().uuidString)"
+        let name = "SubscriptionSettingsIsolationTests.\(suffix).\(UUID().uuidString)"
         let suite = UserDefaults(suiteName: name)!
         suite.removePersistentDomain(forName: name)
         return (name, suite)
@@ -69,7 +69,7 @@ final class SubscriptionSettingsManagerIsolationTests: XCTestCase {
         let managerB = SubscriptionSettingsManager(defaults: suiteB)
 
         managerA.setPlan(.preset("Plus", 20), forKey: "minimax_coding_plan.b12-A-only@example.com")
-        managerB.setPlan(.preset("Max", 50),  forKey: "kimi_cn.b12-B-only@example.com")
+        managerB.setPlan(.preset("Max", 50), forKey: "kimi_cn.b12-B-only@example.com")
 
         let aKeys = managerA.getAllSubscriptionKeys()
         let bKeys = managerB.getAllSubscriptionKeys()

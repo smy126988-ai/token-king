@@ -30,9 +30,13 @@ opt_in_rules:
 
 excluded:
   - .build
+  - build
+  - dd
   - DerivedData
   - Pods
   - Carthage
   - Package.swift
+  - .worktrees
+  - .swarm
 
 reporter: xcode

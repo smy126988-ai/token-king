@@ -67,7 +67,7 @@ struct ZAIExtractor: TokenExtractorProtocol {
         }
         let candidates = [
             "\(NSHomeDirectory())/.kimi/credentials/zai-token",
-            "\(NSHomeDirectory())/.config/zai/token",
+            "\(NSHomeDirectory())/.config/zai/token"
         ]
         for path in candidates {
             if let value = try? String(contentsOfFile: path, encoding: .utf8) {

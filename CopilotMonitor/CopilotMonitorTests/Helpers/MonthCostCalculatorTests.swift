@@ -228,7 +228,7 @@ final class MonthCostCalculatorTests: XCTestCase {
                 model: "claude-sonnet-4-5",
                 tokens: TokenBreakdown(input: 1_000_000, output: 100_000),
                 yearMonth: "2026-07"
-            ),
+            )
         ]
         let totals = calc.calculateMonthlyTotals(aggs)
         XCTAssertEqual(totals.count, 2)
@@ -272,7 +272,7 @@ final class MonthCostCalculatorTests: XCTestCase {
                 model: "auto",
                 tokens: TokenBreakdown(input: 1_000_000),
                 yearMonth: "2026-07"
-            ),
+            )
         ]
         let totals = calc.calculateMonthlyTotals(aggs)
         XCTAssertEqual(totals.count, 2, "should keep openrouter row visible even when unpriced")
@@ -470,7 +470,7 @@ final class MonthCostCalculatorTests: XCTestCase {
                            yearMonth: "2026-07"),
             MonthAggregate(provider: "codex", model: "gpt-5.6-terra",
                            tokens: TokenBreakdown(input: 1_000_000),
-                           yearMonth: "2026-07"),
+                           yearMonth: "2026-07")
         ]
         let totals = calc.calculateMonthlyTotals(aggs)
         let codex = totals.first(where: { $0.provider == "codex" })
@@ -511,7 +511,7 @@ final class MonthCostCalculatorTests: XCTestCase {
                            yearMonth: "2026-07"),
             MonthAggregate(provider: "kimi", model: "kimi-k2.6",
                            tokens: TokenBreakdown(input: 1_000_000),
-                           yearMonth: "2026-07"),
+                           yearMonth: "2026-07")
         ]
         let totals = calc.calculateMonthlyTotals(aggs)
         XCTAssertEqual(totals.count, 2)
@@ -679,7 +679,7 @@ final class MonthCostCalculatorTests: XCTestCase {
                            yearMonth: "2026-07"),
             MonthAggregate(provider: "xiaomiTokenPlanCN", model: "mimo-v2.5-pro",
                            tokens: TokenBreakdown(input: 1_000_000),
-                           yearMonth: "2026-07"),
+                           yearMonth: "2026-07")
         ]
         let totals = calc.calculateMonthlyTotals(aggs)
         XCTAssertEqual(totals.count, 3, "all 3 new providers should appear in totals")
@@ -739,7 +739,7 @@ final class MonthCostCalculatorTests: XCTestCase {
             // Xiaomi direct CNY: ¥3.00 / ¥6.00 / ¥0.025 ≈ ¥74.13
             MonthAggregate(provider: "xiaomiTokenPlanCN", model: "mimo-v2.5-pro",
                            tokens: TokenBreakdown(input: 16_056_695, output: 860_000, cacheRead: 832_160_704),
-                           yearMonth: "2026-07"),
+                           yearMonth: "2026-07")
         ]
         let totals = calc.calculateMonthlyTotals(aggs)
         XCTAssertEqual(totals.count, 3,
