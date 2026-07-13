@@ -13,27 +13,39 @@ help:
 	@echo "  make lint           - Run all linters"
 	@echo "  make lint-swift     - Run SwiftLint only"
 	@echo "  make lint-actions   - Run action-validator only"
-	@echo "  make version        - Inject git-describe version into Info.plist"
-	@echo "  make version-check  - Verify Info.plist version matches git (CI gate)"
+	@echo "  make version        - Inject git-describe version into source Info.plist"
+	@echo "  make version-check  - Build and verify the built Info.plist matches git"
 	@echo "  make version-show   - Print current git-derived version"
 
 # =============================================================================
 # Build & Install (personal fork — ad-hoc signed, installed to /Applications)
 # =============================================================================
-release: version
+release:
 	@bash scripts/build-and-install.sh
 
 run: release
 	@open "/Applications/Token King.app"
 
 # =============================================================================
-# Version single source of truth (git describe -> Info.plist)
+# Version single source of truth (git describe -> build artifact Info.plist)
 # =============================================================================
 version:
 	@bash scripts/inject-version.sh
 
 version-check:
-	@bash scripts/inject-version.sh --check
+	@DERIVED=/tmp/tk-version-check; \
+	rm -rf "$$DERIVED"; \
+	xcodebuild build \
+		-project CopilotMonitor/CopilotMonitor.xcodeproj \
+		-scheme CopilotMonitor \
+		-configuration Debug \
+		-derivedDataPath "$$DERIVED" \
+		-destination 'platform=macOS' >/dev/null 2>&1; \
+	PLIST="$$DERIVED/Build/Products/Debug/Token King.app/Contents/Info.plist"; \
+	bash scripts/inject-version.sh --check "$$PLIST"; \
+	RC=$$?; \
+	rm -rf "$$DERIVED"; \
+	exit $$RC
 
 version-show:
 	@git describe --tags --always --dirty 2>/dev/null || echo "0.0.0-unknown"

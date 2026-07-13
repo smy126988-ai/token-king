@@ -2,16 +2,23 @@
 # ============================================================================
 # scripts/inject-version.sh
 # ============================================================================
-# Single source of truth for app version. Replaces hardcoded version strings
-# in Info.plist with values derived from git:
+# Single source of truth for app version. Writes git-derived values into the
+# target Info.plist without modifying the source working tree when the target
+# is a build artifact (e.g. $TARGET_BUILD_DIR/$INFOPLIST_PATH).
+#
+# Injected keys:
 #   - CFBundleShortVersionString: tag portion (e.g. "2.13.0")
 #   - CFBundleVersion:            commit count since tag (e.g. "5")
-#   - GitCommitHash:               short SHA (e.g. "a1b2c3d")
+#   - GitCommitHash:              short SHA (e.g. "a1b2c3d")
 #
 # Usage:
-#   scripts/inject-version.sh [--info-plist PATH] [--check]
+#   scripts/inject-version.sh [TARGET_PLIST] [--check]
+#   scripts/inject-version.sh --info-plist PATH [--check]
 #
-# --check: only verify the values match git; do not modify Info.plist.
+#   Xcode build phase example:
+#     bash "$SRCROOT/scripts/inject-version.sh" "$TARGET_BUILD_DIR/$INFOPLIST_PATH"
+#
+# --check: only verify the target values match git; do not modify the plist.
 #          Exits 0 if matched, 1 otherwise (for CI gating).
 #
 # Environment overrides (used by tests):
@@ -24,15 +31,34 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-INFO_PLIST="$REPO_ROOT/CopilotMonitor/CopilotMonitor/Info.plist"
+SOURCE_PLIST="$REPO_ROOT/CopilotMonitor/CopilotMonitor/Info.plist"
 MODE="write"
+
+# Default target: build artifact when Xcode env vars are present, otherwise the
+# source Info.plist. Callers (e.g. the Xcode build phase) should pass the
+# artifact path explicitly to avoid relying on defaults.
+if [ -n "${TARGET_BUILD_DIR:-}" ] && [ -n "${INFOPLIST_PATH:-}" ]; then
+  INFO_PLIST="$TARGET_BUILD_DIR/$INFOPLIST_PATH"
+else
+  INFO_PLIST="$SOURCE_PLIST"
+fi
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --info-plist) INFO_PLIST="$2"; shift 2 ;;
     --check) MODE="check"; shift ;;
-    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
-    *) echo "Unknown arg: $1" >&2; exit 2 ;;
+    -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
+    --*) echo "Unknown flag: $1" >&2; exit 2 ;;
+    *)
+      # Positional argument is the target plist path.
+      if [ -f "$1" ]; then
+        INFO_PLIST="$1"
+        shift
+      else
+        echo "Unknown arg or missing file: $1" >&2
+        exit 2
+      fi
+      ;;
   esac
 done
 

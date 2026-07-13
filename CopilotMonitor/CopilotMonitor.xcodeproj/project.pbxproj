@@ -955,6 +955,7 @@
 /* Begin PBXShellScriptBuildPhase section */
 		99B4F502FF874C55842630C0E0F9A031 /* Inject Git Hash */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -966,11 +967,10 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(INFOPLIST_FILE)",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "GIT_HASH=$(git -C \"$SRCROOT\" rev-parse HEAD 2>/dev/null || echo \"unknown\")\nPLIST=\"$SRCROOT/$INFOPLIST_FILE\"\n/usr/libexec/PlistBuddy -c \"Delete :GitCommitHash\" \"$PLIST\" 2>/dev/null || true\n/usr/libexec/PlistBuddy -c \"Add :GitCommitHash string $GIT_HASH\" \"$PLIST\"\n";
+			shellScript = "bash \"$SRCROOT/../scripts/inject-version.sh\" \"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
