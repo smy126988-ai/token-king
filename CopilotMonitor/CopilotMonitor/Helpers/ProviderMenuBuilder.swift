@@ -623,6 +623,17 @@ extension StatusBarController {
             submenu.addItem(noteItem)
             addSubscriptionItems(to: submenu, provider: identifier, accountId: subscriptionAccountId)
 
+        case .minimaxCN, .xiaomiTokenPlanCN:
+            // t1.2: raw-API rate-tracking providers. No live quota window
+            // surfaced in the UI today — costs are aggregated via F2b
+            // MonthCostCalculator and shown in the global cost section.
+            let noteItem = NSMenuItem()
+            noteItem.view = createDisabledLabelView(
+                text: "用量按 token 计费，详见 F2b 月度成本",
+                textColor: .secondaryLabelColor
+            )
+            submenu.addItem(noteItem)
+
         case .openCodeGo:
             if let fiveHour = details.fiveHourUsage {
                 let items = createUsageWindowRow(

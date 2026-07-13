@@ -1247,6 +1247,9 @@ final class StatusBarController: NSObject {
         case .codex: return "codex"
         case .zaiCodingPlan: return "zai"
         case .nanoGpt: return "nanogpt"
+        case .minimaxCN: return "minimaxCN"
+        case .openCodeGo: return "opencodeGo"
+        case .xiaomiTokenPlanCN: return "xiaomiTokenPlanCN"
         default: return nil
         }
     }
@@ -1264,6 +1267,9 @@ final class StatusBarController: NSObject {
         case .codex:          return "codex"
         case .zaiCodingPlan:  return "zai"
         case .nanoGpt:        return "nanogpt"
+        case .minimaxCN:         return "minimaxCN"
+        case .openCodeGo:        return "opencodeGo"
+        case .xiaomiTokenPlanCN: return "xiaomiTokenPlanCN"
         default:              return nil
         }
     }
@@ -1367,10 +1373,10 @@ final class StatusBarController: NSObject {
         case .volcanoArk, .mimo, .hunyuan, .zhipuGLM:
             add(details?.sevenDayUsage, priority: .weekly)
             add(details?.fiveHourUsage, priority: .hourly)
-        case .openCodeGo:
-            add(details?.openCodeGoMonthlyUsage, priority: .monthly)
-            add(details?.sevenDayUsage, priority: .weekly)
-            add(details?.fiveHourUsage, priority: .hourly)
+        case .openCodeGo, .minimaxCN, .xiaomiTokenPlanCN:
+            // t1.2: raw-API rate-tracking providers don't have live quota
+            // windows (they're tokens-priced). Don't add candidates here.
+            break
         case .kiro:
             add(usage.usagePercentage, priority: .monthly)
         case .grok:
@@ -3450,6 +3456,10 @@ final class StatusBarController: NSObject {
             return ("chutes", "~/.local/share/opencode/auth.json")
         case .mimo:
             return ("mimo-for-coding", "~/.local/share/opencode/auth.json")
+        case .minimaxCN:
+            return ("minimax-cn", "~/.local/share/opencode/auth.json")
+        case .xiaomiTokenPlanCN:
+            return ("xiaomi-token-plan-cn", "~/.local/share/opencode/auth.json")
         case .volcanoArk:
             return ("volcano-ark (格式: AK:SK)", "~/.local/share/opencode/auth.json")
         case .hunyuan:
@@ -3795,6 +3805,10 @@ final class StatusBarController: NSObject {
         case .braveSearch:
             image = NSImage(named: "BraveSearchIcon")
         case .mimo, .volcanoArk, .hunyuan, .zhipuGLM:
+            image = NSImage(systemSymbolName: identifier.iconName, accessibilityDescription: identifier.displayName)
+        case .minimaxCN:
+            image = NSImage(named: "MinimaxIcon")
+        case .xiaomiTokenPlanCN:
             image = NSImage(systemSymbolName: identifier.iconName, accessibilityDescription: identifier.displayName)
         }
 
