@@ -1,13 +1,20 @@
 > **Token King** — a personal, learning-purpose fork of
 > [opgginc/opencode-bar](https://github.com/opgginc/opencode-bar) (MIT License).
-> All credit for the original work goes to OP.GG. This fork adds multi-key,
-> multi-engine, RMB currency, Chinese UI, and a desktop widget for personal use.
+> All credit for the original work goes to OP.GG.
+>
+> **本 fork 与 upstream 的差异**:
+> - **Distribution**: 此 fork 由 `smy126988-ai/token-king` 独立打包与发布,不走 upstream 的 Homebrew Cask / Releases
+> - **Branding**: bundle id `com.tokenking.app`、display name `Token King`(upstream 为 `com.copilotmonitor.CopilotMonitor` / `OpenCode Bar`)
+> - **i18n**: 允许中文 UI(upstream 强制仅英文)
+> - **Currency**: 增加 RMB 与汇率换算(upstream 仅 USD)
+> - **Personal extensions**: 多 key / 多 engine / 桌面 widget 等个人增强
+> - **Version single source of truth**: 版本号由 `git describe --tags --always --dirty` 注入,不再硬编码到 `Info.plist`
 
 ---
 
 <p align="center">
-  <img src="docs/screenshot-subscription.png" alt="OpenCode Bar Screenshot" width="40%">
-  <img src="docs/screenshot3.png" alt="OpenCode Bar Screenshot" width="40%">
+  <img src="docs/screenshot-subscription.png" alt="Token King Screenshot" width="40%">
+  <img src="docs/screenshot3.png" alt="Token King Screenshot" width="40%">
 </p>
 
 <p align="center">
@@ -15,11 +22,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/opgginc/opencode-bar/releases/latest">
-    <img src="https://img.shields.io/github/v/release/opgginc/opencode-bar?style=flat-square" alt="Release">
+  <a href="https://github.com/smy126988-ai/token-king/releases/latest">
+    <img src="https://img.shields.io/github/v/release/smy126988-ai/token-king?style=flat-square" alt="Release">
   </a>
-  <a href="https://github.com/opgginc/opencode-bar/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/opgginc/opencode-bar?style=flat-square" alt="License">
+  <a href="https://github.com/smy126988-ai/token-king/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/smy126988-ai/token-king?style=flat-square" alt="License">
   </a>
   <img src="https://img.shields.io/badge/platform-macOS%2013%2B-blue?style=flat-square" alt="Platform">
   <img src="https://img.shields.io/badge/swift-5.9-orange?style=flat-square" alt="Swift">
@@ -29,19 +36,21 @@
 
 ## Installation
 
-### Homebrew (Easy)
+### Download (fork cask not published yet)
 
 ```bash
-brew install --cask opgginc/tap/opencode-bar
+# Upstream Homebrew Cask does NOT publish Token King.
+# Use the DMG below instead.
+# (When a fork tap is created: `brew install --cask smy126988-ai/tap/token-king`)
 ```
 
 ### Download
 
-Download the latest `.dmg` file from the [**Releases**](https://github.com/opgginc/opencode-bar/releases/latest) page.
+Download the latest `Token-King-x.y.z.dmg` from the [**Releases**](https://github.com/smy126988-ai/token-king/releases/latest) page.
 
 ## Overview
 
-**OpenCode Bar** automatically detects and monitors all AI providers registered in your [OpenCode](https://opencode.ai) configuration. No manual setup required - just install and see your usage across all providers in one unified dashboard.
+**Token King** automatically detects and monitors all AI providers registered in your [OpenCode](https://opencode.ai) configuration. No manual setup required - just install and see your usage across all providers in one unified dashboard.
 
 ### Supported Providers (Auto-detected from OpenCode)
 
@@ -130,15 +139,15 @@ Download the latest `.dmg` file from the [**Releases**](https://github.com/opggi
 
 ```bash
 # Clone the repository
-git clone https://github.com/opgginc/opencode-bar.git
-cd opencode-bar
+git clone https://github.com/smy126988-ai/token-king.git
+cd token-king
 
 # Build
 xcodebuild -project CopilotMonitor/CopilotMonitor.xcodeproj \
   -scheme CopilotMonitor -configuration Debug build
 
 # Open the app (auto-detect path)
-open "$(xcodebuild -project CopilotMonitor/CopilotMonitor.xcodeproj -scheme CopilotMonitor -configuration Debug -showBuildSettings 2>/dev/null | sed -n 's/^[[:space:]]*BUILT_PRODUCTS_DIR = //p' | head -n 1)/OpenCode Bar.app"
+open "$(xcodebuild -project CopilotMonitor/CopilotMonitor.xcodeproj -scheme CopilotMonitor -configuration Debug -showBuildSettings 2>/dev/null | sed -n 's/^[[:space:]]*BUILT_PRODUCTS_DIR = //p' | head -n 1)/Token King.app"
 ```
 
 **Requirements:**
@@ -151,13 +160,13 @@ open "$(xcodebuild -project CopilotMonitor/CopilotMonitor.xcodeproj -scheme Copi
 ### Menu Bar App
 
 1. **Install OpenCode**: Make sure you have OpenCode installed and authenticated with your providers
-2. **Launch the app**: Run OpenCode Bar
+2. **Launch the app**: Run Token King
 3. **View usage**: Click the menu bar icon to see all your provider usage
 4. **GitHub Copilot** (optional): Automatically detected from multiple sources — OpenCode auth, Copilot CLI Keychain, VS Code/Cursor config files, and browser cookies (Chrome, Brave, Arc, Edge). Multiple accounts are deduplicated automatically.
 
 ### Command Line Interface (CLI)
 
-OpenCode Bar includes a powerful CLI for querying provider usage programmatically.
+Token King includes a powerful CLI for querying provider usage programmatically.
 
 #### Installation
 
@@ -217,20 +226,20 @@ OpenRouter            Pay-as-you-go    -           $37.42 spent
 #### MiniMax Notes
 
 - MiniMax Coding Plan is resolved from the OpenCode auth entry `minimax-coding-plan` in `auth.json`.
-- OpenCode Bar uses the Coding Plan remains endpoint and converts it into used percentages for the menu bar app and CLI.
-- MiniMax response fields `current_interval_usage_count` and `current_weekly_usage_count` behave as remaining counts despite their names, so OpenCode Bar calculates used percent as `total - remaining`.
+- Token King uses the Coding Plan remains endpoint and converts it into used percentages for the menu bar app and CLI.
+- MiniMax response fields `current_interval_usage_count` and `current_weekly_usage_count` behave as remaining counts despite their names, so Token King calculates used percent as `total - remaining`.
 
 #### OpenCode Go Notes
 
 - OpenCode Go is resolved from the OpenCode auth entry `opencode-go` in `auth.json`.
-- OpenCode Bar validates the API key against `https://opencode.ai/zen/go/v1/models`.
+- Token King validates the API key against `https://opencode.ai/zen/go/v1/models`.
 - Usage windows come from the OpenCode dashboard and require `OPENCODE_GO_WORKSPACE_ID` plus `OPENCODE_GO_AUTH_COOKIE`, or `~/.config/opencode-bar/opencode-go.json`.
 - The monthly dashboard window is a usage cap signal; the app's subscription preset for the Go plan remains `$10.00`.
 
 #### Grok Notes
 
 - Grok is resolved from `~/.grok/auth.json`; run `grok login` before using this provider.
-- OpenCode Bar prefers the OIDC record whose scope starts with `https://auth.x.ai::` and stores subscription settings by the normalized email address.
+- Token King prefers the OIDC record whose scope starts with `https://auth.x.ai::` and stores subscription settings by the normalized email address.
 - Billing usage comes from Grok's gRPC-web billing endpoint with the Grok CLI bearer token. Local `~/.grok/sessions/**/signals.json` files are summarized for recent session/token details.
 
 #### JSON Output Example
@@ -365,7 +374,7 @@ Quit (⌘Q)
 - **Show Provider Icon**: Toggle on/off to append the selected provider icon in the status bar.
 
 > **Status Bar Icon Behavior**:
-> The primary OpenCode Bar status icon always stays visible. Provider icons are rendered as an additional icon next to the primary icon (not a replacement).
+> The primary Token King status icon always stays visible. Provider icons are rendered as an additional icon next to the primary icon (not a replacement).
 >
 > **Gemini Icon Sizing**:
 > Gemini uses a slightly larger icon size than other providers in both menu rows and the status bar to match the official visual balance.
@@ -417,7 +426,7 @@ For ChatGPT/Codex multi-account setups, the app also searches:
 2. `~/.opencode/openai-codex-accounts.json`
 3. `~/.opencode/projects/*/openai-codex-accounts.json`
 
-If `oc-chatgpt-multi-auth` is installed and OpenCode sets `provider.openai.options.baseURL` to a localhost proxy, OpenCode Bar still queries the direct ChatGPT usage endpoint by default. Only the explicit `opencode-bar.codex.usageURL` override changes the usage endpoint.
+If `oc-chatgpt-multi-auth` is installed and OpenCode sets `provider.openai.options.baseURL` to a localhost proxy, Token King still queries the direct ChatGPT usage endpoint by default. Only the explicit `opencode-bar.codex.usageURL` override changes the usage endpoint.
 
 ### GitHub Copilot not showing
 GitHub Copilot accounts are discovered from multiple sources (in priority order):
