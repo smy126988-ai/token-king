@@ -340,6 +340,49 @@ enum PricingTable {
                 cache:   0.0028 * fx
             )
 
+        // Anthropic Claude model-level rates (round 12, 2026-07-13).
+        //
+        // Source: https://www.anthropic.com/pricing (captured 2026-07-13).
+        //
+        // Pre-12 behaviour: `calculateWithSource` for provider=.claude
+        // with model=claude-opus-4.8 / claude-haiku-4.5 queried
+        // `modelRate(for: model)`, got nil (no switch case), and fell
+        // back to the Sonnet 4.5 representative rate (`rate(for: .claude)`,
+        // 20.37 / 101.85 / 25.46). 7月 SQLite drift was ~¥28,810 netted
+        // across Opus + Haiku (see /Users/simengyu/projects/usage-deck/
+        // .swarm/workers/t1.3-result.md).
+        //
+        // `cache` field stores the **cache-read** rate (matching every
+        // other `modelRate(for:)` entry — kimi/k2-7-code, gpt-5.x,
+        // deepseek). The `.claude` representative rate stores write
+        // rate as a conservative upper-bound (round 5); model-level
+        // rates opt for actual list pricing — the conservative
+        // fallback is preserved for the unknown-model path through
+        // `rate(for: .claude)`. `cacheWrite` is excluded by
+        // MonthCostCalculator (round 9 consensus: Anthropic cache
+        // writes are free). Cache-read at 0.50 USD / MTok is 10×
+        // cheaper than input at 5.00 USD / MTok and 50× cheaper than
+        // write at 6.25 USD / MTok.
+        //
+        // Aliases (claude-opus-4 / claude-haiku-4) resolve to the
+        // current 4.x head revision as of 2026-07-13 (Opus 4.8 /
+        // Haiku 4.5). Old-session data (pre-4.x) will hit the Sonnet
+        // representative fallback rather than be silently aliased.
+        case "claude-opus-4.8", "claude-opus-4":
+            // USD $5.00 / $25.00; cache write $6.25, cache read $0.50.
+            return PayAsYouGoRate(
+                input:   5.00 * fx,
+                output: 25.00 * fx,
+                cache:   0.50 * fx
+            )
+        case "claude-haiku-4.5", "claude-haiku-4":
+            // USD $1.00 / $5.00; cache write $1.25, cache read $0.10.
+            return PayAsYouGoRate(
+                input:   1.00 * fx,
+                output:  5.00 * fx,
+                cache:   0.10 * fx
+            )
+
         case "gpt-5.6-terra":
             // USD list: $2.50 / $0.25 / $15.00.
             return PayAsYouGoRate(

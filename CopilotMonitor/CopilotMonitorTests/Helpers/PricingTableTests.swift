@@ -234,6 +234,81 @@ final class PricingTableTests: XCTestCase {
         }
     }
 
+    // MARK: - Anthropic Claude model-level rates (round 12, 2026-07-13)
+    //
+    // Source: https://www.anthropic.com/pricing (captured 2026-07-13).
+    // FX: 1 USD = 6.79 CNY (consistent with all other modelRate entries).
+
+    /// Opus 4.8 (current head revision of the Opus 4.x line).
+    /// USD list: $5.00 / $25.00; cache write $6.25, cache read $0.50.
+    /// Pre-12 behaviour: under-billed via Sonnet representative fallback
+    /// (rate(for: .claude)). 7月 real-data drift on Opus input was ~5%
+    /// under; this entry closes the gap.
+    func testClaudeOpus48ModelRate() {
+        let fx = 6.79
+        guard let rate = PricingTable.modelRate(for: "claude-opus-4.8") else {
+            return XCTFail("claude-opus-4.8 should resolve to an explicit rate")
+        }
+        XCTAssertEqual(rate.input,   5.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.output, 25.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.cache!,  0.50 * fx, accuracy: 0.01,
+                       "cache field stores cache-read rate (matches all other modelRate entries)")
+    }
+
+    /// Haiku 4.5 (current head revision of the Haiku 4.x line).
+    /// USD list: $1.00 / $5.00; cache write $1.25, cache read $0.10.
+    /// Pre-12 behaviour: also under-billed via Sonnet representative.
+    func testClaudeHaiku45ModelRate() {
+        let fx = 6.79
+        guard let rate = PricingTable.modelRate(for: "claude-haiku-4.5") else {
+            return XCTFail("claude-haiku-4.5 should resolve")
+        }
+        XCTAssertEqual(rate.input,   1.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.output,  5.00 * fx, accuracy: 0.01)
+        XCTAssertEqual(rate.cache!,  0.10 * fx, accuracy: 0.01)
+    }
+
+    /// Alias `claude-opus-4` (no .8) must map to the head revision (Opus 4.8).
+    /// Forward-compat: future Claude SDKs may emit the family alias
+    /// without a minor number. Old-session data with sub-version strings
+    /// (e.g. `claude-opus-4-7`) is intentionally NOT aliased and falls
+    /// back to the Sonnet representative.
+    func testClaudeOpus4AliasResolvesToOpus48Rate() {
+        guard let head = PricingTable.modelRate(for: "claude-opus-4.8"),
+              let alias = PricingTable.modelRate(for: "claude-opus-4")
+        else {
+            return XCTFail("both should resolve")
+        }
+        XCTAssertEqual(alias.input, head.input, accuracy: 0.001)
+        XCTAssertEqual(alias.output, head.output, accuracy: 0.001)
+        XCTAssertEqual(alias.cache ?? 0, head.cache ?? 0, accuracy: 0.001)
+    }
+
+    /// Alias `claude-haiku-4` (no .5) must map to the head revision (Haiku 4.5).
+    func testClaudeHaiku4AliasResolvesToHaiku45Rate() {
+        guard let head = PricingTable.modelRate(for: "claude-haiku-4.5"),
+              let alias = PricingTable.modelRate(for: "claude-haiku-4")
+        else {
+            return XCTFail("both should resolve")
+        }
+        XCTAssertEqual(alias.input, head.input, accuracy: 0.001)
+        XCTAssertEqual(alias.output, head.output, accuracy: 0.001)
+        XCTAssertEqual(alias.cache ?? 0, head.cache ?? 0, accuracy: 0.001)
+    }
+
+    /// Pre-round-12 strings (e.g. `claude-opus-4-7`) must NOT silently
+    /// resolve to Opus 4.8; they should fall back to Sonnet representative
+    /// via the provider-level `rate(for: .claude)`. This guards against
+    /// accidentally mis-pricing deprecated-model data with current prices.
+    func testClaudeLegacyModelStringFallsBackToRepresentative() {
+        XCTAssertNil(PricingTable.modelRate(for: "claude-opus-4-7"),
+                     "legacy model strings must not be silently aliased; they fall through to Sonnet representative")
+        XCTAssertNil(PricingTable.modelRate(for: "claude-sonnet-4-5"),
+                     "sonnet representative is provider-level, not model-level")
+        XCTAssertNotNil(PricingTable.rate(for: .claude),
+                        "Sonnet representative rate(for: .claude) must remain available for the fallback")
+    }
+
     func testKnownModelsSetMembership() {
         // Lock down which models the audit branch claims to know about.
         // Adding a new model: add to PricingTable.modelRate(for:) AND below.
@@ -255,6 +330,13 @@ final class PricingTableTests: XCTestCase {
             "MiniMax-M3", "minimax-m3",
             // t1.2 (audit/p0-batch-1-t1.2) — opencode-go additions.
             "qwen3.7-max", "mimo-v2.5-pro", "mimo-v2.5",
+            // Anthropic Claude family (round 12, 2026-07-13, t1.3). Aliases
+            // `claude-opus-4` / `claude-haiku-4` resolve to the current
+            // 4.x head revision (Opus 4.8 / Haiku 4.5); pre-4.x strings
+            // like `claude-opus-4-7` would fall through to the Sonnet
+            // representative and are intentionally NOT aliased.
+            "claude-opus-4.8", "claude-opus-4",
+            "claude-haiku-4.5", "claude-haiku-4",
         ]
         for m in known {
             XCTAssertNotNil(PricingTable.modelRate(for: m), "\(m) should resolve")
@@ -369,6 +451,8 @@ final class PricingTableTests: XCTestCase {
             "gpt-5.5", "gpt-5.5-pro",
             "gpt-5.4", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.4-nano",
             "gpt-4o",
+            // Round 12 (2026-07-13): Anthropic Claude model-level rates.
+            "claude-opus-4.8", "claude-haiku-4.5",
         ]
         for m in knownModels {
             guard let rate = PricingTable.modelRate(for: m) else {

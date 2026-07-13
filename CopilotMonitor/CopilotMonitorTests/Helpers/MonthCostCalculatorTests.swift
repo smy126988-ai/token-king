@@ -46,6 +46,100 @@ final class MonthCostCalculatorTests: XCTestCase {
         XCTAssertEqual(cost ?? -1, 30.555, accuracy: 1e-9)
     }
 
+    // MARK: - Anthropic Claude model-level pricing (round 12, 2026-07-13)
+    //
+    // Pre-round-12 bug: calculateWithSource(provider="claude", model=…)
+    // never consulted `PricingTable.modelRate(for: model)` because the
+    // `looksLikeOpenAIModel` gate only fired on OpenAI prefixes under
+    // .codex. Any `claude-*` model name fell back to the Sonnet 4.5
+    // representative rate (¥20.37 / ¥101.85 / ¥25.46), under-billing
+    // Opus by ¥-13.58/M-input & over-billing by ¥67.90/M-output, etc.
+    //
+    // Round 12 fix: added a `looksLikeClaudeModel` arm to the gate so
+    // `.claude + claude-*` rows now query modelRate first, falling back
+    // to the representative rate only for unknown model strings (which
+    // get `usedFallback = true` so the UI surfaces an "estimated" badge).
+
+    func testClaudeOpus48Basic() {
+        // Opus 4.8 list USD: $5.00 / $25.00; FX 6.79 → ¥33.95 / ¥169.75 input/output.
+        // 1M input → cost = 1 * ¥33.95 = ¥33.95.
+        let tokens = TokenBreakdown(input: 1_000_000, output: 0)
+        let cost = calc.calculate(provider: "claude", model: "claude-opus-4.8", tokens: tokens)
+        XCTAssertEqual(cost ?? -1, 5.00 * 6.79, accuracy: 1e-9,
+                       "Opus 4.8 input-only cost must equal USD 5.00 × FX 6.79 (not Sonnet 20.37)")
+    }
+
+    func testClaudeHaiku45Basic() {
+        // Haiku 4.5 list USD: $1.00 / $5.00; FX 6.79 → ¥6.79 / ¥33.95.
+        // 1M input → cost = 1 * ¥6.79.
+        let tokens = TokenBreakdown(input: 1_000_000, output: 0)
+        let cost = calc.calculate(provider: "claude", model: "claude-haiku-4.5", tokens: tokens)
+        XCTAssertEqual(cost ?? -1, 1.00 * 6.79, accuracy: 1e-9,
+                       "Haiku 4.5 input-only cost must equal USD 1.00 × FX 6.79")
+    }
+
+    func testClaudeSonnetRepresentativeUnchanged() {
+        // Round 12 lock-down: pre-existing testClaudeBasic cover the cost
+        // value (¥30.555); this test additionally confirms the Sonnet
+        // model keeps the representative rate even after the gate change
+        // (since claude-sonnet-4-5 has no modelRate entry, the
+        // `calculateWithSource` gate's fallback path takes effect).
+        let tokens = TokenBreakdown(input: 1_000_000, output: 100_000)
+        let cost = calc.calculate(provider: "claude", model: "claude-sonnet-4-5", tokens: tokens)
+        // Representative 20.37 / 101.85 → 20.37 + 10.185 = 30.555.
+        XCTAssertEqual(cost ?? -1, 30.555, accuracy: 1e-9,
+                       "Sonnet representative rate must remain unchanged")
+    }
+
+    func testClaudeCacheReadForOpus() {
+        // Opus 4.8 cache read USD $0.50/M × FX 6.79 = ¥3.395.
+        // 1M cache_read → cost = ¥3.395 (NOT the $6.25 write rate).
+        // Round 12 fix: modelRate stores cache-read rate (matching all
+        // other modelRate entries — kimi/k2-7-code, gpt-5.x, deepseek).
+        let tokens = TokenBreakdown(cacheRead: 1_000_000)
+        let cost = calc.calculate(provider: "claude", model: "claude-opus-4.8", tokens: tokens)
+        XCTAssertEqual(cost ?? -1, 0.50 * 6.79, accuracy: 1e-9,
+                       "Opus 4.8 cache_read cost must equal USD 0.50 × FX 6.79 (not write rate 6.25)")
+    }
+
+    func testClaudeCacheWriteExcludedForOpus() {
+        // Anthropic prompt-cache writes are free per round 9 consensus;
+        // MonthCostCalculator omits cacheWrite from the cost formula
+        // entirely. 1M cacheWrite on Opus 4.8 → cost = ¥0.
+        let tokens = TokenBreakdown(cacheWrite: 1_000_000)
+        let cost = calc.calculate(provider: "claude", model: "claude-opus-4.8", tokens: tokens)
+        XCTAssertEqual(cost ?? -1, 0.0, accuracy: 1e-9,
+                       "cache_write is not billed for Claude models (round 9 consensus)")
+    }
+
+    func testCalculateWithSourceClaudeOpus48NotFallback() {
+        // Opus 4.8 is now a known claude-prefix model. Resolves via
+        // modelRate, NOT via the Sonnet representative. usedFallback
+        // must be false (the row is "fully priced").
+        let tokens = TokenBreakdown(input: 1, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0)
+        guard let est = calc.calculateWithSource(
+            provider: "claude", model: "claude-opus-4.8", tokens: tokens
+        ) else { return XCTFail("claude-opus-4.8 must resolve (modelRate + FX 6.79)") }
+        XCTAssertFalse(est.usedFallback,
+                       "claude-opus-4.8 is a known model under .claude; must NOT flag as fallback")
+    }
+
+    func testCalculateWithSourceClaudeUnknownFlagsFallback() {
+        // A `claude-*` string with no modelRate entry (e.g. legacy
+        // `claude-opus-4-7`) is now flagged as `usedFallback = true`
+        // because the modelRate gate fires but returns nil. UI should
+        // display this row with the "estimated" badge. Cost still
+        // computed from rate(for: .claude) representative.
+        let tokens = TokenBreakdown(input: 1_000_000, output: 0)
+        guard let est = calc.calculateWithSource(
+            provider: "claude", model: "claude-opus-4-7", tokens: tokens
+        ) else { return XCTFail("claude-opus-4-7 must still resolve via Sonnet representative") }
+        XCTAssertTrue(est.usedFallback,
+                      "Unknown claude-* model with no modelRate entry should flag as fallback")
+        // 1M input × Sonnet 20.37 = ¥20.37.
+        XCTAssertEqual(est.costRMB, 20.37, accuracy: 1e-9)
+    }
+
     func testCodexBasic() {
         // codex modelRate (gpt-4o) entry added in round 10:
         // input = 2.50 * 6.79 = 16.975, output = 10.00 * 6.79 = 67.90, cache = 1.25 * 6.79 = 8.4875.

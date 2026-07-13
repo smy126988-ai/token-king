@@ -34,7 +34,9 @@ struct MonthCostCalculator {
         calculateWithSource(provider: provider, model: model, tokens: tokens)?.costRMB
     }
 
-    /// Source-resolved cost (round 10, 2026-07-12; extended t1.2 2026-07-13).
+    /// Source-resolved cost (round 10, 2026-07-12; extended t1.2 2026-07-13
+    /// to add minimaxCN / opencodeGo / xiaomiTokenPlanCN providers, then
+    /// t1.3 added Claude model-level rates for Opus 4.8 / Haiku 4.5).
     /// Returns both the computed RMB cost AND whether the row was priced
     /// via the provider-level fallback (i.e. modelRate lookup was queried
     /// but returned nil). The `usedFallback` flag is the signal that
@@ -54,11 +56,20 @@ struct MonthCostCalculator {
     /// `.xiaomiTokenPlanCN` vs via `.openCodeGo`) and falls back to the
     /// provider-agnostic `modelRate(for:)` for everything else.
     ///
-    /// Prior rounds (t1.1) removed the model-prefix gate so this single
-    /// lookup covers Kimi Code, MiniMax, OpenCode Go, Xiaomi token plan,
-    /// Claude, OpenAI-on-Codex, NanoGPT, and Z.AI equally. Providers
-    /// without public fallback pricing do not receive an "estimated"
-    /// marker solely because their model is absent from the model table.
+    /// t1.1 removed the model-prefix gate; this single lookup now covers
+    /// Kimi Code, MiniMax, OpenCode Go, Xiaomi token plan, Claude,
+    /// OpenAI-on-Codex, NanoGPT, and Z.AI equally. t1.3 added the
+    /// `claude-opus-4.8` / `claude-opus-4` and `claude-haiku-4.5` /
+    /// `claude-haiku-4` model-level rates; under the unified gate these
+    /// take effect immediately without needing a new `looksLikeClaudeModel`
+    /// arm — the arm that t1.3 originally introduced against main was
+    /// necessary in isolation, but became dead code in the integration and
+    /// was therefore dropped here. Legacy `claude-*` strings that t1.3 did
+    /// not cover (e.g. `claude-opus-4-7`) still flag as
+    /// `usedFallback = true` and the UI displays them with the
+    /// "estimated" badge. Providers without public fallback pricing do
+    /// not receive an "estimated" marker solely because their model is
+    /// absent from the model table.
     func calculateWithSource(provider: String, model: String, tokens: TokenBreakdown) -> CostEstimate? {
         guard let providerId = providerStringToIdentifier(provider) else { return nil }
 
