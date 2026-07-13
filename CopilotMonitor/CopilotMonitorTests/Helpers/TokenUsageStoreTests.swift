@@ -247,4 +247,94 @@ final class TokenUsageStoreTests: XCTestCase {
             return Int(sqlite3_column_int64(stmt, 0))
         }.value
     }
+
+    // MARK: - P0-3 snapshot upsert (REPLACE on source_id conflict)
+
+    /// P0-3 regression: second snapshot with the same source_id MUST overwrite
+    /// the first (not be silently dropped by INSERT OR IGNORE). The latest
+    /// cumulative counters win, so aggregates reflect current API state.
+    func testSnapshotUpsertReplacesPrevious() async throws {
+        let snapshotId = "zai:api:snapshot:month"
+        let e1 = makeEvent(
+            provider: .zai, model: "glm-4.6", source: .zaiApi,
+            sourceId: snapshotId,
+            tokens: TokenBreakdown(input: 100, output: 50)
+        )
+        let e2 = makeEvent(
+            provider: .zai, model: "glm-4.6", source: .zaiApi,
+            sourceId: snapshotId,
+            tokens: TokenBreakdown(input: 999, output: 333)
+        )
+        try await store.upsertSnapshot(e1)
+        try await store.upsertSnapshot(e2)
+
+        // One row, latest values.
+        let count = try await countRows(in: "token_events")
+        XCTAssertEqual(count, 1, "upsertSnapshot must replace on source_id conflict")
+
+        try await store.refreshMonthAggregates()
+        let aggregates = await store.fetchMonthAggregates()
+        let zai = aggregates.first { $0.provider == "zai" && $0.model == "glm-4.6" }
+        XCTAssertNotNil(zai)
+        XCTAssertEqual(zai?.tokens.input, 999, "latest snapshot wins, not the first")
+        XCTAssertEqual(zai?.tokens.output, 333)
+    }
+
+    /// Regression guard: streaming events (e.g. Claude Code batches) MUST keep
+    /// INSERT OR IGNORE semantics via `upsertEvent`. Two events with the same
+    /// source_id collapse to one row, preserving the original dedup contract.
+    func testStreamingEventStillDedupes() async throws {
+        let e1 = makeEvent(sourceId: "streaming-1", tokens: TokenBreakdown(input: 10))
+        let e2 = makeEvent(sourceId: "streaming-1", tokens: TokenBreakdown(input: 99))
+        try await store.upsertEvent(e1)
+        try await store.upsertEvent(e2)
+        let count = try await countRows(in: "token_events")
+        XCTAssertEqual(count, 1, "upsertEvent keeps INSERT OR IGNORE semantics")
+    }
+
+    /// Snapshot with timestamp: the second upsert at a later `timestamp` must
+    /// still overwrite (REPLACE on source_id is the only conflict resolved),
+    /// and `ts_ms` reflects the latest snapshot.
+    func testSnapshotUpsertUpdatesTimestamp() async throws {
+        let snapshotId = "nanogpt:api:snapshot:month"
+        // Use timestamps inside the current UTC month so month_aggregates
+        // (which is filtered by year-month) actually includes them.
+        let now = Date()
+        let calendar = Calendar(identifier: .gregorian)
+        var cal = calendar
+        cal.timeZone = TimeZone(identifier: "UTC") ?? TimeZone.current
+        let earlier = cal.date(byAdding: .day, value: -1, to: now) ?? now
+        let later = now
+        try await store.upsertSnapshot(makeEvent(
+            provider: .nanoGpt, model: "gpt-4o", source: .nanoGptApi,
+            sourceId: snapshotId, tokens: TokenBreakdown(input: 1), timestamp: earlier
+        ))
+        try await store.upsertSnapshot(makeEvent(
+            provider: .nanoGpt, model: "gpt-4o", source: .nanoGptApi,
+            sourceId: snapshotId, tokens: TokenBreakdown(input: 2), timestamp: later
+        ))
+        let count = try await countRows(in: "token_events")
+        XCTAssertEqual(count, 1)
+
+        // The latest snapshot should drive the aggregate.
+        try await store.refreshMonthAggregates()
+        let aggregates = await store.fetchMonthAggregates()
+        let row = aggregates.first { $0.provider == "nanoGpt" && $0.model == "gpt-4o" }
+        XCTAssertEqual(row?.tokens.input, 2)
+    }
+
+    /// Two snapshots with DIFFERENT source_ids coexist (e.g. zai-month + zai-day
+    /// hypothetical): the snapshot upsert never collapses distinct source_ids.
+    func testSnapshotUpsertDoesNotCollapseDistinctIDs() async throws {
+        try await store.upsertSnapshot(makeEvent(
+            provider: .zai, model: "glm-4.6", source: .zaiApi,
+            sourceId: "zai:api:snapshot:month"
+        ))
+        try await store.upsertSnapshot(makeEvent(
+            provider: .zai, model: "glm-4.6", source: .zaiApi,
+            sourceId: "zai:api:snapshot:day"
+        ))
+        let count = try await countRows(in: "token_events")
+        XCTAssertEqual(count, 2)
+    }
 }

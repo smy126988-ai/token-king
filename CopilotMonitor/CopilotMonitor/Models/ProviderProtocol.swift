@@ -23,6 +23,13 @@ enum ProviderRegion {
 }
 
 /// Identifies the specific AI provider
+///
+/// F2a pricing context. Cases map to representative rates in `PricingTable.rate(for:)`.
+/// Provider-level cases (e.g. `.kimi`, `.codex`) cover the subscription /
+/// plan-tracked family; raw-API-rate cases (`.minimaxCN`, `.openCodeGo`,
+/// `.xiaomiTokenPlanCN`) were added in t1.2 (audit/p0-batch-1-t1.2) so F2b's
+/// `MonthCostCalculator` can compute the 3 previously-zero-cost provider rows
+/// in `month_aggregates` (verified via SQLite 2026-07-13).
 enum ProviderIdentifier: String, CaseIterable {
     case copilot
     case claude
@@ -41,6 +48,7 @@ enum ProviderIdentifier: String, CaseIterable {
     case kimiCN = "kimi_cn"
     case minimaxCodingPlan = "minimax_coding_plan"
     case minimaxCodingPlanCN = "minimax_coding_plan_cn"
+    case minimaxCN = "minimax_cn"
     case zaiCodingPlan = "zai_coding_plan"
     case nanoGpt = "nano_gpt"
     case synthetic
@@ -48,6 +56,7 @@ enum ProviderIdentifier: String, CaseIterable {
     case tavilySearch = "tavily_search"
     case braveSearch = "brave_search"
     case mimo
+    case xiaomiTokenPlanCN = "xiaomi_token_plan_cn"
     case volcanoArk = "volcano_ark"
     case hunyuan
     case zhipuGLM = "zhipu_glm"
@@ -68,14 +77,14 @@ enum ProviderIdentifier: String, CaseIterable {
         case .kiro: return .kiro
         case .grok: return .grok
         case .kimi, .kimiCN: return .kimi
-        case .minimaxCodingPlan, .minimaxCodingPlanCN: return .minimax
+        case .minimaxCodingPlan, .minimaxCodingPlanCN, .minimaxCN: return .minimax
         case .zaiCodingPlan: return .zai
         case .nanoGpt: return .nanoGpt
         case .synthetic: return .synthetic
         case .chutes: return .chutes
         case .tavilySearch: return .tavily
         case .braveSearch: return .brave
-        case .mimo: return .mimo
+        case .mimo, .xiaomiTokenPlanCN: return .mimo
         case .volcanoArk: return .volcanoArk
         case .hunyuan: return .hunyuan
         case .zhipuGLM: return .zhipuGLM
@@ -84,7 +93,8 @@ enum ProviderIdentifier: String, CaseIterable {
 
     var region: ProviderRegion {
         switch self {
-        case .kimiCN, .minimaxCodingPlanCN, .mimo, .volcanoArk, .hunyuan, .zhipuGLM: return .china
+        case .kimiCN, .minimaxCodingPlanCN, .minimaxCN, .mimo, .xiaomiTokenPlanCN,
+             .volcanoArk, .hunyuan, .zhipuGLM: return .china
         default: return .global
         }
     }
@@ -139,6 +149,16 @@ enum ProviderIdentifier: String, CaseIterable {
             return "Brave Search"
         case .mimo:
             return "MiMo"
+        case .minimaxCN:
+            // Raw-API rate-tracking case. Distinct from .minimaxCodingPlanCN
+            // (the Coding Plan subscription). Used by F2b MonthCostCalculator
+            // when the SQLite `month_aggregates` row has provider="minimaxCN".
+            return "MiniMax CN"
+        case .xiaomiTokenPlanCN:
+            // Raw-API rate-tracking case for Xiaomi MiMo Token Plan CN.
+            // Distinct from .mimo (the F2a subscription-tracked MiMo entry).
+            // F2b uses this for SQLite provider="xiaomiTokenPlanCN" rows.
+            return "MiMo Token Plan CN"
         case .volcanoArk:
             return "火山 Ark"
         case .hunyuan:
@@ -198,6 +218,10 @@ enum ProviderIdentifier: String, CaseIterable {
             return "Brave"
         case .mimo:
             return "MiMo"
+        case .minimaxCN:
+            return "MiniMax CN"
+        case .xiaomiTokenPlanCN:
+            return "MiMo TP"
         case .volcanoArk:
             return "Ark"
         case .hunyuan:
@@ -256,6 +280,10 @@ enum ProviderIdentifier: String, CaseIterable {
         case .braveSearch:
             return "BraveSearchIcon"
         case .mimo:
+            return "m.circle"
+        case .minimaxCN:
+            return "MinimaxIcon"
+        case .xiaomiTokenPlanCN:
             return "m.circle"
         case .volcanoArk:
             return "v.circle"

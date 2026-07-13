@@ -101,6 +101,9 @@ final class NanoGPTExtractorTests: XCTestCase {
     }
 
     func testProviderNormalizationApplied() async {
+        // P0-3 fix: NanoGPT API responses must route to `.nanoGpt`, not `.codex`,
+        // even when the model name is OpenAI-style (e.g. `gpt-4o-mini`). The
+        // providerID signal wins over the model prefix in TokenNormalizer.
         let body = """
         {"model":"gpt-4o-mini","input_tokens":100,"output_tokens":50}
         """
@@ -111,7 +114,7 @@ final class NanoGPTExtractorTests: XCTestCase {
             bearerTokenProvider: { "test-key" }
         )
         let events = (try? await extractor.extractAll()) ?? []
-        XCTAssertEqual(events.first?.provider, .codex)
+        XCTAssertEqual(events.first?.provider, .nanoGpt)
     }
 
     func testTokenBreakdownExtraction() async {

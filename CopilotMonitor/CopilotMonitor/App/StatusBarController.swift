@@ -167,6 +167,7 @@ final class StatusBarController: NSObject {
     private var onlyShowProviderMenu: NSMenu!
     private var criticalBadgeMenuItem: NSMenuItem!
     private var showProviderNameMenuItem: NSMenuItem!
+    private var diagnosticsModeMenuItem: NSMenuItem!
     private var settingsMenuItem: NSMenuItem!
     private var settingsSubmenu: NSMenu!
     private var refreshTimer: Timer?
@@ -414,19 +415,9 @@ final class StatusBarController: NSObject {
     }
 
     func debugLog(_ message: String) {
-        let msg = "[\(Date())] \(message)\n"
-        if let data = msg.data(using: .utf8) {
-            let path = "/tmp/provider_debug.log"
-            if FileManager.default.fileExists(atPath: path) {
-                if let handle = FileHandle(forWritingAtPath: path) {
-                    handle.seekToEndOfFile()
-                    handle.write(data)
-                    handle.closeFile()
-                }
-            } else {
-                try? data.write(to: URL(fileURLWithPath: path))
-            }
-        }
+        // Route through the shared wrapper so diagnostics respect the user toggle.
+        // When `tokenKing.diagnostics.enabled == false` (default), this is a no-op.
+        recordDiagnostic(message)
     }
 
     private func boolPreference(forKey key: String, defaultValue: Bool) -> Bool {
@@ -703,6 +694,12 @@ final class StatusBarController: NSObject {
         installCLIItem.target = self
         settingsSubmenu.addItem(installCLIItem)
         updateCLIInstallState()
+
+        diagnosticsModeMenuItem = NSMenuItem(title: "诊断模式", action: #selector(toggleDiagnosticsMode(_:)), keyEquivalent: "")
+        diagnosticsModeMenuItem.image = NSImage(systemSymbolName: "stethoscope", accessibilityDescription: "Diagnostic Mode")
+        diagnosticsModeMenuItem.target = self
+        settingsSubmenu.addItem(diagnosticsModeMenuItem)
+        updateDiagnosticsModeMenuState()
 
         let shareSnapshotItem = NSMenuItem(title: "分享用量快照…", action: #selector(shareUsageSnapshotClicked), keyEquivalent: "")
         shareSnapshotItem.image = NSImage(systemSymbolName: "square.and.arrow.up", accessibilityDescription: "Share Usage Snapshot")
@@ -1202,12 +1199,17 @@ final class StatusBarController: NSObject {
         let dayAggregates = await store.fetchDayAggregates(yearMonth: month)
         let todayString = TokenUsageFormatter.todayUTCString()
         let (weekStart, weekEnd) = TokenUsageFormatter.currentISOWeekRange()
+        // P0-2 fix: source `monthTotal` from `month_aggregates` (refreshed on every
+        // tick for the current month) instead of `day_aggregates` (single-day
+        // incremental, can be missing past days → underreports monthly total).
+        let monthTotalFromAggregates = await store.fetchMonthAggregatesSum(yearMonth: month)
         self.cachedTokenStats = TokenStatsAggregator.snapshot(
             dayAggregates: dayAggregates,
             todayString: todayString,
             weekStart: weekStart,
             weekEnd: weekEnd,
-            monthPrefix: month
+            monthPrefix: month,
+            monthTotalOverride: monthTotalFromAggregates
         )
         self.lastTokenStatsFetchAt = Date()
         self.updateMultiProviderMenu()
@@ -1247,6 +1249,9 @@ final class StatusBarController: NSObject {
         case .codex: return "codex"
         case .zaiCodingPlan: return "zai"
         case .nanoGpt: return "nanogpt"
+        case .minimaxCN: return "minimaxCN"
+        case .openCodeGo: return "opencodeGo"
+        case .xiaomiTokenPlanCN: return "xiaomiTokenPlanCN"
         default: return nil
         }
     }
@@ -1264,6 +1269,9 @@ final class StatusBarController: NSObject {
         case .codex:          return "codex"
         case .zaiCodingPlan:  return "zai"
         case .nanoGpt:        return "nanogpt"
+        case .minimaxCN:         return "minimaxCN"
+        case .openCodeGo:        return "opencodeGo"
+        case .xiaomiTokenPlanCN: return "xiaomiTokenPlanCN"
         default:              return nil
         }
     }
@@ -1367,10 +1375,10 @@ final class StatusBarController: NSObject {
         case .volcanoArk, .mimo, .hunyuan, .zhipuGLM:
             add(details?.sevenDayUsage, priority: .weekly)
             add(details?.fiveHourUsage, priority: .hourly)
-        case .openCodeGo:
-            add(details?.openCodeGoMonthlyUsage, priority: .monthly)
-            add(details?.sevenDayUsage, priority: .weekly)
-            add(details?.fiveHourUsage, priority: .hourly)
+        case .openCodeGo, .minimaxCN, .xiaomiTokenPlanCN:
+            // t1.2: raw-API rate-tracking providers don't have live quota
+            // windows (they're tokens-priced). Don't add candidates here.
+            break
         case .kiro:
             add(usage.usagePercentage, priority: .monthly)
         case .grok:
@@ -3450,6 +3458,10 @@ final class StatusBarController: NSObject {
             return ("chutes", "~/.local/share/opencode/auth.json")
         case .mimo:
             return ("mimo-for-coding", "~/.local/share/opencode/auth.json")
+        case .minimaxCN:
+            return ("minimax-cn", "~/.local/share/opencode/auth.json")
+        case .xiaomiTokenPlanCN:
+            return ("xiaomi-token-plan-cn", "~/.local/share/opencode/auth.json")
         case .volcanoArk:
             return ("volcano-ark (格式: AK:SK)", "~/.local/share/opencode/auth.json")
         case .hunyuan:
@@ -3795,6 +3807,10 @@ final class StatusBarController: NSObject {
         case .braveSearch:
             image = NSImage(named: "BraveSearchIcon")
         case .mimo, .volcanoArk, .hunyuan, .zhipuGLM:
+            image = NSImage(systemSymbolName: identifier.iconName, accessibilityDescription: identifier.displayName)
+        case .minimaxCN:
+            image = NSImage(named: "MinimaxIcon")
+        case .xiaomiTokenPlanCN:
             image = NSImage(systemSymbolName: identifier.iconName, accessibilityDescription: identifier.displayName)
         }
 
@@ -4435,6 +4451,17 @@ final class StatusBarController: NSObject {
 
     private func updateLaunchAtLoginState() {
         launchAtLoginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
+    }
+
+    @objc private func toggleDiagnosticsMode(_ sender: NSMenuItem) {
+        let newValue = !DiagnosticsLogger.shared.enabled
+        DiagnosticsLogger.shared.setEnabled(newValue)
+        updateDiagnosticsModeMenuState()
+        debugLog("toggleDiagnosticsMode: enabled=\(newValue)")
+    }
+
+    private func updateDiagnosticsModeMenuState() {
+        diagnosticsModeMenuItem.state = DiagnosticsLogger.shared.enabled ? .on : .off
     }
 
     @objc private func installCLIClicked() {

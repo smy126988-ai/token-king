@@ -15,6 +15,10 @@
 		11DD5CEEB9FA083728D151DD /* TavilyLiveIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A255270920EBB45B5176EFA /* TavilyLiveIntegrationTests.swift */; };
 		23AA5FD37F2062EACCA79F50 /* GeminiCLIProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B63B85E0F2A8C591D7E26AE2 /* GeminiCLIProviderTests.swift */; };
 		25B8765A7AE249798F95274F /* PricingTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A6F09D053C04780AAEB8EE7 /* PricingTable.swift */; };
+		DLG000000000000000000001 /* DiagnosticsLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = DLG000000000000000000002 /* DiagnosticsLogger.swift */; };
+		DSN000000000000000000001 /* DiagnosticsSanitizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DSN000000000000000000002 /* DiagnosticsSanitizer.swift */; };
+		DLT000000000000000000001 /* DiagnosticsLoggerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DLT000000000000000000002 /* DiagnosticsLoggerTests.swift */; };
+		DBG000000000000000000011 /* DebugLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBG000000000000000000010 /* DebugLog.swift */; };
 		27A0B56ADAC5B75A3270F90D /* CopilotProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4AE672516E564CC52739BD9 /* CopilotProvider.swift */; };
 		27B95F7F84DDB8B206A2E21A /* SearchEngineTitleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F0ECB3B429456A48F1A4E69 /* SearchEngineTitleTests.swift */; };
 		283348F92F313096004DADE1 /* ProviderResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = PR2222222222222222222222 /* ProviderResult.swift */; };
@@ -47,6 +51,7 @@
 		A1B2C3D4E5F60718293A4B62 /* exchange_rate_error.json in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B63 /* exchange_rate_error.json */; };
 		A1B2C3D4E5F60718293A4B64 /* ExchangeRateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B65 /* ExchangeRateStore.swift */; };
 		A1BED4A5CA1FEC2DADC461C2 /* MenuDesignTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8493409A9188CFF5B73D5B3 /* MenuDesignTokenTests.swift */; };
+		A0A0A0A0A0A0A0A0A0A00A1 /* VersionInjectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0A0A0A0A0A0A0A0A0A00A4 /* VersionInjectionTests.swift */; };
 		A33333333333333333333333 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A44444444444444444444444 /* AppDelegate.swift */; };
 		A454D8C22F30544900E355E3 /* MenuBarExtraAccess in Frameworks */ = {isa = PBXBuildFile; productRef = MBA2222222222222222222222 /* MenuBarExtraAccess */; };
 		A454D8C42F30548900E355E3 /* ZaiCodingPlanProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A454D8C32F30548900E355E3 /* ZaiCodingPlanProvider.swift */; };
@@ -194,6 +199,7 @@
 		TUS00000000000000000000BF1 /* TokenUsageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = TUS00000000000000000000FR1 /* TokenUsageStore.swift */; };
 		TUS00000000000000000000BF2 /* TokenUsageStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TUS00000000000000000000FR2 /* TokenUsageStoreTests.swift */; };
 		TDA000000000000000000BF2 /* TokenUsageStoreDayAggregatesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TDA000000000000000000FR2 /* TokenUsageStoreDayAggregatesTests.swift */; };
+		TMAS000000000000000000BF2 /* TokenUsageStoreMonthAggregatesSumTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TMAS000000000000000000FR2 /* TokenUsageStoreMonthAggregatesSumTests.swift */; };
 		TKN00000000000000000000BF2 /* TokenEventKimiCNTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TKN00000000000000000000FR2 /* TokenEventKimiCNTests.swift */; };
 		USAGEPCTBF1111111111 /* UsagePercentCandidatesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = USAGEPCTFR1111111111 /* UsagePercentCandidatesTests.swift */; };
 		VOLCANOPROVAPP111111111111 /* VolcanoArkProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = VOLCANOPROVFILE22222222222 /* VolcanoArkProvider.swift */; };
@@ -271,6 +277,10 @@
 		8F0ECB3B429456A48F1A4E69 /* SearchEngineTitleTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SearchEngineTitleTests.swift; sourceTree = "<group>"; };
 		94055A7CFB59D90DA90B27A0 /* KeySourceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeySourceTests.swift; sourceTree = "<group>"; };
 		9A6F09D053C04780AAEB8EE7 /* PricingTable.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PricingTable.swift; sourceTree = "<group>"; };
+		DLG000000000000000000002 /* DiagnosticsLogger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DiagnosticsLogger.swift; sourceTree = "<group>"; };
+		DSN000000000000000000002 /* DiagnosticsSanitizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DiagnosticsSanitizer.swift; sourceTree = "<group>"; };
+		DLT000000000000000000002 /* DiagnosticsLoggerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DiagnosticsLoggerTests.swift; sourceTree = "<group>"; };
+		DBG000000000000000000010 /* DebugLog.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DebugLog.swift; sourceTree = "<group>"; };
 		9B1085A77EF4A58E5B5EC71B /* CopilotHistoryService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CopilotHistoryService.swift; sourceTree = "<group>"; };
 		9F2E141A81879AD0D9434ED6 /* KeySource.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeySource.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718293A4B5F /* ExchangeRateStoreTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExchangeRateStoreTests.swift; sourceTree = "<group>"; };
@@ -291,6 +301,7 @@
 		BRAVEFILE22222222222222 /* BraveSearchProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BraveSearchProvider.swift; sourceTree = "<group>"; };
 		C1C7C9FDB4600114F02B2915 /* MenuDesignToken.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MenuDesignToken.swift; sourceTree = "<group>"; };
 		C8493409A9188CFF5B73D5B3 /* MenuDesignTokenTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MenuDesignTokenTests.swift; sourceTree = "<group>"; };
+		A0A0A0A0A0A0A0A0A0A00A4 /* VersionInjectionTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VersionInjectionTests.swift; sourceTree = "<group>"; };
 		CC0000000000000000000EFR /* ClaudeCodeExtractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClaudeCodeExtractor.swift; sourceTree = "<group>"; };
 		CC0000000000000000000TFR /* ClaudeCodeExtractorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClaudeCodeExtractorTests.swift; sourceTree = "<group>"; };
 		CE0000000000000000000TFR /* CodexExtractorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CodexExtractorTests.swift; sourceTree = "<group>"; };
@@ -404,6 +415,7 @@
 		TUS00000000000000000000FR1 /* TokenUsageStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenUsageStore.swift; sourceTree = "<group>"; };
 		TUS00000000000000000000FR2 /* TokenUsageStoreTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenUsageStoreTests.swift; sourceTree = "<group>"; };
 		TDA000000000000000000FR2 /* TokenUsageStoreDayAggregatesTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenUsageStoreDayAggregatesTests.swift; sourceTree = "<group>"; };
+		TMAS000000000000000000FR2 /* TokenUsageStoreMonthAggregatesSumTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenUsageStoreMonthAggregatesSumTests.swift; sourceTree = "<group>"; };
 		TKN00000000000000000000FR2 /* TokenEventKimiCNTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenEventKimiCNTests.swift; sourceTree = "<group>"; };
 		USAGEPCTFR1111111111 /* UsagePercentCandidatesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsagePercentCandidatesTests.swift; sourceTree = "<group>"; };
 		VOLCANOPROVFILE22222222222 /* VolcanoArkProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VolcanoArkProvider.swift; sourceTree = "<group>"; };
@@ -484,6 +496,7 @@
 				TN00000000000000000000FR2 /* TokenNormalizerTests.swift */,
 				TUS00000000000000000000FR2 /* TokenUsageStoreTests.swift */,
 				TDA000000000000000000FR2 /* TokenUsageStoreDayAggregatesTests.swift */,
+				TMAS000000000000000000FR2 /* TokenUsageStoreMonthAggregatesSumTests.swift */,
 				MCST000000000000000000FR2 /* MonthCostCalculatorTests.swift */,
 				TKN00000000000000000000FR2 /* TokenEventKimiCNTests.swift */,
 				RA00100000000000000000FR2 /* RefreshActorTests.swift */,
@@ -607,6 +620,8 @@
 				9F2E141A81879AD0D9434ED6 /* KeySource.swift */,
 				A1B2C3D4E5F60718293A4B65 /* ExchangeRateStore.swift */,
 				CF11AA22BB33CC44DD55EE02 /* CurrencyFormatter.swift */,
+				DLG000000000000000000002 /* DiagnosticsLogger.swift */,
+				DSN000000000000000000002 /* DiagnosticsSanitizer.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -677,6 +692,7 @@
 				DCE215EDDBE3407B8E477617B1A9D6A3 /* TimeZone+UTC.swift */,
 				TUF000000000000000000FR2 /* TokenUsageFormatter.swift */,
 				TE0000000000000000000GRP /* TokenExtractor */,
+				DBG000000000000000000010 /* DebugLog.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -730,6 +746,8 @@
 				OR3333333333333333333333 /* OpenRouterProviderTests.swift */,
 				2D2B4000E33060BA5E00351B /* DependencyTests.swift */,
 				C8493409A9188CFF5B73D5B3 /* MenuDesignTokenTests.swift */,
+DLT000000000000000000002 /* DiagnosticsLoggerTests.swift */,
+				A0A0A0A0A0A0A0A0A0A00A4 /* VersionInjectionTests.swift */,
 				54353FD130DDE0500F6B367F /* MenuResultBuilderTests.swift */,
 				SYNTHTEST1111111111111111 /* SyntheticProviderTests.swift */,
 				SUBSPTESTFR1111111111 /* SubscriptionPresetTests.swift */,
@@ -1042,6 +1060,9 @@
 				7C7800B96DEE77EBE9DAD5E8 /* KeySource.swift in Sources */,
 				A1B2C3D4E5F60718293A4B64 /* ExchangeRateStore.swift in Sources */,
 				CF11AA22BB33CC44DD55EE01 /* CurrencyFormatter.swift in Sources */,
+				DLG000000000000000000001 /* DiagnosticsLogger.swift in Sources */,
+				DSN000000000000000000001 /* DiagnosticsSanitizer.swift in Sources */,
+				DBG000000000000000000011 /* DebugLog.swift in Sources */,
 				25B8765A7AE249798F95274F /* PricingTable.swift in Sources */,
 				TE00100000000000000000BF1 /* TokenEvent.swift in Sources */,
 				TN00000000000000000000BF1 /* TokenNormalizer.swift in Sources */,
@@ -1124,6 +1145,8 @@
 				OR4444444444444444444444 /* OpenRouterProviderTests.swift in Sources */,
 				668B6906C95903D51823808A /* DependencyTests.swift in Sources */,
 				A1BED4A5CA1FEC2DADC461C2 /* MenuDesignTokenTests.swift in Sources */,
+DLT000000000000000000001 /* DiagnosticsLoggerTests.swift in Sources */,
+				A0A0A0A0A0A0A0A0A0A00A1 /* VersionInjectionTests.swift in Sources */,
 				B58BAD3BFD97973070A2A892 /* MenuResultBuilderTests.swift in Sources */,
 				SYNTHTEST2222222222222222 /* SyntheticProviderTests.swift in Sources */,
 				SUBSPTESTBF1111111111 /* SubscriptionPresetTests.swift in Sources */,
@@ -1169,6 +1192,7 @@
 				NG0000000000000000000TBF /* NanoGPTExtractorTests.swift in Sources */,
 				TUS00000000000000000000BF2 /* TokenUsageStoreTests.swift in Sources */,
 				TDA000000000000000000BF2 /* TokenUsageStoreDayAggregatesTests.swift in Sources */,
+				TMAS000000000000000000BF2 /* TokenUsageStoreMonthAggregatesSumTests.swift in Sources */,
 				MCST000000000000000000BF2 /* MonthCostCalculatorTests.swift in Sources */,
 				TSAT000000000000000000BF2 /* TokenStatsAggregatorTests.swift in Sources */,
 				TKN00000000000000000000BF2 /* TokenEventKimiCNTests.swift in Sources */,

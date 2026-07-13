@@ -82,9 +82,55 @@ actor TokenUsageStore {
     }
 
     /// Insert raw event (dedup by source_id UNIQUE).
+    ///
+    /// This is the streaming path: each event has a unique `source_id`
+    /// (e.g. `claudeCode:<session>:<offset>`), so duplicates are silently
+    /// dropped by `INSERT OR IGNORE`. Use this for high-frequency event
+    /// streams where each batch is naturally distinct.
     func upsertEvent(_ event: TokenEvent) throws {
         try ensureOpen()
         let sql = "INSERT OR IGNORE INTO token_events (provider, model, source, session_id, ts_ms, input, output, cache_read, cache_write, reasoning, source_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+        var stmt: OpaquePointer?
+        let prepareCode = sqlite3_prepare_v2(db, sql, -1, &stmt, nil)
+        guard prepareCode == SQLITE_OK, let stmt else {
+            throw SQLiteError.prepareFailed(sql: sql, code: prepareCode, message: errorMessage(at: prepareCode))
+        }
+        defer { sqlite3_finalize(stmt) }
+
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        try bindText(stmt, index: 1, text: event.provider.rawValue, destructor: SQLITE_TRANSIENT)
+        try bindText(stmt, index: 2, text: event.model, destructor: SQLITE_TRANSIENT)
+        try bindText(stmt, index: 3, text: event.source.rawValue, destructor: SQLITE_TRANSIENT)
+        try bindText(stmt, index: 4, text: event.sessionId, destructor: SQLITE_TRANSIENT)
+        try bindInt64(stmt, index: 5, value: Int64(event.timestamp.timeIntervalSince1970 * 1000))
+        try bindInt64(stmt, index: 6, value: Int64(event.tokens.input))
+        try bindInt64(stmt, index: 7, value: Int64(event.tokens.output))
+        try bindInt64(stmt, index: 8, value: Int64(event.tokens.cacheRead))
+        try bindInt64(stmt, index: 9, value: Int64(event.tokens.cacheWrite))
+        try bindInt64(stmt, index: 10, value: Int64(event.tokens.reasoning))
+        try bindText(stmt, index: 11, text: event.sourceId, destructor: SQLITE_TRANSIENT)
+
+        let stepCode = sqlite3_step(stmt)
+        guard stepCode == SQLITE_DONE else {
+            throw SQLiteError.stepFailed(sql: sql, code: stepCode, message: errorMessage(at: stepCode))
+        }
+    }
+
+    /// Upsert periodic API snapshot (replace on source_id conflict).
+    ///
+    /// **P0-3 fix**: periodic API quota snapshots (Z.AI, NanoGPT) use a stable
+    /// `source_id` like `"zai:api:snapshot:month"`. With `INSERT OR IGNORE` the
+    /// first snapshot wins forever, leaving the user looking at stale quota
+    /// numbers. Snapshots from these providers carry CUMULATIVE counters, so
+    /// the latest reading is what matters — `INSERT OR REPLACE` overwrites the
+    /// previous snapshot's row in-place, keeping aggregates consistent with
+    /// the current API state.
+    ///
+    /// Callers MUST be snapshot sources (e.g. `.zaiApi`, `.nanoGptApi`).
+    /// Streaming sources MUST keep using `upsertEvent`.
+    func upsertSnapshot(_ event: TokenEvent) throws {
+        try ensureOpen()
+        let sql = "INSERT OR REPLACE INTO token_events (provider, model, source, session_id, ts_ms, input, output, cache_read, cache_write, reasoning, source_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
         var stmt: OpaquePointer?
         let prepareCode = sqlite3_prepare_v2(db, sql, -1, &stmt, nil)
         guard prepareCode == SQLITE_OK, let stmt else {
@@ -240,6 +286,42 @@ actor TokenUsageStore {
         defer { sqlite3_finalize(stmt) }
         let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
         sqlite3_bind_text(stmt, 1, "\(ym)-%", -1, SQLITE_TRANSIENT)
+        guard sqlite3_step(stmt) == SQLITE_ROW else { return TokenBreakdown.zero }
+        return TokenBreakdown(
+            input: Int(sqlite3_column_int64(stmt, 0)),
+            output: Int(sqlite3_column_int64(stmt, 1)),
+            cacheRead: Int(sqlite3_column_int64(stmt, 2)),
+            cacheWrite: Int(sqlite3_column_int64(stmt, 3)),
+            reasoning: Int(sqlite3_column_int64(stmt, 4))
+        )
+    }
+
+    /// Cross-provider sum of all token fields for the given month, sourced from
+    /// `month_aggregates` rather than `day_aggregates`.
+    ///
+    /// P0-2 fix: `day_aggregates` is INCREMENTAL (only the current day is rewritten
+    /// on every RefreshActor tick via `refreshDayAggregates(for:)`), so it can
+    /// underreport a full month's total whenever past days haven't been backfilled
+    /// into `day_aggregates` (e.g. on a fresh DB, after a schema reset, or when the
+    /// app was not running on past days). `month_aggregates` is re-derived on every
+    /// tick via `refreshMonthAggregates()` and is therefore complete for the
+    /// current month (delta vs `token_events` SUM is bounded by the most recent
+    /// 30s tick window). Prefer this over `fetchMonthTotalTokens` for any
+    /// "本月 Token" UI surface.
+    func fetchMonthAggregatesSum(yearMonth: String? = nil) -> TokenBreakdown {
+        guard initError == nil, let db = db else { return TokenBreakdown.zero }
+        let ym = yearMonth ?? currentYearMonth()
+        let sql = """
+            SELECT COALESCE(SUM(input), 0), COALESCE(SUM(output), 0),
+                   COALESCE(SUM(cache_read), 0), COALESCE(SUM(cache_write), 0),
+                   COALESCE(SUM(reasoning), 0)
+            FROM month_aggregates WHERE year_month = ?
+        """
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else { return TokenBreakdown.zero }
+        defer { sqlite3_finalize(stmt) }
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        sqlite3_bind_text(stmt, 1, ym, -1, SQLITE_TRANSIENT)
         guard sqlite3_step(stmt) == SQLITE_ROW else { return TokenBreakdown.zero }
         return TokenBreakdown(
             input: Int(sqlite3_column_int64(stmt, 0)),

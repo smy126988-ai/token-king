@@ -46,6 +46,100 @@ final class MonthCostCalculatorTests: XCTestCase {
         XCTAssertEqual(cost ?? -1, 30.555, accuracy: 1e-9)
     }
 
+    // MARK: - Anthropic Claude model-level pricing (round 12, 2026-07-13)
+    //
+    // Pre-round-12 bug: calculateWithSource(provider="claude", model=…)
+    // never consulted `PricingTable.modelRate(for: model)` because the
+    // `looksLikeOpenAIModel` gate only fired on OpenAI prefixes under
+    // .codex. Any `claude-*` model name fell back to the Sonnet 4.5
+    // representative rate (¥20.37 / ¥101.85 / ¥25.46), under-billing
+    // Opus by ¥-13.58/M-input & over-billing by ¥67.90/M-output, etc.
+    //
+    // Round 12 fix: added a `looksLikeClaudeModel` arm to the gate so
+    // `.claude + claude-*` rows now query modelRate first, falling back
+    // to the representative rate only for unknown model strings (which
+    // get `usedFallback = true` so the UI surfaces an "estimated" badge).
+
+    func testClaudeOpus48Basic() {
+        // Opus 4.8 list USD: $5.00 / $25.00; FX 6.79 → ¥33.95 / ¥169.75 input/output.
+        // 1M input → cost = 1 * ¥33.95 = ¥33.95.
+        let tokens = TokenBreakdown(input: 1_000_000, output: 0)
+        let cost = calc.calculate(provider: "claude", model: "claude-opus-4.8", tokens: tokens)
+        XCTAssertEqual(cost ?? -1, 5.00 * 6.79, accuracy: 1e-9,
+                       "Opus 4.8 input-only cost must equal USD 5.00 × FX 6.79 (not Sonnet 20.37)")
+    }
+
+    func testClaudeHaiku45Basic() {
+        // Haiku 4.5 list USD: $1.00 / $5.00; FX 6.79 → ¥6.79 / ¥33.95.
+        // 1M input → cost = 1 * ¥6.79.
+        let tokens = TokenBreakdown(input: 1_000_000, output: 0)
+        let cost = calc.calculate(provider: "claude", model: "claude-haiku-4.5", tokens: tokens)
+        XCTAssertEqual(cost ?? -1, 1.00 * 6.79, accuracy: 1e-9,
+                       "Haiku 4.5 input-only cost must equal USD 1.00 × FX 6.79")
+    }
+
+    func testClaudeSonnetRepresentativeUnchanged() {
+        // Round 12 lock-down: pre-existing testClaudeBasic cover the cost
+        // value (¥30.555); this test additionally confirms the Sonnet
+        // model keeps the representative rate even after the gate change
+        // (since claude-sonnet-4-5 has no modelRate entry, the
+        // `calculateWithSource` gate's fallback path takes effect).
+        let tokens = TokenBreakdown(input: 1_000_000, output: 100_000)
+        let cost = calc.calculate(provider: "claude", model: "claude-sonnet-4-5", tokens: tokens)
+        // Representative 20.37 / 101.85 → 20.37 + 10.185 = 30.555.
+        XCTAssertEqual(cost ?? -1, 30.555, accuracy: 1e-9,
+                       "Sonnet representative rate must remain unchanged")
+    }
+
+    func testClaudeCacheReadForOpus() {
+        // Opus 4.8 cache read USD $0.50/M × FX 6.79 = ¥3.395.
+        // 1M cache_read → cost = ¥3.395 (NOT the $6.25 write rate).
+        // Round 12 fix: modelRate stores cache-read rate (matching all
+        // other modelRate entries — kimi/k2-7-code, gpt-5.x, deepseek).
+        let tokens = TokenBreakdown(cacheRead: 1_000_000)
+        let cost = calc.calculate(provider: "claude", model: "claude-opus-4.8", tokens: tokens)
+        XCTAssertEqual(cost ?? -1, 0.50 * 6.79, accuracy: 1e-9,
+                       "Opus 4.8 cache_read cost must equal USD 0.50 × FX 6.79 (not write rate 6.25)")
+    }
+
+    func testClaudeCacheWriteExcludedForOpus() {
+        // Anthropic prompt-cache writes are free per round 9 consensus;
+        // MonthCostCalculator omits cacheWrite from the cost formula
+        // entirely. 1M cacheWrite on Opus 4.8 → cost = ¥0.
+        let tokens = TokenBreakdown(cacheWrite: 1_000_000)
+        let cost = calc.calculate(provider: "claude", model: "claude-opus-4.8", tokens: tokens)
+        XCTAssertEqual(cost ?? -1, 0.0, accuracy: 1e-9,
+                       "cache_write is not billed for Claude models (round 9 consensus)")
+    }
+
+    func testCalculateWithSourceClaudeOpus48NotFallback() {
+        // Opus 4.8 is now a known claude-prefix model. Resolves via
+        // modelRate, NOT via the Sonnet representative. usedFallback
+        // must be false (the row is "fully priced").
+        let tokens = TokenBreakdown(input: 1, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0)
+        guard let est = calc.calculateWithSource(
+            provider: "claude", model: "claude-opus-4.8", tokens: tokens
+        ) else { return XCTFail("claude-opus-4.8 must resolve (modelRate + FX 6.79)") }
+        XCTAssertFalse(est.usedFallback,
+                       "claude-opus-4.8 is a known model under .claude; must NOT flag as fallback")
+    }
+
+    func testCalculateWithSourceClaudeUnknownFlagsFallback() {
+        // A `claude-*` string with no modelRate entry (e.g. legacy
+        // `claude-opus-4-7`) is now flagged as `usedFallback = true`
+        // because the modelRate gate fires but returns nil. UI should
+        // display this row with the "estimated" badge. Cost still
+        // computed from rate(for: .claude) representative.
+        let tokens = TokenBreakdown(input: 1_000_000, output: 0)
+        guard let est = calc.calculateWithSource(
+            provider: "claude", model: "claude-opus-4-7", tokens: tokens
+        ) else { return XCTFail("claude-opus-4-7 must still resolve via Sonnet representative") }
+        XCTAssertTrue(est.usedFallback,
+                      "Unknown claude-* model with no modelRate entry should flag as fallback")
+        // 1M input × Sonnet 20.37 = ¥20.37.
+        XCTAssertEqual(est.costRMB, 20.37, accuracy: 1e-9)
+    }
+
     func testCodexBasic() {
         // codex modelRate (gpt-4o) entry added in round 10:
         // input = 2.50 * 6.79 = 16.975, output = 10.00 * 6.79 = 67.90, cache = 1.25 * 6.79 = 8.4875.
@@ -67,15 +161,13 @@ final class MonthCostCalculatorTests: XCTestCase {
     }
 
     func testNanoGptBasic() {
-        // nanoGpt representative (gpt-4o): rate(for: .nanoGpt) gives
-        // input=16.98, output=67.90, cache=nil. The modelRate switch does
-        // not query nanoGpt (only OpenAI-on-Codex), so this path falls
-        // through to the provider rate. Sums the same way as testCodexBasic
-        // but nanoGpt's rate caches out to nil, so cache contributes 0.
+        // Every recognized provider now attempts modelRate first. The gpt-4o
+        // model therefore uses its precise model-level CNY rate before the
+        // NanoGPT representative fallback is considered.
         let tokens = TokenBreakdown(input: 1_000_000, output: 100_000)
         let cost = calc.calculate(provider: "nanogpt", model: "gpt-4o", tokens: tokens)
-        // 1 * 16.98 + 0.1 * 67.90 = 23.77 (cache=nil contributes 0).
-        XCTAssertEqual(cost ?? -1, 23.77, accuracy: 1e-9)
+        // 1 * 16.975 + 0.1 * 67.90 = 23.765.
+        XCTAssertEqual(cost ?? -1, 23.765, accuracy: 1e-9)
     }
 
     // MARK: - Edge cases (8-13)
@@ -314,18 +406,15 @@ final class MonthCostCalculatorTests: XCTestCase {
         XCTAssertNotNil(cost)
     }
 
-    /// Round 9 follow-up: model-level rate must NOT leak across providers.
-    /// An OpenAI-style model name under .kimi must NOT receive OpenAI
-    /// list prices — the OpenAI list is bound to .codex.
-    func testOpenAIPriceDoesNotLeakToKimiProvider() {
+    /// Model-level rates are global overrides. This is required for provider
+    /// routes whose persisted provider label differs from the model vendor
+    /// (for example Kimi Code and OpenCode Go).
+    func testKnownModelRateTakesPrecedenceAcrossProviderLabels() {
         let tokens = TokenBreakdown(input: 1_000_000, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0)
-        // If the modelRate lookup wrongly applied, we'd get 1M * $5 = ¥33.95.
-        // Correct behavior: gpt-5.6-sol under .kimi falls through to .kimi
-        // representative (kimi-k2.6) rate = 1M input × 6.50 RMB/M = 6.50 RMB.
         let costRMB = calc.calculate(provider: "kimi", model: "gpt-5.6-sol", tokens: tokens)
         XCTAssertNotNil(costRMB)
-        XCTAssertEqual(costRMB ?? -1, 6.50, accuracy: 0.05,
-                       "OpenAI modelRate must not leak into .kimi provider; kimi representative applies")
+        XCTAssertEqual(costRMB ?? -1, 5.00 * 6.79, accuracy: 0.05,
+                       "Known model rate must take precedence over the provider representative")
     }
 
     // MARK: - calculateWithSource (round 10) — hasUnknownPricing fallback signal
@@ -430,5 +519,248 @@ final class MonthCostCalculatorTests: XCTestCase {
             XCTAssertFalse(t.hasUnknownPricing,
                            "fully-priced rows must not flag hasUnknownPricing")
         }
+    }
+
+    // MARK: - Kimi K2.7 Code routing (t1.1)
+
+    func testKimiK27CodeBasic() {
+        let tokens = TokenBreakdown(input: 1_000_000, output: 500_000)
+        let cost = calc.calculate(provider: "kimiCode", model: "kimi-k2-7-code", tokens: tokens)
+        XCTAssertEqual(cost ?? -1, 20.0, accuracy: 1e-9)
+    }
+
+    func testKimiK27CodeCache() {
+        let tokens = TokenBreakdown(cacheRead: 1_000_000)
+        let cost = calc.calculate(provider: "kimiCode", model: "kimi-k2-7-code", tokens: tokens)
+        XCTAssertEqual(cost ?? -1, 1.30, accuracy: 1e-9)
+    }
+
+    func testKimiK27AliasPaths() {
+        let tokens = TokenBreakdown(input: 1_000_000, output: 500_000, cacheRead: 1_000_000)
+        let expectedCost = 21.30
+        for model in ["kimi-for-coding", "kimi-code/kimi-for-coding"] {
+            let cost = calc.calculate(provider: "kimiCode", model: model, tokens: tokens)
+            XCTAssertEqual(cost ?? -1, expectedCost, accuracy: 1e-9, "Alias \(model) must use K2.7 rates")
+        }
+    }
+
+    func testKimiCodeUnknownModelFallsBack() {
+        let tokens = TokenBreakdown(input: 1_000_000, output: 500_000, cacheRead: 1_000_000)
+        guard let estimate = calc.calculateWithSource(
+            provider: "kimiCode", model: "kimi-unknown-2027", tokens: tokens
+        ) else {
+            return XCTFail("Unknown Kimi Code model must use the Kimi representative rate")
+        }
+        XCTAssertEqual(estimate.costRMB, 21.10, accuracy: 1e-9)
+        XCTAssertTrue(estimate.usedFallback)
+    }
+
+    // MARK: - t1.2 (audit/p0-batch-1-t1.2) — 3 new raw-API-rate providers
+
+    /// Pre-t1.2: `providerStringToIdentifier("minimaxCN")` returned nil,
+    /// causing `month_aggregates` rows with provider="minimaxCN" to drop
+    /// to nil cost. Post-t1.2: routed to .minimaxCN representative rate
+    /// (¥4.20 / ¥16.80 / ¥0.84 from MiniMax-M3 standard tier).
+    /// 1M input * ¥4.20/M = ¥4.20.
+    func testMinimaxCNBasic() {
+        let tokens = TokenBreakdown(input: 1_000_000)
+        let cost = calc.calculate(provider: "minimaxCN", model: "MiniMax-M3", tokens: tokens)
+        XCTAssertEqual(cost ?? -1, 4.20, accuracy: 1e-9)
+    }
+
+    /// Unknown model under .minimaxCN falls back to the provider-level
+    /// representative rate. `usedProviderFallback` is true (since modelRate
+    /// was queried via the new `isNewProviderWithModelRate` path).
+    func testMinimaxCNUnknownFallsBack() {
+        let tokens = TokenBreakdown(input: 1_000_000)
+        guard let est = calc.calculateWithSource(
+            provider: "minimaxCN", model: "MiniMax-unknown", tokens: tokens
+        ) else { return XCTFail("unknown model under minimaxCN must fall back, not nil") }
+        XCTAssertEqual(est.costRMB, 4.20, accuracy: 1e-9)
+        XCTAssertTrue(est.usedFallback,
+                      "Unknown model under .minimaxCN must flag as fallback (provider-level rate used)")
+    }
+
+    /// Pre-t1.2: `providerStringToIdentifier("opencodeGo")` returned nil.
+    /// Post-t1.2: routed to .openCodeGo representative rate
+    /// (USD $1.74/$3.48/$0.0145 × FX 6.79 = ¥11.8146 / ¥23.6292 / ¥0.0984555).
+    /// 1M input * ¥11.8146/M = ¥11.8146.
+    /// Note: modelRate for deepseek-v4-pro is also $1.74 input, so this
+    /// resolves via the modelRate lookup (preferred over provider-level).
+    func testOpencodeGoDeepseekV4Pro() {
+        let tokens = TokenBreakdown(input: 1_000_000)
+        let cost = calc.calculate(provider: "opencodeGo", model: "deepseek-v4-pro", tokens: tokens)
+        XCTAssertEqual(cost ?? -1, 1.74 * 6.79, accuracy: 1e-6)
+    }
+
+    /// mimo-v2.5-pro through opencodeGo uses the opencode-go USD*fx rate
+    /// ($1.74 / $3.48 / $0.0145). 1M input → ¥11.8146.
+    func testOpencodeGoMimo() {
+        let tokens = TokenBreakdown(input: 1_000_000)
+        guard let cost = calc.calculate(
+            provider: "opencodeGo", model: "mimo-v2.5-pro", tokens: tokens
+        ) else { return XCTFail("mimo-v2.5-pro under opencodeGo must resolve via modelRate") }
+        XCTAssertEqual(cost, 1.74 * 6.79, accuracy: 1e-6,
+                       "opencodeGo routes mimo-v2.5-pro at opencode-go tier (USD*fx)")
+    }
+
+    /// mimo-v2.5-pro through xiaomiTokenPlanCN uses Xiaomi's direct CNY
+    /// rate (¥3.00 / ¥6.00 / ¥0.025), NOT the opencode-go USD*fx rate.
+    /// This is the **provider-aware** override added in t1.2.
+    /// 1M input * ¥3.00/M = ¥3.00 — ~4× cheaper than opencodeGo's path.
+    func testXiaomiTokenPlanCNMimo() {
+        let tokens = TokenBreakdown(input: 1_000_000)
+        guard let cost = calc.calculate(
+            provider: "xiaomiTokenPlanCN", model: "mimo-v2.5-pro", tokens: tokens
+        ) else { return XCTFail("mimo-v2.5-pro under xiaomiTokenPlanCN must resolve") }
+        XCTAssertEqual(cost, 3.00, accuracy: 1e-9,
+                       "xiaomiTokenPlanCN uses Xiaomi's direct CNY rate, not opencode-go USD*fx")
+    }
+
+    /// Cross-provider divergence: same model, different providers, different
+    /// prices. Verifies the opencodeGo vs xiaomiTokenPlanCN price split
+    /// for mimo-v2.5-pro.
+    func testMimoV25ProPriceDivergesAcrossProviders() {
+        let tokens = TokenBreakdown(input: 1_000_000)
+        let opencodeGoCost = calc.calculate(
+            provider: "opencodeGo", model: "mimo-v2.5-pro", tokens: tokens
+        ) ?? -1
+        let xiaomiTokenPlanCNCost = calc.calculate(
+            provider: "xiaomiTokenPlanCN", model: "mimo-v2.5-pro", tokens: tokens
+        ) ?? -1
+        XCTAssertGreaterThan(opencodeGoCost, xiaomiTokenPlanCNCost,
+                             "opencodeGo must price higher than direct Xiaomi API (~4×)")
+    }
+
+    /// qwen3.7-max through opencodeGo uses the opencode-go USD*fx rate
+    /// ($2.50 / $7.50 / $0.50 → ¥16.975 / ¥50.925 / ¥3.395).
+    /// 1M input * ¥16.975/M = ¥16.975.
+    func testQwen37MaxOpencodeGo() {
+        let tokens = TokenBreakdown(input: 1_000_000)
+        guard let cost = calc.calculate(
+            provider: "opencodeGo", model: "qwen3.7-max", tokens: tokens
+        ) else { return XCTFail("qwen3.7-max under opencodeGo must resolve via modelRate") }
+        XCTAssertEqual(cost, 2.50 * 6.79, accuracy: 1e-6)
+    }
+
+    /// Pre-t1.2: xiaomiTokenPlanCN returned nil. Post-t1.2: routed to
+    /// .xiaomiTokenPlanCN representative rate (¥3.00 / ¥6.00 / ¥0.025
+    /// from mimo-v2.5-pro Xiaomi domestic). Uses an unknown model so the
+    /// call falls through `modelRate` (nil) to `rate(for: .xiaomiTokenPlanCN)`.
+    /// 1M input + 100K output = 1 * 3.00 + 0.1 * 6.00 = 3.60.
+    func testXiaomiTokenPlanCNBasic() {
+        let tokens = TokenBreakdown(input: 1_000_000, output: 100_000)
+        let cost = calc.calculate(
+            provider: "xiaomiTokenPlanCN", model: "mimo-v2.5-pro", tokens: tokens
+        )
+        XCTAssertEqual(cost ?? -1, 3.60, accuracy: 1e-9)
+    }
+
+    /// t1.2: mimo-v2.5-pro cache read under xiaomiTokenPlanCN uses ¥0.025/M.
+    /// 1M cacheRead * 0.025 = 0.025.
+    func testXiaomiTokenPlanCNMimoCacheRead() {
+        let tokens = TokenBreakdown(cacheRead: 1_000_000)
+        let cost = calc.calculate(
+            provider: "xiaomiTokenPlanCN", model: "mimo-v2.5-pro", tokens: tokens
+        )
+        XCTAssertEqual(cost ?? -1, 0.025, accuracy: 1e-9)
+    }
+
+    /// `calculateMonthlyTotals` regression: the 3 new providers used to drop
+    /// out of the totals entirely (pre-t1.2 returned nil). Post-t1.2: each
+    /// provider row appears in totals with a non-nil cost.
+    func testMonthlyTotalsIncludesNewProviders() {
+        let aggs = [
+            MonthAggregate(provider: "minimaxCN", model: "MiniMax-M3",
+                           tokens: TokenBreakdown(input: 1_000_000),
+                           yearMonth: "2026-07"),
+            MonthAggregate(provider: "opencodeGo", model: "deepseek-v4-pro",
+                           tokens: TokenBreakdown(input: 1_000_000),
+                           yearMonth: "2026-07"),
+            MonthAggregate(provider: "xiaomiTokenPlanCN", model: "mimo-v2.5-pro",
+                           tokens: TokenBreakdown(input: 1_000_000),
+                           yearMonth: "2026-07"),
+        ]
+        let totals = calc.calculateMonthlyTotals(aggs)
+        XCTAssertEqual(totals.count, 3, "all 3 new providers should appear in totals")
+        let minimax = totals.first(where: { $0.provider == "minimaxCN" })
+        XCTAssertNotNil(minimax)
+        XCTAssertEqual(minimax?.totalCostRMB ?? -1, 4.20, accuracy: 1e-9)
+        let opencodeGo = totals.first(where: { $0.provider == "opencodeGo" })
+        XCTAssertNotNil(opencodeGo)
+        XCTAssertEqual(opencodeGo?.totalCostRMB ?? -1, 1.74 * 6.79, accuracy: 1e-6)
+        let xiaomiTokenPlanCN = totals.first(where: { $0.provider == "xiaomiTokenPlanCN" })
+        XCTAssertNotNil(xiaomiTokenPlanCN)
+        XCTAssertEqual(xiaomiTokenPlanCN?.totalCostRMB ?? -1, 3.00, accuracy: 1e-9)
+    }
+
+    /// Snapshot regression against the SQLite `month_aggregates`
+    /// snapshot captured 2026-07-13 (post-t1.2 implementation). The
+    /// numbers below are HARD-CODED `MonthAggregate` instances
+    /// (NOT a live SQLite query at runtime) — keeps CI hermetic and
+    /// free of F2b SQLite I/O. This test confirms that for the 3
+    /// previously-zero-cost provider rows, MonthCostCalculator now
+    /// produces non-nil, sensible RMB totals using the new rates.
+    ///
+    /// Live SQLite drift (e.g. the opencodeGo / minimax-m3 / etc.
+    /// volume delta from one day to the next) is NOT captured here;
+    /// see t2 (P0-2 day-vs-month token integrity) for the day-by-day
+    /// reconciliation job. To regenerate this snapshot:
+    ///   sqlite3 ~/Library/Application\ Support/TokenKing/f2b.sqlite \
+    ///     "SELECT provider, model, SUM(input), SUM(output), SUM(cache_read) \
+    ///      FROM month_aggregates \
+    ///      WHERE provider IN ('minimaxCN','opencodeGo','xiaomiTokenPlanCN') \
+    ///        AND year_month = '2026-07' \
+    ///      GROUP BY provider, model;"
+    /// then update the `MonthAggregate(...)` literals below.
+    func testCostMathMatchesSnapshottedMonthAggregates202607() {
+        let aggs = [
+            // minimaxCN|MiniMax-M3: 95.88M in / 5.74M out / 1.96B cr
+            // ¥4.20 * 95.88 + ¥16.80 * 5.74 + ¥0.84 * 1959.63 ≈ ¥2145.21
+            MonthAggregate(provider: "minimaxCN", model: "MiniMax-M3",
+                           tokens: TokenBreakdown(input: 95_880_430, output: 5_739_658, cacheRead: 1_959_627_380),
+                           yearMonth: "2026-07"),
+            // opencodeGo|deepseek-v4-flash-free: 95.7K in / 14.3K out / 6.33M cr
+            // opencode-go USD*fx: 0.14*6.79 / 0.28*6.79 / 0.0028*6.79 ≈ ¥0.24
+            MonthAggregate(provider: "opencodeGo", model: "deepseek-v4-flash-free",
+                           tokens: TokenBreakdown(input: 95_714, output: 14_295, cacheRead: 6_333_184),
+                           yearMonth: "2026-07"),
+            // opencodeGo|deepseek-v4-pro: 6.40M in / 568K out / 175.04M cr
+            // opencode-go USD*fx: 1.74*6.79 / 3.48*6.79 / 0.0145*6.79 ≈ ¥106.24
+            MonthAggregate(provider: "opencodeGo", model: "deepseek-v4-pro",
+                           tokens: TokenBreakdown(input: 6_398_613, output: 567_637, cacheRead: 175_037_568),
+                           yearMonth: "2026-07"),
+            // opencodeGo|minimax-m3: 59.1K in / 127 out / 1.9K cr
+            // MiniMax-M3 native CNY: ¥4.20 / ¥16.80 / ¥0.84 ≈ ¥0.25
+            MonthAggregate(provider: "opencodeGo", model: "minimax-m3",
+                           tokens: TokenBreakdown(input: 59_133, output: 127, cacheRead: 1_906),
+                           yearMonth: "2026-07"),
+            // xiaomiTokenPlanCN|mimo-v2.5-pro: 16.06M in / 860K out / 832.16M cr
+            // Xiaomi direct CNY: ¥3.00 / ¥6.00 / ¥0.025 ≈ ¥74.13
+            MonthAggregate(provider: "xiaomiTokenPlanCN", model: "mimo-v2.5-pro",
+                           tokens: TokenBreakdown(input: 16_056_695, output: 860_000, cacheRead: 832_160_704),
+                           yearMonth: "2026-07"),
+        ]
+        let totals = calc.calculateMonthlyTotals(aggs)
+        XCTAssertEqual(totals.count, 3,
+                       "expected 3 distinct provider rows in totals (minimaxCN/opencodeGo/xiaomiTokenPlanCN)")
+        // No row should flag hasUnknownPricing (all 5 rows have explicit rates).
+        for t in totals {
+            XCTAssertFalse(t.hasUnknownPricing,
+                           "\(t.provider) should be fully-priced post-t1.2")
+        }
+        // Provider totals (¥).
+        let fx = 6.79
+        let minimax = totals.first(where: { $0.provider == "minimaxCN" })
+        XCTAssertEqual(minimax?.totalCostRMB ?? -1, 2145.21, accuracy: 0.1)
+        let opencodeGo = totals.first(where: { $0.provider == "opencodeGo" })
+        // Two deepseek + one minimax-m3 sum:
+        //   v4-flash-free ≈ 0.24
+        //   v4-pro        ≈ 106.24
+        //   minimax-m3    ≈ 0.25
+        // total ≈ 106.73
+        XCTAssertEqual(opencodeGo?.totalCostRMB ?? -1, 106.73, accuracy: 0.1)
+        let xiaomiTokenPlanCN = totals.first(where: { $0.provider == "xiaomiTokenPlanCN" })
+        XCTAssertEqual(xiaomiTokenPlanCN?.totalCostRMB ?? -1, 74.13, accuracy: 0.1)
     }
 }

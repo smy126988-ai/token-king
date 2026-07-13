@@ -109,10 +109,58 @@ enum PricingTable {
                 cache: 8.49
             )
 
+        case .minimaxCN:
+            // Source: https://platform.minimaxi.com/docs/guides/pricing-paygo (2026-07-13)
+            // Representative model: MiniMax-M3 (standard tier ≤512K context).
+            // Native CNY per 1M tokens (no FX conversion needed).
+            //   input ¥4.20 / cache_read ¥0.84 / output ¥16.80.
+            // Added in t1.2 (audit/p0-batch-1-t1.2) so SQLite
+            // `month_aggregates` rows with provider="minimaxCN" no longer
+            // return nil from MonthCostCalculator.
+            return PayAsYouGoRate(
+                input: 4.20,
+                output: 16.80,
+                cache: 0.84
+            )
+
+        case .openCodeGo:
+            // Source: https://opencode.ai/docs/go/ + https://models.dev/api.json
+            // (captured 2026-07-13 for t1.2).
+            // Representative model: deepseek-v4-pro (opencode-go tier).
+            // USD per 1M tokens: $1.74 / $3.48 / $0.0145.
+            // FX: 1 USD = 6.79 CNY (2026-07-13).
+            // Pre-t1.2: returned nil (provider listed under "no public
+            // pricing" bucket), causing SQLite provider="opencodeGo" rows
+            // to compute as nil cost in F2b MonthCostCalculator.
+            // Same FX rate as the rest of the table (round 11 / round 9
+            // baseline 6.79).
+            return PayAsYouGoRate(
+                input: 1.74 * 6.79,
+                output: 3.48 * 6.79,
+                cache: 0.0145 * 6.79
+            )
+
+        case .xiaomiTokenPlanCN:
+            // Source: https://mimo.mi.com/docs/en-US/price/pay-as-you-go
+            // (updated 2026-06-29, captured 2026-07-13 for t1.2).
+            // Representative model: mimo-v2.5-pro (pay-as-you-go domestic
+            // pricing). Domestic CNY per 1M tokens:
+            //   input (cache miss) ¥3.00 / cache_read (cache hit) ¥0.025
+            //   / output ¥6.00.
+            // Note: Token Plan CN itself is a monthly subscription, not a
+            // per-token rate; this pay-as-you-go rate is used as the
+            // representative cost estimate for SQLite
+            // provider="xiaomiTokenPlanCN" rows (per t1.2 spec).
+            return PayAsYouGoRate(
+                input: 3.00,
+                output: 6.00,
+                cache: 0.025
+            )
+
         case .copilot, .antigravity, .mimo, .volcanoArk, .hunyuan,
              .zhipuGLM, .grok, .commandCode, .cursor, .kiro,
              .synthetic, .chutes, .geminiCLI, .openRouter, .openCode,
-             .openCodeZen, .openCodeGo, .minimaxCodingPlan,
+             .openCodeZen, .minimaxCodingPlan,
              .minimaxCodingPlanCN, .tavilySearch, .braveSearch:
             // No public per-token pricing available, or out of F2a scope.
             return nil
@@ -122,7 +170,8 @@ enum PricingTable {
     /// All providers that have a public per-token rate in `rate(for:)`.
     /// Order matches the spec section 3.3 table.
     static var providersWithPublicPricing: [ProviderIdentifier] {
-        [.kimi, .kimiCN, .claude, .zaiCodingPlan, .nanoGpt, .codex]
+        [.kimi, .kimiCN, .claude, .zaiCodingPlan, .nanoGpt, .codex,
+         .minimaxCN, .openCodeGo, .xiaomiTokenPlanCN]
     }
 
     /// Per-model pay-as-you-go rate override. Returns the model's own
@@ -152,6 +201,11 @@ enum PricingTable {
     /// Aliases registered:
     /// - `gpt-5.6` → routes to `gpt-5.6-sol` per OpenAI's official guidance
     /// - `gpt-5.3-codex-spark` → sold as a preview alias for `gpt-5.6-sol`
+    ///
+    /// Provider-aware variant `modelRate(for:provider:)` (t1.2) is used when
+    /// the same model name has different list prices depending on which
+    /// provider the call came from (e.g. `mimo-v2.5-pro` via opencode-go
+    /// uses USD*fx, while via xiaomiTokenPlanCN uses native CNY).
     static func modelRate(for model: String) -> PayAsYouGoRate? {
         // The rest of the F2a PricingTable (rate(for: ProviderIdentifier)) uses
         // RMB per 1M tokens. We mirror that unit here: USD public prices
@@ -243,9 +297,90 @@ enum PricingTable {
         // under-cost on kimiCode 7月 totals.
         case "kimi-code/kimi-for-coding", "kimi-for-coding", "kimi-k2-7-code":
             return PayAsYouGoRate(
-                input:   6.50 * fx,
-                output: 27.00 * fx,
-                cache:   1.30 * fx
+                input:   6.50,
+                output: 27.00,
+                cache:   1.30
+            )
+
+        // OpenCode Go qwen3.7-max (opencode-go tier). Source:
+        // https://models.dev/api.json `provider.opencode-go.models.qwen3.7-max.cost`
+        // (captured 2026-07-13 for t1.2). USD per 1M tokens: $2.50 / $7.50
+        // / $0.50. FX 1 USD = 6.79 CNY.
+        // Cache ratio (cache_read / input) is 0.20 — much higher than
+        // deepseek-v4-pro's 1/120, reflecting Qwen's explicit cache
+        // pricing line.
+        case "qwen3.7-max":
+            return PayAsYouGoRate(
+                input:  2.50 * fx,
+                output:  7.50 * fx,
+                cache:   0.50 * fx
+            )
+
+        // MiMo-V2.5-Pro through opencode-go. Source:
+        // https://models.dev/api.json `provider.opencode-go.models.mimo-v2.5-pro.cost`
+        // (captured 2026-07-13). Same USD per 1M as deepseek-v4-pro:
+        // $1.74 / $3.48 / $0.0145. Cross-verified via opencode GitHub
+        // issue #29642 and whichllm.io.
+        // Default entry here = opencode-go tier (USD*fx). The
+        // provider-aware overload `modelRate(for:provider:)` overrides
+        // this when the call came through `xiaomiTokenPlanCN`, since
+        // Xiaomi's direct-API rate (¥3.00 / ¥6.00 / ¥0.025) is ~4× cheaper.
+        case "mimo-v2.5-pro":
+            return PayAsYouGoRate(
+                input:  1.74 * fx,
+                output:  3.48 * fx,
+                cache:   0.0145 * fx
+            )
+
+        // MiMo-V2.5 base via opencode-go (same USD as deepseek-v4-flash).
+        case "mimo-v2.5":
+            return PayAsYouGoRate(
+                input:  0.14 * fx,
+                output:  0.28 * fx,
+                cache:   0.0028 * fx
+            )
+
+        // Anthropic Claude model-level rates (round 12, 2026-07-13).
+        //
+        // Source: https://www.anthropic.com/pricing (captured 2026-07-13).
+        //
+        // Pre-12 behaviour: `calculateWithSource` for provider=.claude
+        // with model=claude-opus-4.8 / claude-haiku-4.5 queried
+        // `modelRate(for: model)`, got nil (no switch case), and fell
+        // back to the Sonnet 4.5 representative rate (`rate(for: .claude)`,
+        // 20.37 / 101.85 / 25.46). 7月 SQLite drift was ~¥28,810 netted
+        // across Opus + Haiku (see /Users/simengyu/projects/usage-deck/
+        // .swarm/workers/t1.3-result.md).
+        //
+        // `cache` field stores the **cache-read** rate (matching every
+        // other `modelRate(for:)` entry — kimi/k2-7-code, gpt-5.x,
+        // deepseek). The `.claude` representative rate stores write
+        // rate as a conservative upper-bound (round 5); model-level
+        // rates opt for actual list pricing — the conservative
+        // fallback is preserved for the unknown-model path through
+        // `rate(for: .claude)`. `cacheWrite` is excluded by
+        // MonthCostCalculator (round 9 consensus: Anthropic cache
+        // writes are free). Cache-read at 0.50 USD / MTok is 10×
+        // cheaper than input at 5.00 USD / MTok and 50× cheaper than
+        // write at 6.25 USD / MTok.
+        //
+        // Aliases (claude-opus-4 / claude-haiku-4) resolve to the
+        // current 4.x head revision as of 2026-07-13 (Opus 4.8 /
+        // Haiku 4.5). Old-session data (pre-4.x) will hit the Sonnet
+        // representative fallback rather than be silently aliased.
+        case "claude-opus-4.8", "claude-opus-4":
+            // USD $5.00 / $25.00; cache write $6.25, cache read $0.50.
+            return PayAsYouGoRate(
+                input:   5.00 * fx,
+                output: 25.00 * fx,
+                cache:   0.50 * fx
+            )
+        case "claude-haiku-4.5", "claude-haiku-4":
+            // USD $1.00 / $5.00; cache write $1.25, cache read $0.10.
+            return PayAsYouGoRate(
+                input:   1.00 * fx,
+                output:  5.00 * fx,
+                cache:   0.10 * fx
             )
 
         case "gpt-5.6-terra":
@@ -317,6 +452,45 @@ enum PricingTable {
         // Unknown model — caller falls back to provider-level rate.
         default:
             return nil
+        }
+    }
+
+    /// Provider-aware per-model rate lookup (added in t1.2).
+    ///
+    /// Some model names have **different list prices** depending on which
+    /// provider routed the call. The provider-agnostic `modelRate(for:)`
+    /// can't express this without a provider key.
+    ///
+    /// Currently registered overrides:
+    /// - `mimo-v2.5-pro` via `.xiaomiTokenPlanCN` → Xiaomi's direct CNY rate
+    ///   (¥3.00 / ¥6.00 / ¥0.025), NOT opencode-go's USD*fx rate.
+    ///   Opencode-go's `mimo-v2.5-pro` rate ($1.74/$3.48/$0.0145) is ~4×
+    ///   Xiaomi's direct API rate; using the wrong rate would inflate the
+    ///   `xiaomiTokenPlanCN` cost 4×. Source:
+    ///   https://mimo.mi.com/docs/en-US/price/pay-as-you-go (2026-06-29).
+    ///
+    /// Other provider/model combinations that have only one public rate
+    /// still go through the simpler `modelRate(for:)` lookup — the caller
+    /// in MonthCostCalculator picks this overload only when a provider-
+    /// specific override is registered.
+    static func modelRate(for model: String, provider: ProviderIdentifier) -> PayAsYouGoRate? {
+        // Provider-specific overrides first.
+        switch (provider, model) {
+        case (.xiaomiTokenPlanCN, "mimo-v2.5-pro"):
+            // Xiaomi MiMo domestic pay-as-you-go (CNY per 1M):
+            //   input (cache miss) ¥3.00 / cache_read (cache hit) ¥0.025
+            //   / output ¥6.00.
+            // Source: https://mimo.mi.com/docs/en-US/price/pay-as-you-go
+            // (updated 2026-06-29, captured 2026-07-13 for t1.2).
+            return PayAsYouGoRate(
+                input:  3.00,
+                output: 6.00,
+                cache:  0.025
+            )
+        default:
+            // No provider-specific override; fall back to the provider-
+            // agnostic lookup.
+            return modelRate(for: model)
         }
     }
 }

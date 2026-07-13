@@ -34,48 +34,62 @@ struct MonthCostCalculator {
         calculateWithSource(provider: provider, model: model, tokens: tokens)?.costRMB
     }
 
-    /// Source-resolved cost (round 10, 2026-07-12). Returns both the
-    /// computed RMB cost AND whether the row was priced via the
-    /// provider-level fallback (i.e. modelRate(for:) was queried but
-    /// returned nil). The `usedFallback` flag is the signal that
+    /// Source-resolved cost (round 10, 2026-07-12; extended t1.2 2026-07-13
+    /// to add minimaxCN / opencodeGo / xiaomiTokenPlanCN providers, then
+    /// t1.3 added Claude model-level rates for Opus 4.8 / Haiku 4.5).
+    /// Returns both the computed RMB cost AND whether the row was priced
+    /// via the provider-level fallback (i.e. modelRate lookup was queried
+    /// but returned nil). The `usedFallback` flag is the signal that
     /// `calculateMonthlyTotals` aggregates into `MonthlyTotal.hasUnknownPricing`
     /// so the UI can show an "estimated" badge on those rows.
     ///
     /// Returned nil when the provider is itself unknown to F2a, or the
     /// rate lookup returns a degenerate (input + output both 0) value.
     ///
-    /// `usedFallback` is set ONLY when:
-    ///   - the model name matches an OpenAI `gpt-*` / `o1` / `o3` / `o4-*`
-    ///     prefix AND
-    ///   - the provider is `.codex` AND
+    /// `usedFallback` is set only when:
+    ///   - the provider has a public provider-level rate AND
     ///   - `pricingTable.modelRate(for: model)` returned nil.
     ///
-    /// Other providers (kimi / claude / zai / nanogpt) don't have a
-    /// `modelRate(for:)` switch entry today, so their rows always
-    /// resolve via `rate(for: providerId)`. That's the canonical path
-    /// for that provider, not a fallback. `usedFallback` is false in
-    /// those cases so we don't spam the UI with false "estimated" badges
-    /// for non-OpenAI providers.
+    /// Every recognized provider attempts the model-level lookup first via
+    /// the provider-aware overload `modelRate(for:provider:)`. That overload
+    /// returns provider-specific overrides (e.g. mimo-v2.5-pro via
+    /// `.xiaomiTokenPlanCN` vs via `.openCodeGo`) and falls back to the
+    /// provider-agnostic `modelRate(for:)` for everything else.
+    ///
+    /// t1.1 removed the model-prefix gate; this single lookup now covers
+    /// Kimi Code, MiniMax, OpenCode Go, Xiaomi token plan, Claude,
+    /// OpenAI-on-Codex, NanoGPT, and Z.AI equally. t1.3 added the
+    /// `claude-opus-4.8` / `claude-opus-4` and `claude-haiku-4.5` /
+    /// `claude-haiku-4` model-level rates; under the unified gate these
+    /// take effect immediately without needing a new `looksLikeClaudeModel`
+    /// arm — the arm that t1.3 originally introduced against main was
+    /// necessary in isolation, but became dead code in the integration and
+    /// was therefore dropped here. Legacy `claude-*` strings that t1.3 did
+    /// not cover (e.g. `claude-opus-4-7`) still flag as
+    /// `usedFallback = true` and the UI displays them with the
+    /// "estimated" badge. Providers without public fallback pricing do
+    /// not receive an "estimated" marker solely because their model is
+    /// absent from the model table.
     func calculateWithSource(provider: String, model: String, tokens: TokenBreakdown) -> CostEstimate? {
         guard let providerId = providerStringToIdentifier(provider) else { return nil }
 
-        let looksLikeOpenAIModel = model.hasPrefix("gpt-")
-                                  || model.hasPrefix("o1")
-                                  || model.hasPrefix("o3")
-                                  || model.hasPrefix("o4-")
-        let queriedModelRate: Bool = (looksLikeOpenAIModel && providerId == .codex)
-        let modelRate: PayAsYouGoRate? = queriedModelRate
-            ? pricingTable.modelRate(for: model)
-            : nil
+        // Provider-aware lookup covers both provider-specific overrides
+        // and the provider-agnostic case (the overload's `default`
+        // delegates back to `modelRate(for:)`).
+        let modelRate = pricingTable.modelRate(for: model, provider: providerId)
         let rate = modelRate ?? pricingTable.rate(for: providerId)
         guard let rate = rate, rate.input > 0 || rate.output > 0 else { return nil }
 
         let inputCost = Double(tokens.input) * rate.input / 1_000_000
         let outputCost = Double(tokens.output) * rate.output / 1_000_000
         let cacheReadCost = Double(tokens.cacheRead) * (rate.cache ?? 0) / 1_000_000
+        let providerHasFallbackRate = PricingTable.providersWithPublicPricing.contains(providerId)
+        let usedProviderFallback = providerHasFallbackRate
+            && modelRate == nil
+            && !isRepresentativeModel(model, for: providerId)
         return CostEstimate(
             costRMB: inputCost + outputCost + cacheReadCost,
-            usedFallback: queriedModelRate && modelRate == nil
+            usedFallback: usedProviderFallback
         )
     }
 
@@ -104,21 +118,65 @@ struct MonthCostCalculator {
         return Array(totals.values)
     }
 
+    private func isRepresentativeModel(_ model: String, for provider: ProviderIdentifier) -> Bool {
+        switch provider {
+        case .kimi, .kimiCN:
+            return model == "kimi-k2.6"
+        case .claude:
+            return model == "claude-sonnet-4-5"
+        case .zaiCodingPlan:
+            return model == "glm-4.6"
+        case .nanoGpt, .codex:
+            return model == "gpt-4o"
+        case .openCodeGo:
+            return model == "deepseek-v4-pro"
+        case .minimaxCN:
+            return model == "minimax-m3" || model == "MiniMax-M3"
+        case .xiaomiTokenPlanCN:
+            return model == "mimo-v2.5-pro"
+        default:
+            return false
+        }
+    }
+
     /// F2a `PricingTable.rate(for:)` accepts `ProviderIdentifier`
-    /// (`.kimi / .kimiCN / .claude / .zaiCodingPlan / .nanoGpt / .codex`).
+    /// (`.kimi / .kimiCN / .claude / .zaiCodingPlan / .nanoGpt / .codex`
+    /// plus t1.2 additions `.minimaxCN / .openCodeGo / .xiaomiTokenPlanCN`).
     /// `MonthAggregate.provider` is a `String` (read from SQLite via `TokenUsageStore`).
+    ///
+    /// `TokenSource.kimiCode.rawValue` is `"kimiCode"` (camelCase).
+    /// `providerStringToIdentifier` lowercases before matching, so the case
+    /// is irrelevant at this layer. The alias maps `"kimicode"` -> `.kimi`
+    /// to share pricing with the main kimi provider (current F2b schema
+    /// writes `provider='kimi' AND source='kimiCode'`, so the alias is
+    /// forward-compat for a future schema where kimiCode becomes its own
+    /// provider enum).
     ///
     /// The "zai" string is F2b `Provider.zai.rawValue`; it must bridge to F2a's
     /// `ProviderIdentifier.zaiCodingPlan` — they are distinct enums.
+    ///
+    /// t1.2 (2026-07-13) added mappings for the 3 previously-zero-cost providers
+    /// found in `month_aggregates`:
+    ///   - "minimaxCN"          → ProviderIdentifier.minimaxCN
+    ///   - "opencodeGo"         → ProviderIdentifier.openCodeGo
+    ///   - "xiaomiTokenPlanCN"  → ProviderIdentifier.xiaomiTokenPlanCN
+    ///
+    /// Pre-t1.2: these 3 strings fell through `default → nil`, causing
+    /// `calculateWithSource` to return nil and F2b's monthly cost to
+    /// show ¥0 for the rows. Verified via
+    /// `SELECT DISTINCT provider FROM month_aggregates` (2026-07-13).
     private func providerStringToIdentifier(_ s: String) -> ProviderIdentifier? {
         switch s.lowercased() {
-        case "kimi":    return .kimi
-        case "kimicn":  return .kimiCN
-        case "claude":  return .claude
-        case "codex":   return .codex
-        case "zai":     return .zaiCodingPlan
-        case "nanogpt": return .nanoGpt
-        default:        return nil
+        case "kimi", "kimicode":   return .kimi
+        case "kimicn":             return .kimiCN
+        case "claude":             return .claude
+        case "codex":              return .codex
+        case "zai":                return .zaiCodingPlan
+        case "nanogpt":            return .nanoGpt
+        case "minimaxcn":          return .minimaxCN
+        case "opencodego":         return .openCodeGo
+        case "xiaomitokenplancn":  return .xiaomiTokenPlanCN
+        default:                   return nil
         }
     }
 }
@@ -147,8 +205,7 @@ struct ModelCost {
 
 /// Per-row pricing result from `MonthCostCalculator.calculateWithSource(...)`.
 /// `usedFallback` is true when the row was priced via the provider-level
-/// representative rate because `modelRate(for: model)` was queried
-/// (model name matches an OpenAI prefix AND provider is `.codex`) but
+/// representative rate because the model-level lookup was queried but
 /// returned nil. UI surfaces this as an "estimated" badge.
 struct CostEstimate {
     let costRMB: Double
