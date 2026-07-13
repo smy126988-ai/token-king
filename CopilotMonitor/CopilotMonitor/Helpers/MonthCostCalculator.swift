@@ -44,38 +44,32 @@ struct MonthCostCalculator {
     /// Returned nil when the provider is itself unknown to F2a, or the
     /// rate lookup returns a degenerate (input + output both 0) value.
     ///
-    /// `usedFallback` is set ONLY when:
-    ///   - the model name matches an OpenAI `gpt-*` / `o1` / `o3` / `o4-*`
-    ///     prefix AND
-    ///   - the provider is `.codex` AND
+    /// `usedFallback` is set only when:
+    ///   - the provider has a public provider-level rate AND
     ///   - `pricingTable.modelRate(for: model)` returned nil.
     ///
-    /// Other providers (kimi / claude / zai / nanogpt) don't have a
-    /// `modelRate(for:)` switch entry today, so their rows always
-    /// resolve via `rate(for: providerId)`. That's the canonical path
-    /// for that provider, not a fallback. `usedFallback` is false in
-    /// those cases so we don't spam the UI with false "estimated" badges
-    /// for non-OpenAI providers.
+    /// Every recognized provider attempts the model-level lookup first. This
+    /// allows non-OpenAI routes such as Kimi Code, MiniMax, and OpenCode Go to
+    /// use their explicit model prices. Providers without public fallback
+    /// pricing do not receive an "estimated" marker solely because their model
+    /// is absent from the model table.
     func calculateWithSource(provider: String, model: String, tokens: TokenBreakdown) -> CostEstimate? {
         guard let providerId = providerStringToIdentifier(provider) else { return nil }
 
-        let looksLikeOpenAIModel = model.hasPrefix("gpt-")
-                                  || model.hasPrefix("o1")
-                                  || model.hasPrefix("o3")
-                                  || model.hasPrefix("o4-")
-        let queriedModelRate: Bool = (looksLikeOpenAIModel && providerId == .codex)
-        let modelRate: PayAsYouGoRate? = queriedModelRate
-            ? pricingTable.modelRate(for: model)
-            : nil
+        let modelRate = pricingTable.modelRate(for: model)
         let rate = modelRate ?? pricingTable.rate(for: providerId)
         guard let rate = rate, rate.input > 0 || rate.output > 0 else { return nil }
 
         let inputCost = Double(tokens.input) * rate.input / 1_000_000
         let outputCost = Double(tokens.output) * rate.output / 1_000_000
         let cacheReadCost = Double(tokens.cacheRead) * (rate.cache ?? 0) / 1_000_000
+        let providerHasFallbackRate = PricingTable.providersWithPublicPricing.contains(providerId)
+        let usedProviderFallback = providerHasFallbackRate
+            && modelRate == nil
+            && !isRepresentativeModel(model, for: providerId)
         return CostEstimate(
             costRMB: inputCost + outputCost + cacheReadCost,
-            usedFallback: queriedModelRate && modelRate == nil
+            usedFallback: usedProviderFallback
         )
     }
 
@@ -104,21 +98,44 @@ struct MonthCostCalculator {
         return Array(totals.values)
     }
 
+    private func isRepresentativeModel(_ model: String, for provider: ProviderIdentifier) -> Bool {
+        switch provider {
+        case .kimi, .kimiCN:
+            return model == "kimi-k2.6"
+        case .claude:
+            return model == "claude-sonnet-4-5"
+        case .zaiCodingPlan:
+            return model == "glm-4.6"
+        case .nanoGpt, .codex:
+            return model == "gpt-4o"
+        default:
+            return false
+        }
+    }
+
     /// F2a `PricingTable.rate(for:)` accepts `ProviderIdentifier`
     /// (`.kimi / .kimiCN / .claude / .zaiCodingPlan / .nanoGpt / .codex`).
     /// `MonthAggregate.provider` is a `String` (read from SQLite via `TokenUsageStore`).
+    ///
+    /// `TokenSource.kimiCode.rawValue` is `"kimiCode"` (camelCase).
+    /// `providerStringToIdentifier` lowercases before matching, so the case
+    /// is irrelevant at this layer. The alias maps `"kimicode"` -> `.kimi`
+    /// to share pricing with the main kimi provider (current F2b schema
+    /// writes `provider='kimi' AND source='kimiCode'`, so the alias is
+    /// forward-compat for a future schema where kimiCode becomes its own
+    /// provider enum).
     ///
     /// The "zai" string is F2b `Provider.zai.rawValue`; it must bridge to F2a's
     /// `ProviderIdentifier.zaiCodingPlan` — they are distinct enums.
     private func providerStringToIdentifier(_ s: String) -> ProviderIdentifier? {
         switch s.lowercased() {
-        case "kimi":    return .kimi
-        case "kimicn":  return .kimiCN
-        case "claude":  return .claude
-        case "codex":   return .codex
-        case "zai":     return .zaiCodingPlan
-        case "nanogpt": return .nanoGpt
-        default:        return nil
+        case "kimi", "kimicode": return .kimi
+        case "kimicn":           return .kimiCN
+        case "claude":           return .claude
+        case "codex":            return .codex
+        case "zai":              return .zaiCodingPlan
+        case "nanogpt":          return .nanoGpt
+        default:                  return nil
         }
     }
 }

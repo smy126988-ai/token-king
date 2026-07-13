@@ -67,15 +67,13 @@ final class MonthCostCalculatorTests: XCTestCase {
     }
 
     func testNanoGptBasic() {
-        // nanoGpt representative (gpt-4o): rate(for: .nanoGpt) gives
-        // input=16.98, output=67.90, cache=nil. The modelRate switch does
-        // not query nanoGpt (only OpenAI-on-Codex), so this path falls
-        // through to the provider rate. Sums the same way as testCodexBasic
-        // but nanoGpt's rate caches out to nil, so cache contributes 0.
+        // Every recognized provider now attempts modelRate first. The gpt-4o
+        // model therefore uses its precise model-level CNY rate before the
+        // NanoGPT representative fallback is considered.
         let tokens = TokenBreakdown(input: 1_000_000, output: 100_000)
         let cost = calc.calculate(provider: "nanogpt", model: "gpt-4o", tokens: tokens)
-        // 1 * 16.98 + 0.1 * 67.90 = 23.77 (cache=nil contributes 0).
-        XCTAssertEqual(cost ?? -1, 23.77, accuracy: 1e-9)
+        // 1 * 16.975 + 0.1 * 67.90 = 23.765.
+        XCTAssertEqual(cost ?? -1, 23.765, accuracy: 1e-9)
     }
 
     // MARK: - Edge cases (8-13)
@@ -314,18 +312,15 @@ final class MonthCostCalculatorTests: XCTestCase {
         XCTAssertNotNil(cost)
     }
 
-    /// Round 9 follow-up: model-level rate must NOT leak across providers.
-    /// An OpenAI-style model name under .kimi must NOT receive OpenAI
-    /// list prices — the OpenAI list is bound to .codex.
-    func testOpenAIPriceDoesNotLeakToKimiProvider() {
+    /// Model-level rates are global overrides. This is required for provider
+    /// routes whose persisted provider label differs from the model vendor
+    /// (for example Kimi Code and OpenCode Go).
+    func testKnownModelRateTakesPrecedenceAcrossProviderLabels() {
         let tokens = TokenBreakdown(input: 1_000_000, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0)
-        // If the modelRate lookup wrongly applied, we'd get 1M * $5 = ¥33.95.
-        // Correct behavior: gpt-5.6-sol under .kimi falls through to .kimi
-        // representative (kimi-k2.6) rate = 1M input × 6.50 RMB/M = 6.50 RMB.
         let costRMB = calc.calculate(provider: "kimi", model: "gpt-5.6-sol", tokens: tokens)
         XCTAssertNotNil(costRMB)
-        XCTAssertEqual(costRMB ?? -1, 6.50, accuracy: 0.05,
-                       "OpenAI modelRate must not leak into .kimi provider; kimi representative applies")
+        XCTAssertEqual(costRMB ?? -1, 5.00 * 6.79, accuracy: 0.05,
+                       "Known model rate must take precedence over the provider representative")
     }
 
     // MARK: - calculateWithSource (round 10) — hasUnknownPricing fallback signal
@@ -430,5 +425,39 @@ final class MonthCostCalculatorTests: XCTestCase {
             XCTAssertFalse(t.hasUnknownPricing,
                            "fully-priced rows must not flag hasUnknownPricing")
         }
+    }
+
+    // MARK: - Kimi K2.7 Code routing
+
+    func testKimiK27CodeBasic() {
+        let tokens = TokenBreakdown(input: 1_000_000, output: 500_000)
+        let cost = calc.calculate(provider: "kimiCode", model: "kimi-k2-7-code", tokens: tokens)
+        XCTAssertEqual(cost ?? -1, 20.0, accuracy: 1e-9)
+    }
+
+    func testKimiK27CodeCache() {
+        let tokens = TokenBreakdown(cacheRead: 1_000_000)
+        let cost = calc.calculate(provider: "kimiCode", model: "kimi-k2-7-code", tokens: tokens)
+        XCTAssertEqual(cost ?? -1, 1.30, accuracy: 1e-9)
+    }
+
+    func testKimiK27AliasPaths() {
+        let tokens = TokenBreakdown(input: 1_000_000, output: 500_000, cacheRead: 1_000_000)
+        let expectedCost = 21.30
+        for model in ["kimi-for-coding", "kimi-code/kimi-for-coding"] {
+            let cost = calc.calculate(provider: "kimiCode", model: model, tokens: tokens)
+            XCTAssertEqual(cost ?? -1, expectedCost, accuracy: 1e-9, "Alias \(model) must use K2.7 rates")
+        }
+    }
+
+    func testKimiCodeUnknownModelFallsBack() {
+        let tokens = TokenBreakdown(input: 1_000_000, output: 500_000, cacheRead: 1_000_000)
+        guard let estimate = calc.calculateWithSource(
+            provider: "kimiCode", model: "kimi-unknown-2027", tokens: tokens
+        ) else {
+            return XCTFail("Unknown Kimi Code model must use the Kimi representative rate")
+        }
+        XCTAssertEqual(estimate.costRMB, 21.10, accuracy: 1e-9)
+        XCTAssertTrue(estimate.usedFallback)
     }
 }

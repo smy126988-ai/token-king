@@ -254,6 +254,16 @@ final class PricingTableTests: XCTestCase {
         }
     }
 
+    func testKimiK27CodeNoFX() {
+        guard let rate = PricingTable.modelRate(for: "kimi-k2-7-code") else {
+            return XCTFail("kimi-k2-7-code should resolve")
+        }
+        XCTAssertEqual(rate.input, 6.50, accuracy: 1e-9)
+        XCTAssertEqual(rate.output, 27.00, accuracy: 1e-9)
+        XCTAssertEqual(rate.cache ?? -1, 1.30, accuracy: 1e-9)
+        XCTAssertEqual(rate.currency, "CNY")
+    }
+
     /// Round 10 module 2: every rate in this table must carry a
     /// `currency: String` that signals the unit of `input / output /
     /// cache`. The round-9 contract is "CNY per 1M tokens" (USD public

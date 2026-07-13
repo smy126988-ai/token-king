@@ -243,9 +243,9 @@ enum PricingTable {
         // under-cost on kimiCode 7月 totals.
         case "kimi-code/kimi-for-coding", "kimi-for-coding", "kimi-k2-7-code":
             return PayAsYouGoRate(
-                input:   6.50 * fx,
-                output: 27.00 * fx,
-                cache:   1.30 * fx
+                input:   6.50,
+                output: 27.00,
+                cache:   1.30
             )
 
         case "gpt-5.6-terra":
