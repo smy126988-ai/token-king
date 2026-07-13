@@ -1375,9 +1375,11 @@ final class StatusBarController: NSObject {
         case .volcanoArk, .mimo, .hunyuan, .zhipuGLM:
             add(details?.sevenDayUsage, priority: .weekly)
             add(details?.fiveHourUsage, priority: .hourly)
-        case .openCodeGo, .minimaxCN, .xiaomiTokenPlanCN:
+        case .openCodeGo, .minimaxCN, .minimax, .xiaomi, .xiaomiTokenPlanCN:
             // t1.2: raw-API rate-tracking providers don't have live quota
             // windows (they're tokens-priced). Don't add candidates here.
+            // r1.c: `.minimax` / `.xiaomi` are international raw-API-rate
+            // variants of `.minimaxCN` / `.xiaomiTokenPlanCN`; same logic.
             break
         case .kiro:
             add(usage.usagePercentage, priority: .monthly)
@@ -3808,9 +3810,11 @@ final class StatusBarController: NSObject {
             image = NSImage(named: "BraveSearchIcon")
         case .mimo, .volcanoArk, .hunyuan, .zhipuGLM:
             image = NSImage(systemSymbolName: identifier.iconName, accessibilityDescription: identifier.displayName)
-        case .minimaxCN:
+        case .minimaxCN, .minimax:
+            // r1.c: `.minimax` (international) shares the icon with `.minimaxCN`.
             image = NSImage(named: "MinimaxIcon")
-        case .xiaomiTokenPlanCN:
+        case .xiaomiTokenPlanCN, .xiaomi:
+            // r1.c: `.xiaomi` (international) shares the icon with `.xiaomiTokenPlanCN`.
             image = NSImage(systemSymbolName: identifier.iconName, accessibilityDescription: identifier.displayName)
         }
 

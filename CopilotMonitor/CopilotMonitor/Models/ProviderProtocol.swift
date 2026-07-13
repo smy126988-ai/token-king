@@ -30,6 +30,18 @@ enum ProviderRegion {
 /// `.xiaomiTokenPlanCN`) were added in t1.2 (audit/p0-batch-1-t1.2) so F2b's
 /// `MonthCostCalculator` can compute the 3 previously-zero-cost provider rows
 /// in `month_aggregates` (verified via SQLite 2026-07-13).
+///
+/// r1.c (audit/p1-r1.c-enum-pricing-snapshot, 2026-07-13): added `.minimax`
+/// and `.xiaomi` (global variants) to align with F2b `TokenEvent.Provider`'s
+/// `.minimax` / `.xiaomi` cases (TokenNormalizer.swift:32, 37-38). F2b's
+/// normalizer produces these when `providerID` contains `"minimax"` without
+/// `"cn"` or `"xiaomi"` without `"xiaomi-token-plan"`. Both use rawValue
+/// equal to the case name (no underscore separator) so the SQLite string
+/// matches F2b's `Provider.rawValue` exactly. PricingTable.rate(for:) still
+/// returns nil for both — international pricing is not yet stable
+/// (minimax.io's USD list is promotional; Xiaomi does not publish global
+/// per-token pricing). When international pricing stabilizes, add rates in a
+/// follow-up task.
 enum ProviderIdentifier: String, CaseIterable {
     case copilot
     case claude
@@ -60,6 +72,9 @@ enum ProviderIdentifier: String, CaseIterable {
     case volcanoArk = "volcano_ark"
     case hunyuan
     case zhipuGLM = "zhipu_glm"
+    // r1.c additions: global raw-API-rate cases for F2b alignment.
+    case minimax
+    case xiaomi
 
     var family: ProviderFamily {
         switch self {
@@ -77,14 +92,14 @@ enum ProviderIdentifier: String, CaseIterable {
         case .kiro: return .kiro
         case .grok: return .grok
         case .kimi, .kimiCN: return .kimi
-        case .minimaxCodingPlan, .minimaxCodingPlanCN, .minimaxCN: return .minimax
+        case .minimaxCodingPlan, .minimaxCodingPlanCN, .minimaxCN, .minimax: return .minimax
         case .zaiCodingPlan: return .zai
         case .nanoGpt: return .nanoGpt
         case .synthetic: return .synthetic
         case .chutes: return .chutes
         case .tavilySearch: return .tavily
         case .braveSearch: return .brave
-        case .mimo, .xiaomiTokenPlanCN: return .mimo
+        case .mimo, .xiaomiTokenPlanCN, .xiaomi: return .mimo
         case .volcanoArk: return .volcanoArk
         case .hunyuan: return .hunyuan
         case .zhipuGLM: return .zhipuGLM
@@ -95,6 +110,9 @@ enum ProviderIdentifier: String, CaseIterable {
         switch self {
         case .kimiCN, .minimaxCodingPlanCN, .minimaxCN, .mimo, .xiaomiTokenPlanCN,
              .volcanoArk, .hunyuan, .zhipuGLM: return .china
+        // r1.c: `.minimax` and `.xiaomi` are the international/global variants
+        // (CN counterparts are `.minimaxCN` / `.xiaomiTokenPlanCN`). Defaults
+        // to `.global` via the existing default branch.
         default: return .global
         }
     }
@@ -159,6 +177,20 @@ enum ProviderIdentifier: String, CaseIterable {
             // Distinct from .mimo (the F2a subscription-tracked MiMo entry).
             // F2b uses this for SQLite provider="xiaomiTokenPlanCN" rows.
             return "MiMo Token Plan CN"
+        case .minimax:
+            // r1.c: global raw-API rate-tracking case. Distinct from
+            // .minimaxCodingPlan (the Coding Plan subscription). F2b
+            // TokenNormalizer produces `.minimax` when providerID contains
+            // "minimax" without "cn" (international routes). Display mirrors
+            // F2b TokenEvent.Provider.minimax.displayName = "MiniMax".
+            return "MiniMax"
+        case .xiaomi:
+            // r1.c: global raw-API rate-tracking case for Xiaomi MiMo.
+            // Distinct from .mimo (the F2a subscription-tracked MiMo entry).
+            // F2b TokenNormalizer produces `.xiaomi` when providerID contains
+            // "xiaomi" without "xiaomi-token-plan". Display mirrors F2b
+            // TokenEvent.Provider.xiaomi.displayName = "MiMo".
+            return "MiMo"
         case .volcanoArk:
             return "火山 Ark"
         case .hunyuan:
@@ -222,6 +254,12 @@ enum ProviderIdentifier: String, CaseIterable {
             return "MiniMax CN"
         case .xiaomiTokenPlanCN:
             return "MiMo TP"
+        case .minimax:
+            // r1.c: short name for international MiniMax raw-API rate-tracking.
+            return "MiniMax"
+        case .xiaomi:
+            // r1.c: short name for international Xiaomi raw-API rate-tracking.
+            return "MiMo"
         case .volcanoArk:
             return "Ark"
         case .hunyuan:
@@ -284,6 +322,12 @@ enum ProviderIdentifier: String, CaseIterable {
         case .minimaxCN:
             return "MinimaxIcon"
         case .xiaomiTokenPlanCN:
+            return "m.circle"
+        case .minimax:
+            // r1.c: international MiniMax. Share icon with .minimaxCN.
+            return "MinimaxIcon"
+        case .xiaomi:
+            // r1.c: international Xiaomi. Share icon with .xiaomiTokenPlanCN.
             return "m.circle"
         case .volcanoArk:
             return "v.circle"

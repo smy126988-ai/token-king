@@ -165,6 +165,15 @@ struct MonthCostCalculator {
     /// `calculateWithSource` to return nil and F2b's monthly cost to
     /// show ¥0 for the rows. Verified via
     /// `SELECT DISTINCT provider FROM month_aggregates` (2026-07-13).
+    ///
+    /// r1.c (audit/p1-r1.c-enum-pricing-snapshot, 2026-07-13): added mappings
+    /// for F2b alignment — `"minimax"` (international, F2b TokenNormalizer
+    /// produces when providerID contains "minimax" without "cn") and
+    /// `"xiaomi"` (international, F2b TokenNormalizer produces when providerID
+    /// contains "xiaomi" without "xiaomi-token-plan"). Both map to the new
+    /// `.minimax` / `.xiaomi` ProviderIdentifier cases (rawValue matches F2b
+    /// `Provider.rawValue` exactly, no underscore separator). PricingTable
+    /// currently returns nil for both; see ProviderProtocol.swift docstring.
     private func providerStringToIdentifier(_ s: String) -> ProviderIdentifier? {
         switch s.lowercased() {
         case "kimi", "kimicode":   return .kimi
@@ -173,8 +182,10 @@ struct MonthCostCalculator {
         case "codex":              return .codex
         case "zai":                return .zaiCodingPlan
         case "nanogpt":            return .nanoGpt
+        case "minimax":            return .minimax
         case "minimaxcn":          return .minimaxCN
         case "opencodego":         return .openCodeGo
+        case "xiaomi":             return .xiaomi
         case "xiaomitokenplancn":  return .xiaomiTokenPlanCN
         default:                   return nil
         }

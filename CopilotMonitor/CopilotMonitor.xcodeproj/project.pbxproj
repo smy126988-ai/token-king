@@ -134,6 +134,8 @@
 		MCST000000000000000000BF1 /* MonthCostCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = MCST000000000000000000FR1 /* MonthCostCalculator.swift */; };
 		TSA000000000000000000BF2 /* TokenStatsAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = TSA000000000000000000FR2 /* TokenStatsAggregator.swift */; };
 		MCST000000000000000000BF2 /* MonthCostCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MCST000000000000000000FR2 /* MonthCostCalculatorTests.swift */; };
+		PEAT000000000000000000BF1 /* ProviderEnumAlignmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = PEAT000000000000000000FR1 /* ProviderEnumAlignmentTests.swift */; };
+		PST0000000000000000000BF1 /* PricingSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = PST0000000000000000000FR1 /* PricingSnapshotTests.swift */; };
 		TSAT000000000000000000BF2 /* TokenStatsAggregatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TSAT000000000000000000FR2 /* TokenStatsAggregatorTests.swift */; };
 		ME1111111111111111111111 /* MenuEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = ME2222222222222222222222 /* MenuEnums.swift */; };
 		MIGRATIONPSTESTBF1111111111 /* MigrationPresetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MIGRATIONPSTESTFR1111111111 /* MigrationPresetTests.swift */; };
@@ -352,6 +354,8 @@
 		MCST000000000000000000FR1 /* MonthCostCalculator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MonthCostCalculator.swift; sourceTree = "<group>"; };
 		TSA000000000000000000FR2 /* TokenStatsAggregator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenStatsAggregator.swift; sourceTree = "<group>"; };
 		MCST000000000000000000FR2 /* MonthCostCalculatorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MonthCostCalculatorTests.swift; sourceTree = "<group>"; };
+		PEAT000000000000000000FR1 /* ProviderEnumAlignmentTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProviderEnumAlignmentTests.swift; sourceTree = "<group>"; };
+		PST0000000000000000000FR1 /* PricingSnapshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PricingSnapshotTests.swift; sourceTree = "<group>"; };
 		TSAT000000000000000000FR2 /* TokenStatsAggregatorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenStatsAggregatorTests.swift; sourceTree = "<group>"; };
 		ME2222222222222222222222 /* MenuEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuEnums.swift; sourceTree = "<group>"; };
 		MIGRATIONPSTESTFR1111111111 /* MigrationPresetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationPresetTests.swift; sourceTree = "<group>"; };
@@ -498,6 +502,8 @@
 				TDA000000000000000000FR2 /* TokenUsageStoreDayAggregatesTests.swift */,
 				TMAS000000000000000000FR2 /* TokenUsageStoreMonthAggregatesSumTests.swift */,
 				MCST000000000000000000FR2 /* MonthCostCalculatorTests.swift */,
+				PEAT000000000000000000FR1 /* ProviderEnumAlignmentTests.swift */,
+				PST0000000000000000000FR1 /* PricingSnapshotTests.swift */,
 				TKN00000000000000000000FR2 /* TokenEventKimiCNTests.swift */,
 				RA00100000000000000000FR2 /* RefreshActorTests.swift */,
 				TRD000000000000000000FR2 /* RefreshActorDayAggregatesTests.swift */,
@@ -1194,6 +1200,8 @@ DLT000000000000000000001 /* DiagnosticsLoggerTests.swift in Sources */,
 				TDA000000000000000000BF2 /* TokenUsageStoreDayAggregatesTests.swift in Sources */,
 				TMAS000000000000000000BF2 /* TokenUsageStoreMonthAggregatesSumTests.swift in Sources */,
 				MCST000000000000000000BF2 /* MonthCostCalculatorTests.swift in Sources */,
+				PEAT000000000000000000BF1 /* ProviderEnumAlignmentTests.swift in Sources */,
+				PST0000000000000000000BF1 /* PricingSnapshotTests.swift in Sources */,
 				TSAT000000000000000000BF2 /* TokenStatsAggregatorTests.swift in Sources */,
 				TKN00000000000000000000BF2 /* TokenEventKimiCNTests.swift in Sources */,
 				RA00100000000000000000BF2 /* RefreshActorTests.swift in Sources */,
