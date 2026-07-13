@@ -74,7 +74,7 @@ enum DiagnosticsSanitizer {
         // key=value or "key":"value" where key is sensitive and value is >= 8 chars.
         let sensitiveKeys = [
             "token", "password", "cookie", "apiKey", "api_key",
-            "secret", "auth", "access_token", "refresh_token",
+            "secret", "auth", "access_token", "refresh_token"
         ]
         let joined = sensitiveKeys.joined(separator: "|")
         // Patterns:
@@ -82,7 +82,7 @@ enum DiagnosticsSanitizer {
         //   "token":"xxxxx..." (until quote)
         let patterns = [
             #"(?i)((?:\#(joined))=)([^\s;"']{8,})"#,
-            #"(?i)("(?:\#(joined))"\s*:\s*)"([^"]{8,})""#,
+            #"(?i)("(?:\#(joined))"\s*:\s*)"([^"]{8,})""#
         ]
         var out = input
         for pattern in patterns {

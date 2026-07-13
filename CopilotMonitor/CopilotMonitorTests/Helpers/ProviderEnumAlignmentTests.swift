@@ -37,28 +37,28 @@ final class ProviderEnumAlignmentTests: XCTestCase {
         // expectedCost is the cost for 1M input tokens (input-only test)
         // under the F2a representative rate; it confirms the full path
         // (string → F2a → PricingTable.rate(for:) → modelRate(for:)) works.
-        (.kimi,              "kimi",              .mapsTo(model: "kimi-k2.6",          expectedCost: 6.50)),
-        (.kimiCN,            "kimiCN",            .mapsTo(model: "kimi-k2.6",          expectedCost: 6.50)),
-        (.claude,            "claude",            .mapsTo(model: "claude-sonnet-4-5",  expectedCost: 20.37)),
-        (.codex,             "codex",             .mapsTo(model: "gpt-4o",             expectedCost: 16.975)), // 2.50 * 6.79
+        (.kimi, "kimi", .mapsTo(model: "kimi-k2.6", expectedCost: 6.50)),
+        (.kimiCN, "kimiCN", .mapsTo(model: "kimi-k2.6", expectedCost: 6.50)),
+        (.claude, "claude", .mapsTo(model: "claude-sonnet-4-5", expectedCost: 20.37)),
+        (.codex, "codex", .mapsTo(model: "gpt-4o", expectedCost: 16.975)), // 2.50 * 6.79
         // r1.c additions: global raw-API-rate cases were missing in F2a.
         // .minimax / .xiaomi: rate(for:) returns nil; only representative-
         // model fallback to .minimaxCN / .xiaomiTokenPlanCN could rescue.
         // Currently F2a PricingTable has no fallback chain for these, so
         // these intentionally return nil and are marked .skip.
-        (.minimax,           "minimax",           .skip),
-        (.minimaxCN,         "minimaxCN",         .mapsTo(model: "MiniMax-M3",         expectedCost: 4.20)),
-        (.xiaomi,            "xiaomi",            .skip),
-        (.xiaomiTokenPlanCN, "xiaomiTokenPlanCN", .mapsTo(model: "mimo-v2.5-pro",      expectedCost: 3.00)),
+        (.minimax, "minimax", .skip),
+        (.minimaxCN, "minimaxCN", .mapsTo(model: "MiniMax-M3", expectedCost: 4.20)),
+        (.xiaomi, "xiaomi", .skip),
+        (.xiaomiTokenPlanCN, "xiaomiTokenPlanCN", .mapsTo(model: "mimo-v2.5-pro", expectedCost: 3.00)),
         // F2b opencodeGo rawValue "opencodeGo" vs F2a .openCodeGo rawValue
         // "opencode_go" mismatch. providerStringToIdentifier aliases
         // "opencodego" → .openCodeGo (case-insensitive match).
         // opencodeGo representative: deepseek-v4-pro USD*fx (1.74*6.79).
-        (.opencodeGo,        "opencodeGo",        .mapsTo(model: "deepseek-v4-pro",    expectedCost: 1.74 * 6.79)),
+        (.opencodeGo, "opencodeGo", .mapsTo(model: "deepseek-v4-pro", expectedCost: 1.74 * 6.79)),
         // F2b "zai" bridges to F2a .zaiCodingPlan (different enum name).
         // Z.AI representative: glm-4.6 (¥4.07/M input).
-        (.zai,               "zai",               .mapsTo(model: "glm-4.6",            expectedCost: 4.07)),
-        (.nanoGpt,           "nanoGpt",           .mapsTo(model: "gpt-4o",             expectedCost: 16.975)), // 2.50 * 6.79
+        (.zai, "zai", .mapsTo(model: "glm-4.6", expectedCost: 4.07)),
+        (.nanoGpt, "nanoGpt", .mapsTo(model: "gpt-4o", expectedCost: 16.975)) // 2.50 * 6.79
     ]
 
     // MARK: - F2b TokenEvent.Provider ↔ F2a ProviderIdentifier alignment
@@ -176,7 +176,7 @@ final class ProviderEnumAlignmentTests: XCTestCase {
         // F2b Provider table has no collision on .kimi. This is a future-
         // proof assertion: if you add a second F2b rawValue mapping to the
         // same F2a case, add a documented alias cluster here.
-        XCTAssertTrue(f2aTargetByRawValue.count > 0,
+        XCTAssertTrue(!f2aTargetByRawValue.isEmpty,
                       "At least one F2b rawValue should resolve to an F2a case")
     }
 

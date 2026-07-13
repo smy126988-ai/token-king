@@ -147,7 +147,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         Self.observ("🔍 observability: attaching KVO to button.image / button.title on item=\(itemAddr)")
 
         _buttonImageKVOToken = button.observe(\.image, options: [.new]) { _, change in
-            let desc = Self.describeImage(change.newValue ?? nil)
+            // Flatten the double optional (NSImage??) produced by KVO into NSImage?.
+            let desc = Self.describeImage(change.newValue.flatMap { $0 })
             Self.observ("🔍 KVO button.image → \(desc)")
         }
 

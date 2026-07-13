@@ -140,7 +140,7 @@ final class PricingSnapshotTests: XCTestCase {
             source: URL(string: "https://platform.openai.com/docs/pricing")!,
             capturedAt: PricingSnapshot.date(2026, 7, 13),
             notes: "Standard tier, $1.25 cached input (50% discount, automatic)."
-        ),
+        )
     ]
 
     // MARK: - Tests

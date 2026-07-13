@@ -182,43 +182,68 @@ struct CodexExtractor: TokenExtractorProtocol {
                             reasoning: reasoningTokens
                         )
                         prevFallbackTotal = totalTokens
-                        push(&events, sessionId: sessionId, model: effectiveModel,
-                             timestamp: timestamp, msgId: msgId, breakdown: breakdown)
+                        push(&events, context: PushContext(
+                            sessionId: sessionId,
+                            model: effectiveModel,
+                            timestamp: timestamp,
+                            msgId: msgId,
+                            breakdown: breakdown
+                        ))
                         continue
                     }
                     let delta = max(0, totalTokens - prev)
                     prevFallbackTotal = totalTokens
-                    breakdown = proportionalDelta(
+                    breakdown = proportionalDelta(inputs: ProportionalDeltaInputs(
                         totalDelta: delta,
                         nonCachedInput: nonCachedInput,
                         output: netOutput,
                         cacheRead: cachedTokens,
                         reasoning: reasoningTokens,
                         total: totalTokens
-                    )
+                    ))
                 }
 
-                push(&events, sessionId: sessionId, model: effectiveModel,
-                     timestamp: timestamp, msgId: msgId, breakdown: breakdown)
+                push(&events, context: PushContext(
+                    sessionId: sessionId,
+                    model: effectiveModel,
+                    timestamp: timestamp,
+                    msgId: msgId,
+                    breakdown: breakdown
+                ))
             }
         }
         return events
     }
 
+    // MARK: - Push / delta helpers
+
+    private struct PushContext {
+        let sessionId: String
+        let model: String
+        let timestamp: Date
+        let msgId: String
+        let breakdown: TokenBreakdown
+    }
+
+    private struct ProportionalDeltaInputs {
+        let totalDelta: Int
+        let nonCachedInput: Int
+        let output: Int
+        let cacheRead: Int
+        let reasoning: Int
+        let total: Int
+    }
+
     private func push(
         _ events: inout [TokenEvent],
-        sessionId: String,
-        model: String,
-        timestamp: Date,
-        msgId: String,
-        breakdown: TokenBreakdown
+        context: PushContext
     ) {
-        let provider = TokenNormalizer.matchProvider(model: model, providerID: "openai")
+        let provider = TokenNormalizer.matchProvider(model: context.model, providerID: "openai")
         events.append(TokenEvent(
-            provider: provider, model: model, source: .codexCli,
-            sessionId: sessionId, timestamp: timestamp,
-            tokens: breakdown,
-            sourceId: "codex:\(sessionId):main:\(msgId)"
+            provider: provider, model: context.model, source: .codexCli,
+            sessionId: context.sessionId, timestamp: context.timestamp,
+            tokens: context.breakdown,
+            sourceId: "codex:\(context.sessionId):main:\(context.msgId)"
         ))
     }
 
@@ -256,29 +281,22 @@ struct CodexExtractor: TokenExtractorProtocol {
             "output_tokens",
             "cached_input_tokens",
             "reasoning_output_tokens",
-            "total_tokens",
+            "total_tokens"
         ]
         return required.allSatisfy { lastUsage[$0] != nil }
     }
 
-    private func proportionalDelta(
-        totalDelta: Int,
-        nonCachedInput: Int,
-        output: Int,
-        cacheRead: Int,
-        reasoning: Int,
-        total: Int
-    ) -> TokenBreakdown {
-        guard totalDelta > 0, total > 0 else {
+    private func proportionalDelta(inputs: ProportionalDeltaInputs) -> TokenBreakdown {
+        guard inputs.totalDelta > 0, inputs.total > 0 else {
             return TokenBreakdown(input: 0, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0)
         }
 
-        let inputDelta = Int(Double(totalDelta) * Double(nonCachedInput) / Double(total))
-        let outputDelta = Int(Double(totalDelta) * Double(output) / Double(total))
-        let cacheReadDelta = Int(Double(totalDelta) * Double(cacheRead) / Double(total))
-        let reasoningDelta = Int(Double(totalDelta) * Double(reasoning) / Double(total))
+        let inputDelta = Int(Double(inputs.totalDelta) * Double(inputs.nonCachedInput) / Double(inputs.total))
+        let outputDelta = Int(Double(inputs.totalDelta) * Double(inputs.output) / Double(inputs.total))
+        let cacheReadDelta = Int(Double(inputs.totalDelta) * Double(inputs.cacheRead) / Double(inputs.total))
+        let reasoningDelta = Int(Double(inputs.totalDelta) * Double(inputs.reasoning) / Double(inputs.total))
 
-        let remainder = totalDelta - (inputDelta + outputDelta + cacheReadDelta + reasoningDelta)
+        let remainder = inputs.totalDelta - (inputDelta + outputDelta + cacheReadDelta + reasoningDelta)
 
         return TokenBreakdown(
             input: inputDelta + remainder,

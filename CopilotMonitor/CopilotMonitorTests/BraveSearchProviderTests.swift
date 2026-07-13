@@ -75,7 +75,7 @@ final class BraveSearchProviderTests: XCTestCase {
 
         let result = try await provider.fetch()
 
-        if case .quotaBased(_, _, _) = result.usage {
+        if case .quotaBased = result.usage {
             // Expected
         } else {
             XCTFail("Expected quotaBased usage, got \(result.usage)")

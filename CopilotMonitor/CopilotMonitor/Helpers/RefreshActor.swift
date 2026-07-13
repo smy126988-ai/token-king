@@ -28,7 +28,7 @@ actor RefreshActor {
                 KimiCLILegacyExtractor(),
                 KimiCodeExtractor(),
                 ZAIExtractor(),
-                NanoGPTExtractor(),
+                NanoGPTExtractor()
             ],
             pricingTable: pricingTable,
             intervalSeconds: intervalSeconds

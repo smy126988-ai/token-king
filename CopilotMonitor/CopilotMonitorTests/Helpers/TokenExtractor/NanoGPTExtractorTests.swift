@@ -3,10 +3,14 @@ import XCTest
 
 final class NanoGPTExtractorTests: XCTestCase {
 
-    private final class StubURLProtocol: URLProtocol {
+    private class StubURLProtocol: URLProtocol {
         static var stubData: Data?
         static var stubStatus: Int = 200
         static var stubError: Error?
+
+        private override init(request: URLRequest, cachedResponse: CachedURLResponse?, client: URLProtocolClient?) {
+            super.init(request: request, cachedResponse: cachedResponse, client: client)
+        }
 
         override class func canInit(with request: URLRequest) -> Bool { true }
         override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
