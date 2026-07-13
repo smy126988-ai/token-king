@@ -13,6 +13,7 @@
 		0B6CF8BEB936A2055F19AA8C /* CodexProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76783C44AA2329AE3FA7E981 /* CodexProvider.swift */; };
 		0EA5E7A5BCD47582D6C2175B /* TokenManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF0C48368166F3AD0C79F92 /* TokenManager.swift */; };
 		0EA5E7A5BCD47582D6C2175C /* TokenManagerOpenCodeCodexAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF0C48368166F3AD0C79F93 /* TokenManagerOpenCodeCodexAuth.swift */; };
+		219CDE95F9D84CF199315B68 /* TokenManagerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A974BD938254650B40E5681 /* TokenManagerModels.swift */; };
 		11DD5CEEB9FA083728D151DD /* TavilyLiveIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A255270920EBB45B5176EFA /* TavilyLiveIntegrationTests.swift */; };
 		23AA5FD37F2062EACCA79F50 /* GeminiCLIProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B63B85E0F2A8C591D7E26AE2 /* GeminiCLIProviderTests.swift */; };
 		25B8765A7AE249798F95274F /* PricingTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A6F09D053C04780AAEB8EE7 /* PricingTable.swift */; };
@@ -29,6 +30,7 @@
 		283348FD2F313096004DADE1 /* ProviderUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4158558E58B121A9D13C48C3 /* ProviderUsage.swift */; };
 		283348FE2F313096004DADE1 /* TokenManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF0C48368166F3AD0C79F92 /* TokenManager.swift */; };
 		283348FE2F313096004DADE2 /* TokenManagerOpenCodeCodexAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF0C48368166F3AD0C79F93 /* TokenManagerOpenCodeCodexAuth.swift */; };
+		C49ECE19640D4C6DAE17E752 /* TokenManagerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A974BD938254650B40E5681 /* TokenManagerModels.swift */; };
 		283348FF2F313096004DADE1 /* BrowserCookieService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2707EF99248FCDEFDEE3DA9C /* BrowserCookieService.swift */; };
 		283349012F313176004DADE1 /* ChutesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283349002F313176004DADE1 /* ChutesProvider.swift */; };
 		283349022F313176004DADE1 /* ChutesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283349002F313176004DADE1 /* ChutesProvider.swift */; };
@@ -328,6 +330,7 @@
 		TSUT000000000000000000FR2 /* TokenStatsE2ETests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TokenStatsE2ETests.swift; path = TokenStatsE2ETests.swift; sourceTree = "<group>"; };
 		DBF0C48368166F3AD0C79F92 /* TokenManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenManager.swift; sourceTree = "<group>"; };
 		DBF0C48368166F3AD0C79F93 /* TokenManagerOpenCodeCodexAuth.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenManagerOpenCodeCodexAuth.swift; sourceTree = "<group>"; };
+		2A974BD938254650B40E5681 /* TokenManagerModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenManagerModels.swift; sourceTree = "<group>"; };
 		DCE215EDDBE3407B8E477617B1A9D6A3 /* TimeZone+UTC.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "TimeZone+UTC.swift"; sourceTree = "<group>"; };
 		DETAILSUBOCFR1111111111 /* DetailSubmenuOpenCodeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailSubmenuOpenCodeTests.swift; sourceTree = "<group>"; };
 		E10F736FBCBA4B3DB7D95AE6 /* BrowserCookieServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BrowserCookieServiceTests.swift; sourceTree = "<group>"; };
@@ -624,6 +627,7 @@
 				F22222222222222222222222 /* UsagePredictor.swift */,
 				DBF0C48368166F3AD0C79F92 /* TokenManager.swift */,
 				DBF0C48368166F3AD0C79F93 /* TokenManagerOpenCodeCodexAuth.swift */,
+				2A974BD938254650B40E5681 /* TokenManagerModels.swift */,
 				18F40F1AC76A49A9B9DF74B0 /* ProviderManager.swift */,
 				2707EF99248FCDEFDEE3DA9C /* BrowserCookieService.swift */,
 				9B1085A77EF4A58E5B5EC71B /* CopilotHistoryService.swift */,
@@ -1031,6 +1035,7 @@ DLT000000000000000000002 /* DiagnosticsLoggerTests.swift */,
 				283348FD2F313096004DADE1 /* ProviderUsage.swift in Sources */,
 				283348FE2F313096004DADE1 /* TokenManager.swift in Sources */,
 				283348FE2F313096004DADE2 /* TokenManagerOpenCodeCodexAuth.swift in Sources */,
+				219CDE95F9D84CF199315B68 /* TokenManagerModels.swift in Sources */,
 				87297CDD8B65F7EF0BC5D650 /* ProviderManager.swift in Sources */,
 				AD95EBD6AE3134DF4C797577 /* ClaudeProvider.swift in Sources */,
 				0B6CF8BEB936A2055F19AA8C /* CodexProvider.swift in Sources */,
@@ -1105,6 +1110,7 @@ DLT000000000000000000002 /* DiagnosticsLoggerTests.swift */,
 				E33333333333333333333334 /* UsageHistory.swift in Sources */,
 				0EA5E7A5BCD47582D6C2175B /* TokenManager.swift in Sources */,
 				0EA5E7A5BCD47582D6C2175C /* TokenManagerOpenCodeCodexAuth.swift in Sources */,
+				C49ECE19640D4C6DAE17E752 /* TokenManagerModels.swift in Sources */,
 				68CE796F262067298FE88469 /* BrowserCookieService.swift in Sources */,
 				CLICLAUDE11111111111111 /* ClaudeProvider.swift in Sources */,
 				CLICODEX111111111111111 /* CodexProvider.swift in Sources */,
