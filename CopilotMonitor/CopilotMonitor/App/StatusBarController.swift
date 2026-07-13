@@ -167,6 +167,7 @@ final class StatusBarController: NSObject {
     private var onlyShowProviderMenu: NSMenu!
     private var criticalBadgeMenuItem: NSMenuItem!
     private var showProviderNameMenuItem: NSMenuItem!
+    private var diagnosticsModeMenuItem: NSMenuItem!
     private var settingsMenuItem: NSMenuItem!
     private var settingsSubmenu: NSMenu!
     private var refreshTimer: Timer?
@@ -414,19 +415,9 @@ final class StatusBarController: NSObject {
     }
 
     func debugLog(_ message: String) {
-        let msg = "[\(Date())] \(message)\n"
-        if let data = msg.data(using: .utf8) {
-            let path = "/tmp/provider_debug.log"
-            if FileManager.default.fileExists(atPath: path) {
-                if let handle = FileHandle(forWritingAtPath: path) {
-                    handle.seekToEndOfFile()
-                    handle.write(data)
-                    handle.closeFile()
-                }
-            } else {
-                try? data.write(to: URL(fileURLWithPath: path))
-            }
-        }
+        // Route through the shared wrapper so diagnostics respect the user toggle.
+        // When `tokenKing.diagnostics.enabled == false` (default), this is a no-op.
+        recordDiagnostic(message)
     }
 
     private func boolPreference(forKey key: String, defaultValue: Bool) -> Bool {
@@ -703,6 +694,12 @@ final class StatusBarController: NSObject {
         installCLIItem.target = self
         settingsSubmenu.addItem(installCLIItem)
         updateCLIInstallState()
+
+        diagnosticsModeMenuItem = NSMenuItem(title: "诊断模式", action: #selector(toggleDiagnosticsMode(_:)), keyEquivalent: "")
+        diagnosticsModeMenuItem.image = NSImage(systemSymbolName: "stethoscope", accessibilityDescription: "Diagnostic Mode")
+        diagnosticsModeMenuItem.target = self
+        settingsSubmenu.addItem(diagnosticsModeMenuItem)
+        updateDiagnosticsModeMenuState()
 
         let shareSnapshotItem = NSMenuItem(title: "分享用量快照…", action: #selector(shareUsageSnapshotClicked), keyEquivalent: "")
         shareSnapshotItem.image = NSImage(systemSymbolName: "square.and.arrow.up", accessibilityDescription: "Share Usage Snapshot")
@@ -4454,6 +4451,17 @@ final class StatusBarController: NSObject {
 
     private func updateLaunchAtLoginState() {
         launchAtLoginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
+    }
+
+    @objc private func toggleDiagnosticsMode(_ sender: NSMenuItem) {
+        let newValue = !DiagnosticsLogger.shared.enabled
+        DiagnosticsLogger.shared.setEnabled(newValue)
+        updateDiagnosticsModeMenuState()
+        debugLog("toggleDiagnosticsMode: enabled=\(newValue)")
+    }
+
+    private func updateDiagnosticsModeMenuState() {
+        diagnosticsModeMenuItem.state = DiagnosticsLogger.shared.enabled ? .on : .off
     }
 
     @objc private func installCLIClicked() {
