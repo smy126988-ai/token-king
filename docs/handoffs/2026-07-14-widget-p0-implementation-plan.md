@@ -35,7 +35,7 @@
 
 ## 1. P0 目标
 
-新增一个 WidgetKit extension，出现在桌面 Widget Gallery，能搜到 "Token King"，可添加 Small/Medium family，显示真实 provider 用量。数据通道：主 app 每 ≤30 秒写一个 JSON 快照到共享目录，widget 沙盒内用 home-relative temporary exception 读取。
+新增一个 WidgetKit extension，出现在桌面 Widget Gallery，能搜到 "Token King"，可添加 Small/Medium/Large family，显示真实 provider 用量。数据通道：主 app 每 ≤30 秒写一个 JSON 快照到共享目录，widget 沙盒内用 home-relative temporary exception 读取。
 
 **P0 不做**：localhost HTTP（④）、Darwin notify（③）、AppIntent 刷新、NSPanel、多 provider 全量展示的复杂布局。
 
@@ -228,11 +228,26 @@ func write(_ snapshot: WidgetSnapshot) {
 - **stale 阈值 ≥ 90 分钟**（系统实际刷新 15-60 分钟，阈值若也设 15 分钟会长期误报 stale）。按 `snapshotAt` 判 stale。
 - 验收：无文件/坏 JSON/主 app 未运行三种情况 widget 不崩，显示明确 stale 或 EmptyState。
 
-**R13｜Widget View（Small + Medium）**
-- Small：渲染 `primaryWindowId` 窗口的 ring/bar（用 `usedPercent`）+ provider displayName + reset 相对时间。遵守项目 UI 规则：英文、SF Symbols、不用 emoji、用量百分比显式写 `Used`/`Left`、不硬编码 RGB、可建 `WidgetDesignToken`（命名与 `MenuDesignToken` 同源）。
-- Medium：展示 top N provider（按 usedPercent 降序），每行一个进度条。
-- kind=usage 的 provider 显示 spendUSD（2 位小数）而非进度条。
-- 验收：真机添加后显示真实数据，样式符合上述规则。
+**R13｜Widget View（Small / Medium / Large 三尺寸）**
+
+**设计原则（用户定，不可违背）**：小部件布局由**数据颗粒度 + 尺寸物理空间**决定，不是"作者替用户挑看啥"。每个尺寸把它那块空间的信息密度吃满，用户自己选拖哪个尺寸到桌面。目标是"一眼看全貌"，全貌按尺寸递进：小尺寸看一家、中尺寸看一家详情或多家概览、大尺寸看多家详情。
+
+**通用规则**：英文、SF Symbols、不用 emoji、用量百分比显式写 `Used`/`Left`、不硬编码 RGB（进度条/状态色可用系统色）、建 `WidgetDesignToken`（命名与层级与 `MenuDesignToken` 同源）、USD 2 位小数。排序默认按 `usedPercent` 降序（最紧张的在前）。kind=usage 的 provider 显示 `spendUSD` 而非进度条。
+
+**三尺寸各司其职**：
+
+- **Small（正方形，空间只够一家）**：显示"最紧张的一家"的核心窗口——即所有 provider 里 `usedPercent` 最高的那个 provider 的 `primaryWindowId` 窗口。内容：displayName + ring/bar(`usedPercent`) + `Used`/`Left` 百分比 + reset 相对时间。
+  - （P0 先固定显示"最紧张一家"；用户手动指定看哪家的配置项属于后续增强，不在 P0。）
+
+- **Medium（横条）**：两种布局，二选一由 widget family 上下文或后续配置决定；**P0 实现"多家概览"**：按 `usedPercent` 降序列出尽量多的 provider，每家一行——displayName + 单条进度条(`usedPercent`) + 百分比。行数吃满横条高度。
+  - （"单家多窗口详情"布局留作后续；P0 中尺寸先做多家概览，因为它更贴近"看全貌"。）
+
+- **Large（方块，信息最密）**：多家 provider，每家展开其**全部 windows**（Claude 显示 5h + 7d 两条，Codex 显示 primary + secondary，Z.ai 显示 token + mcp）。每家一个分组：displayName 作组标题，下面每个 window 一条进度条 + label + 百分比 + reset。按 provider 的最高 `usedPercent` 降序排组。底部一行显示 `monthlyCost`（USD / RMB）。
+  - 空间放不下所有 provider 时，按紧张度截断并明确标"+N more"（不静默省略）。
+
+- **kind=usage provider 在任意尺寸**：不画进度条，显示 `spendUSD`（"$12.34 spent"），有 `resetsAt` 则附重置时间。
+
+- **验收**：三个尺寸真机各添加一次，显示真实数据；Small 显示最紧张一家、Medium 显示多家每家一条、Large 显示多家展开多窗口 + 月成本；样式符合通用规则；截断时有 "+N more" 不静默丢数据。
 
 ---
 
