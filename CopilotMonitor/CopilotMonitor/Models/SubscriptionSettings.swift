@@ -501,6 +501,7 @@ final class SubscriptionSettingsManager {
         return ProviderIdentifier(rawValue: String(prefix))
     }
 
+#if false
     func getTotalMonthlySubscriptionCost() -> Double {
         var total: Double = 0
         for key in getAllSubscriptionKeys() {
@@ -508,6 +509,7 @@ final class SubscriptionSettingsManager {
         }
         return total
     }
+#endif
 
     /// Monthly subscription total expressed in the requested currency.
     /// RMB uses native cnyCost when available; otherwise falls back to USD × rate.
@@ -531,6 +533,7 @@ final class SubscriptionSettingsManager {
         }
     }
 
+#if false
     func hasAnySubscription() -> Bool {
         for key in getAllSubscriptionKeys() {
             if getPlan(forKey: key).isSet {
@@ -539,6 +542,7 @@ final class SubscriptionSettingsManager {
         }
         return false
     }
+#endif
 
     private func normalizedAccountId(_ accountId: String?) -> String {
         guard let accountId = accountId?.trimmingCharacters(in: .whitespacesAndNewlines),

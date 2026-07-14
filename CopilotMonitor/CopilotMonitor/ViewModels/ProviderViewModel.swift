@@ -1,3 +1,4 @@
+#if false
 import Foundation
 import Combine
 import os.log
@@ -98,3 +99,4 @@ final class ProviderViewModel: ObservableObject {
     /// - Returns: Array of (identifier, remaining percentage) tuples
     @Published private(set) var quotaAlerts: [(ProviderIdentifier, Double)] = []
 }
+#endif

@@ -1,3 +1,4 @@
+#if false
 import Foundation
 
 /// Computes usage percentages, status snapshots, and quota alert candidates for the status bar.
@@ -508,3 +509,4 @@ enum StatusBarUsageDisplay {
         return visibleCandidates
     }
 }
+#endif

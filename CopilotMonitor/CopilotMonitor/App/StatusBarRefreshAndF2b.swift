@@ -1,3 +1,4 @@
+#if false
 import AppKit
 import Foundation
 import os.log
@@ -495,3 +496,4 @@ final class StatusBarRefreshAndF2b {
         }
     }
 }
+#endif

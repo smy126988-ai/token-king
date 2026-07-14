@@ -163,14 +163,17 @@ actor ProviderManager {
     }
     
     /// Legacy method for backward compatibility - returns only results
+#if false
     func fetchAllResults() async -> [ProviderIdentifier: ProviderResult] {
         let fetchResult = await fetchAll()
         return fetchResult.results
     }
+#endif
 
     /// Calculates total overage cost from all pay-as-you-go providers
     /// - Parameter results: Results from fetchAll()
     /// - Returns: Total cost in dollars (0.0 if no overage)
+#if false
     func calculateTotalOverageCost(from results: [ProviderIdentifier: ProviderResult]) -> Double {
         var totalCost = 0.0
         for (_, result) in results {
@@ -181,10 +184,12 @@ actor ProviderManager {
         logger.debug("Total overage cost: $\(String(format: "%.2f", totalCost))")
         return totalCost
     }
+#endif
 
     /// Identifies providers with low quota (<20% remaining)
     /// - Parameter results: Results from fetchAll()
     /// - Returns: Array of (provider, remaining percentage) tuples for providers below threshold
+#if false
     func getQuotaAlerts(from results: [ProviderIdentifier: ProviderResult]) -> [(ProviderIdentifier, Double)] {
         let alerts = results.compactMap { identifier, result -> (ProviderIdentifier, Double)? in
             switch result.usage {
@@ -209,6 +214,7 @@ actor ProviderManager {
         logger.debug("Quota alerts: \(alerts.count) provider(s) below 20%")
         return alerts
     }
+#endif
 
     /// Gets all registered providers
     /// - Returns: Array of all provider instances
@@ -219,9 +225,11 @@ actor ProviderManager {
     /// Gets a specific provider by identifier
     /// - Parameter identifier: The provider identifier to find
     /// - Returns: The provider instance, or nil if not found
+#if false
     func getProvider(for identifier: ProviderIdentifier) -> ProviderProtocol? {
         return providers.first { $0.identifier == identifier }
     }
+#endif
 
     // MARK: - Private Helpers
 

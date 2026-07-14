@@ -105,6 +105,7 @@ final class DiagnosticsLogger: @unchecked Sendable {
     }
 
     /// Test hook: clear all rotated + active files.
+#if false
     func clearLogsForTesting() throws {
         try queue.sync {
             try? fileHandle?.close()
@@ -116,15 +117,19 @@ final class DiagnosticsLogger: @unchecked Sendable {
             }
         }
     }
+#endif
 
     /// Test hook: current active file size in bytes.
+#if false
     func activeFileSizeForTesting() -> Int {
         queue.sync {
             (try? FileManager.default.attributesOfItem(atPath: activeFileURL.path)[.size] as? Int) ?? 0
         }
     }
+#endif
 
     /// Test hook: list of existing rotated files (e.g. ["tokenking_diag.log.1"]).
+#if false
     func existingRotatedFilesForTesting() -> [String] {
         queue.sync {
             (1...Self.maxRotatedFiles).compactMap { i -> String? in
@@ -135,6 +140,7 @@ final class DiagnosticsLogger: @unchecked Sendable {
             }
         }
     }
+#endif
 
     // MARK: - Private
 
