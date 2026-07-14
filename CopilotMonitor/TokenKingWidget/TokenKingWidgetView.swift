@@ -359,26 +359,72 @@ func providerIconSystemName(_ providerId: String) -> String {
     }
 }
 
-// MARK: - Provider icon view (brand + SF Symbol fallback)
+// MARK: - Provider icon view (real asset + SF Symbol fallback)
 
-/// Brand icon if the provider has a matching prototype asset; otherwise a
-/// generic SF Symbol. Tinted with the brand colour when available, falling
-/// back to the secondary text colour so non-selected / vibrant modes still
-/// pick up the system de-saturation automatically.
+/// Renders the provider's brand icon when a matching asset exists in the
+/// main app's `Assets.xcassets` (now also embedded into the widget target
+/// — see pbxproj Resources build phase). Falls back to an SF Symbol for
+/// providers without an asset. The asset is template-rendered so it picks
+/// up `.foregroundStyle` for tinting.
 struct ProviderIconView: View {
     let providerId: String
     let size: CGFloat
 
     var body: some View {
-        Image(systemName: providerIconSystemName(providerId))
-            .font(.system(size: size))
-            .foregroundStyle(providerBrandTint(providerId) ?? .secondary)
+        if let assetName = providerAssetName(providerId) {
+            Image(assetName)
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: size, height: size)
+                .foregroundStyle(providerBrandTint(providerId) ?? .secondary)
+        } else {
+            Image(systemName: providerIconSystemName(providerId))
+                .font(.system(size: size))
+                .foregroundStyle(providerBrandTint(providerId) ?? .secondary)
+        }
     }
 }
 
-/// Brand tint per prototype DESIGN.md §3, applied to the SF Symbol fallback.
-/// `nil` means use the secondary text colour. Real brand glyphs (SVG → asset
-/// catalog) are deferred; see P2 V2 rework note.
+/// Maps a `ProviderIdentifier.rawValue` to the matching asset-catalog
+/// imageset name. Mirrors `StatusBarController.iconForProvider(_:)` in
+/// `CopilotMonitor/App/StatusBarController.swift` (r1.b match — single
+/// source of truth for the provider→icon mapping across the main app
+/// and the widget).
+///
+/// `nil` means "no asset" — caller falls back to the SF Symbol mapping.
+func providerAssetName(_ providerId: String) -> String? {
+    switch providerId {
+    case "copilot":                       return "CopilotIcon"
+    case "claude":                        return "ClaudeIcon"
+    case "codex":                         return "CodexIcon"
+    case "cursor":                        return "CursorIcon"
+    case "gemini_cli":                    return "GeminiIcon"
+    case "open_code":                     return "OpencodeIcon"
+    case "opencode_zen":                  return "OpencodeIcon"
+    case "opencode_go":                   return "OpencodeIcon"
+    case "kiro":                          return "KiroIcon"
+    case "grok":                          return "GrokIcon"
+    case "minimax_coding_plan",
+         "minimax_coding_plan_cn",
+         "minimax_cn",
+         "minimax":                       return "MinimaxIcon"
+    case "zai_coding_plan":               return "ZaiIcon"
+    case "nano_gpt":                      return "NanoGptIcon"
+    case "synthetic":                     return "SyntheticIcon"
+    case "chutes":                        return "ChutesIcon"
+    case "tavily_search":                 return "TavilyIcon"
+    case "brave_search":                  return "BraveSearchIcon"
+    case "antigravity":                   return "AntigravityIcon"
+    // SF Symbol fallback (no asset): command_code, openrouter, kimi, kimi_cn,
+    // mimo, volcano_ark, hunyuan, zhipu_glm, xiaomi_token_plan_cn, xiaomi.
+    default:                              return nil
+    }
+}
+
+/// Brand tint per prototype DESIGN.md §3, applied to the asset's template
+/// image so non-selected / vibrant modes still pick up the system
+/// de-saturation automatically. `nil` means use the secondary text colour.
 func providerBrandTint(_ providerId: String) -> Color? {
     switch providerId {
     case "claude":                  return Color(red: 0.851, green: 0.467, blue: 0.341)  // #d97757
