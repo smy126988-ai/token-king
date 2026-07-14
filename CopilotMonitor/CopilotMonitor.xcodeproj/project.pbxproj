@@ -234,6 +234,25 @@
 		01F3CEDD4DF8427C9D85D492 /* ClaudeProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2988F859C63495EA525AEA2 /* ClaudeProviderTests.swift */; };
 		6E7602C0A30D407C805EEB62 /* SubscriptionSettingsManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4122A310609449CAAE08CA5C /* SubscriptionSettingsManagerTests.swift */; };
 		36DF35D8A8344F6BAE3A1E24 /* ZaiCodingPlanProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED7AADDA053D4A6B93C34E67 /* ZaiCodingPlanProviderTests.swift */; };
+		SHAREDPATHSBF0000000000001 /* SharedPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHAREDPATHFR0000000000001 /* SharedPaths.swift */; };
+		WIDGETSNAPBF0000000000001 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETSNAPFR0000000000001 /* WidgetSnapshot.swift */; };
+		WIDGETMAPBF00000000000001 /* WidgetSnapshotMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETMAPFR00000000000001 /* WidgetSnapshotMapper.swift */; };
+		WIDGETWRITERBF000000000001 /* WidgetSnapshotWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETWRITERFR000000000001 /* WidgetSnapshotWriter.swift */; };
+		WIDGETCOORDBF000000000001 /* WidgetSnapshotCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETCOORDFR000000000001 /* WidgetSnapshotCoordinator.swift */; };
+		WIDGETMAPTSTBF00000000001 /* WidgetSnapshotMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETMAPTSTFR0000000001 /* WidgetSnapshotMapperTests.swift */; };
+		WIDGETWRITERTBF0000000000 /* WidgetSnapshotWriterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETWRITERTFR0000000000 /* WidgetSnapshotWriterTests.swift */; };
+		WIDGETEMB000000000000000 /* TokenKingWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = WIDGETAEX000000000000000 /* TokenKingWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		WIDGETWKB000000000000000 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = WIDGETWKF000000000000000 /* WidgetKit.framework */; };
+		WIDGETSUB000000000000000 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = WIDGETSUF000000000000000 /* SwiftUI.framework */; };
+		WIDGETFNB000000000000000 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = WIDGETFNF000000000000000 /* Foundation.framework */; };
+		WIDGETSPB000000000000000 /* SharedPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHAREDPATHFR0000000000001 /* SharedPaths.swift */; };
+		WIDGETWSB000000000000000 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETSNAPFR0000000000001 /* WidgetSnapshot.swift */; };
+		WIDGETWLB000000000000000 /* WidgetLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETWLG000000000000000 /* WidgetLogger.swift */; };
+		BRANDICONBF0000000000000001 /* ProviderBrandIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = BRANDICONFR0000000000000001 /* ProviderBrandIcon.swift */; };
+		WIDGETWLA000000000000000 /* WidgetLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETWLG000000000000000 /* WidgetLogger.swift */; };
+		WIDGETMAINBF0000000000001 /* TokenKingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETMAINFR0000000000001 /* TokenKingWidget.swift */; };
+		WIDGETVWBF0000000000001 /* TokenKingWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETVWFR0000000000001 /* TokenKingWidgetView.swift */; };
+		WIDGETDTKBF0000000000001 /* WidgetDesignToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */; };
 
 /* End PBXBuildFile section */
 
@@ -266,6 +285,13 @@
 			remoteGlobalIDString = AFFFFFFFFFFFFFFFFFFFFF;
 			remoteInfo = CopilotMonitor;
 		};
+		WIDGETCXP000000000000000 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B44444444444444444444444 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = WIDGETTGT000000000000000;
+			remoteInfo = TokenKingWidget;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -278,6 +304,17 @@
 				CLICOPY111111111111111111 /* opencodebar-cli in Embed CLI */,
 			);
 			name = "Embed CLI";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		WIDGETEAB000000000000000 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				WIDGETEMB000000000000000 /* TokenKingWidget.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -467,7 +504,25 @@
 		9A7819F28A1A46218574EC86 /* CLIFormatterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CLIFormatterTests.swift; sourceTree = "<group>"; };
 		D2988F859C63495EA525AEA2 /* ClaudeProviderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClaudeProviderTests.swift; sourceTree = "<group>"; };
 		4122A310609449CAAE08CA5C /* SubscriptionSettingsManagerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SubscriptionSettingsManagerTests.swift; sourceTree = "<group>"; };
-		ED7AADDA053D4A6B93C34E67 /* ZaiCodingPlanProviderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ZaiCodingPlanProviderTests.swift; sourceTree = "<group>"; };
+		CE0000000000000000000TFR /* CodexExtractorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CodexExtractorTests.swift; sourceTree = "<group>"; };
+		SHAREDPATHFR0000000000001 /* SharedPaths.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SharedPaths.swift; sourceTree = "<group>"; };
+		WIDGETSNAPFR0000000000001 /* WidgetSnapshot.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
+		WIDGETMAPFR00000000000001 /* WidgetSnapshotMapper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotMapper.swift; sourceTree = "<group>"; };
+		WIDGETWRITERFR000000000001 /* WidgetSnapshotWriter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotWriter.swift; sourceTree = "<group>"; };
+		WIDGETCOORDFR000000000001 /* WidgetSnapshotCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotCoordinator.swift; sourceTree = "<group>"; };
+		WIDGETMAPTSTFR0000000001 /* WidgetSnapshotMapperTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotMapperTests.swift; sourceTree = "<group>"; };
+		WIDGETWRITERTFR0000000000 /* WidgetSnapshotWriterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotWriterTests.swift; sourceTree = "<group>"; };
+		WIDGETAEX000000000000000 /* TokenKingWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TokenKingWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		WIDGETWKF000000000000000 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/WidgetKit.framework; sourceTree = DEVELOPER_DIR; };
+		WIDGETSUF000000000000000 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/SwiftUI.framework; sourceTree = DEVELOPER_DIR; };
+		WIDGETFNF000000000000000 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		WIDGETINP000000000000000 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = TokenKingWidget/Info.plist; sourceTree = "<group>"; };
+		WIDGETENT000000000000000 /* TokenKingWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TokenKingWidget/TokenKingWidget.entitlements; sourceTree = "<group>"; };
+		WIDGETWLG000000000000000 /* WidgetLogger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetLogger.swift; sourceTree = "<group>"; };
+		BRANDICONFR0000000000000001 /* ProviderBrandIcon.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProviderBrandIcon.swift; sourceTree = "<group>"; };
+		WIDGETMAINFR0000000000001 /* TokenKingWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenKingWidget.swift; sourceTree = "<group>"; };
+		WIDGETVWFR0000000000001 /* TokenKingWidgetView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenKingWidgetView.swift; sourceTree = "<group>"; };
+		WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetDesignToken.swift; sourceTree = "<group>"; };
 
 /* End PBXFileReference section */
 
@@ -509,6 +564,16 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		WIDGETFRK000000000000000 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				WIDGETWKB000000000000000 /* WidgetKit.framework in Frameworks */,
+				WIDGETSUB000000000000000 /* SwiftUI.framework in Frameworks */,
+				WIDGETFNB000000000000000 /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -615,6 +680,7 @@
 			isa = PBXGroup;
 			children = (
 				ACCCCCCCCCCCCCCCCCCCCCCC /* CopilotMonitor */,
+				WIDGETGRP000000000000000 /* TokenKingWidget */,
 				CLI7777777777777777777777 /* CLI */,
 				TFFFFFFFFFFFFFFFFFFFFFFFF /* CopilotMonitorTests */,
 				ADDDDDDDDDDDDDDDDDDDDDDD /* Products */,
@@ -622,6 +688,19 @@
 				30A898103B3BB6062DE8FCC9 /* CopilotMonitorUITests */,
 				4BA9AB5CDC25089EE476B03B /* LiveTests */,
 			);
+			sourceTree = "<group>";
+		};
+		WIDGETGRP000000000000000 /* TokenKingWidget */ = {
+			isa = PBXGroup;
+			children = (
+				WIDGETINP000000000000000 /* Info.plist */,
+				WIDGETENT000000000000000 /* TokenKingWidget.entitlements */,
+				WIDGETMAINFR0000000000001 /* TokenKingWidget.swift */,
+				WIDGETVWFR0000000000001 /* TokenKingWidgetView.swift */,
+				WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */,
+				WIDGETAEX000000000000000 /* TokenKingWidget.appex */,
+			);
+			path = TokenKingWidget;
 			sourceTree = "<group>";
 		};
 		ACCCCCCCCCCCCCCCCCCCCCCC /* CopilotMonitor */ = {
@@ -632,6 +711,7 @@
 				C88888888888888888888888 /* Views */,
 				ME3333333333333333333333 /* Helpers */,
 				E33333333333333333333333 /* Models */,
+				WIDGETSHAREDAPPGP0000001 /* Shared */,
 				A66666666666666666666666 /* Assets.xcassets */,
 				A88888888888888888888888 /* CopilotMonitor.entitlements */,
 				A99999999999999999999999 /* Info.plist */,
@@ -639,6 +719,17 @@
 				1D81BD5EF6E11EA1F43B6746 /* CopilotMonitor */,
 			);
 			path = CopilotMonitor;
+			sourceTree = "<group>";
+		};
+		WIDGETSHAREDAPPGP0000001 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				SHAREDPATHFR0000000000001 /* SharedPaths.swift */,
+				WIDGETSNAPFR0000000000001 /* WidgetSnapshot.swift */,
+				WIDGETWLG000000000000000 /* WidgetLogger.swift */,
+				BRANDICONFR0000000000000001 /* ProviderBrandIcon.swift */,
+			);
+			path = Shared;
 			sourceTree = "<group>";
 		};
 		ADDDDDDDDDDDDDDDDDDDDDDD /* Products */ = {
@@ -692,6 +783,9 @@
 				CF11AA22BB33CC44DD55EE02 /* CurrencyFormatter.swift */,
 				DLG000000000000000000002 /* DiagnosticsLogger.swift */,
 				DSN000000000000000000002 /* DiagnosticsSanitizer.swift */,
+				WIDGETMAPFR00000000000001 /* WidgetSnapshotMapper.swift */,
+				WIDGETWRITERFR000000000001 /* WidgetSnapshotWriter.swift */,
+				WIDGETCOORDFR000000000001 /* WidgetSnapshotCoordinator.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -809,6 +903,8 @@
 			children = (
 				T22222222222222222222222 /* ProviderUsageTests.swift */,
 				TOOOOOOOOOOOOOOOOOOOOOOO /* Fixtures */,
+				WIDGETSHAREDTSTGP0000001 /* Shared */,
+				WIDGETSVCSTSTGP00000001 /* Services */,
 				B63B85E0F2A8C591D7E26AE2 /* GeminiCLIProviderTests.swift */,
 				ED35D8BD06A436306085737D /* CopilotProviderTests.swift */,
 				ERRFILTFR11111111111 /* ErrorFilterTests.swift */,
@@ -865,6 +961,23 @@
 			path = CopilotMonitorTests;
 			sourceTree = "<group>";
 		};
+		WIDGETSHAREDTSTGP0000001 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				WIDGETMAPTSTFR0000000001 /* WidgetSnapshotMapperTests.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		WIDGETSVCSTSTGP00000001 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				WIDGETWRITERTFR0000000000 /* WidgetSnapshotWriterTests.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+
 		TOOOOOOOOOOOOOOOOOOOOOOO /* Fixtures */ = {
 			isa = PBXGroup;
 			children = (
@@ -931,11 +1044,13 @@
 				B33333333333333333333333 /* Resources */,
 				99B4F502FF874C55842630C0E0F9A031 /* Inject Git Hash */,
 				CLICOPYPH11111111111111111 /* Embed CLI */,
+				WIDGETEAB000000000000000 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				CLIDEP1111111111111111111 /* PBXTargetDependency */,
+				WIDGETTDP000000000000000 /* PBXTargetDependency */,
 			);
 			name = CopilotMonitor;
 			packageProductDependencies = (
@@ -945,6 +1060,23 @@
 			productName = CopilotMonitor;
 			productReference = A77777777777777777777777 /* Token King.app */;
 			productType = "com.apple.product-type.application";
+		};
+		WIDGETTGT000000000000000 /* TokenKingWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = WIDGETBLS000000000000000 /* Build configuration list for PBXNativeTarget "TokenKingWidget" */;
+			buildPhases = (
+				WIDGETSRB000000000000000 /* Sources */,
+				WIDGETFRK000000000000000 /* Frameworks */,
+				WIDGETRSB000000000000000 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TokenKingWidget;
+			productName = TokenKingWidget;
+			productReference = WIDGETAEX000000000000000 /* TokenKingWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 		CLI8888888888888888888888 /* opencodebar-cli */ = {
 			isa = PBXNativeTarget;
@@ -1017,6 +1149,7 @@
 			projectRoot = "";
 			targets = (
 				AFFFFFFFFFFFFFFFFFFFFF /* CopilotMonitor */,
+				WIDGETTGT000000000000000 /* TokenKingWidget */,
 				CLI8888888888888888888888 /* opencodebar-cli */,
 				TGGGGGGGGGGGGGGGGGGGGGGG /* CopilotMonitorTests */,
 				84A5F1174B993DADEB530F85 /* CopilotMonitorUITests */,
@@ -1063,6 +1196,13 @@
 				7023538D2C1FD2C142C4D0C6 /* tavily_usage_response.json in Resources */,
 				A1B2C3D4E5F60718293A4B60 /* exchange_rate_success.json in Resources */,
 				A1B2C3D4E5F60718293A4B62 /* exchange_rate_error.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		WIDGETRSB000000000000000 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1113,6 +1253,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				283348F92F313096004DADE1 /* ProviderResult.swift in Sources */,
+				WIDGETMAPBF00000000000001 /* WidgetSnapshotMapper.swift in Sources */,
+				WIDGETWRITERBF000000000001 /* WidgetSnapshotWriter.swift in Sources */,
+				WIDGETCOORDBF000000000001 /* WidgetSnapshotCoordinator.swift in Sources */,
+				SHAREDPATHSBF0000000000001 /* SharedPaths.swift in Sources */,
+				WIDGETSNAPBF0000000000001 /* WidgetSnapshot.swift in Sources */,
+				WIDGETWLA000000000000000 /* WidgetLogger.swift in Sources */,
 				A33333333333333333333333 /* AppDelegate.swift in Sources */,
 				APPMAIN11111111111111111111 /* EntryDocumentation.swift in Sources */,
 				AM1111111111111111111111 /* AppMigrationHelper.swift in Sources */,
@@ -1251,6 +1397,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		WIDGETSRB000000000000000 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				WIDGETSPB000000000000000 /* SharedPaths.swift in Sources */,
+				WIDGETWSB000000000000000 /* WidgetSnapshot.swift in Sources */,
+				WIDGETWLB000000000000000 /* WidgetLogger.swift in Sources */,
+				WIDGETMAINBF0000000000001 /* TokenKingWidget.swift in Sources */,
+				WIDGETVWBF0000000000001 /* TokenKingWidgetView.swift in Sources */,
+				WIDGETDTKBF0000000000001 /* WidgetDesignToken.swift in Sources */,
+				BRANDICONBF0000000000000001 /* ProviderBrandIcon.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		TIIIIIIIIIIIIIIIIIIIIII /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1330,6 +1490,8 @@
 				01F3CEDD4DF8427C9D85D492 /* ClaudeProviderTests.swift in Sources */,
 				6E7602C0A30D407C805EEB62 /* SubscriptionSettingsManagerTests.swift in Sources */,
 				36DF35D8A8344F6BAE3A1E24 /* ZaiCodingPlanProviderTests.swift in Sources */,
+				WIDGETMAPTSTBF00000000001 /* WidgetSnapshotMapperTests.swift in Sources */,
+				WIDGETWRITERTBF0000000000 /* WidgetSnapshotWriterTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1356,6 +1518,11 @@
 			isa = PBXTargetDependency;
 			target = AFFFFFFFFFFFFFFFFFFFFF /* CopilotMonitor */;
 			targetProxy = TNNNNNNNNNNNNNNNNNNNNNNN /* PBXContainerItemProxy */;
+		};
+		WIDGETTDP000000000000000 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = WIDGETTGT000000000000000 /* TokenKingWidget */;
+			targetProxy = WIDGETCXP000000000000000 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1607,6 +1774,56 @@
 			};
 			name = Release;
 		};
+		WIDGETDBG000000000000000 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TokenKingWidget/TokenKingWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TokenKingWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tokenking.app.TokenKingWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		WIDGETREL000000000000000 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TokenKingWidget/TokenKingWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TokenKingWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tokenking.app.TokenKingWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 		CLICCCCCCCCCCCCCCCCCCCCC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1716,6 +1933,15 @@
 			buildConfigurations = (
 				B88888888888888888888888 /* Debug */,
 				B99999999999999999999999 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		WIDGETBLS000000000000000 /* Build configuration list for PBXNativeTarget "TokenKingWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				WIDGETDBG000000000000000 /* Debug */,
+				WIDGETREL000000000000000 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
