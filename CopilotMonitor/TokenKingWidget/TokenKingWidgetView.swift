@@ -327,17 +327,35 @@ func primaryWindow(of provider: ProviderSnapshot) -> UsageWindow? {
     return provider.windows.first
 }
 
-func providerIcon(_ id: String) -> String {
-    switch id {
-    case "claude":      return "sparkles"
-    case "codex":       return "chevron.left.forwardslash.chevron.right"
-    case "copilot":     return "person.crop.circle.badge.checkmark"
-    case "openrouter":  return "arrow.triangle.branch"
-    case "gemini_cli":  return "sparkle"
-    case "kiro":        return "terminal"
-    case "antigravity": return "airplane"
-    case "opencode_zen": return "cube"
-    default:            return "gauge.medium"
+func providerIconSystemName(_ providerId: String) -> String {
+    switch providerId {
+    case "copilot":            return "person.crop.circle.badge.checkmark"
+    case "openrouter":         return "arrow.triangle.branch"
+    case "gemini_cli":         return "sparkle"
+    case "antigravity":        return "airplane"
+    case "kiro":               return "terminal"
+    case "brave_search":       return "magnifyingglass.circle"
+    case "tavily_search":      return "magnifyingglass.circle"
+    case "grok":               return "bolt"
+    case "nano_gpt":           return "circle.grid.cross"
+    case "synthetic":          return "atom"
+    case "chutes":             return "arrow.down.circle"
+    case "cursor":             return "arrow.up.forward.app"
+    case "hunyuan":            return "globe.asia.australia.fill"
+    case "zhipu_glm":          return "globe.asia.australia.fill"
+    case "volcano_ark":        return "flame"
+    case "opencode_go":        return "cube"
+    case "command_code":       return "terminal"
+    case "zhipuai":            return "globe.asia.australia.fill"
+    case "minimax_cn", "minimax_global",
+         "minimax_coding_plan_cn", "minimax_coding_plan_global",
+         "xiaomimimo":          return "wand.and.stars"
+    case "mimo":               return "wand.and.stars"
+    case "claude":             return "sparkles"
+    case "codex", "opencode_zen": return "chevron.left.forwardslash.chevron.right"
+    case "kimi_cn", "kimi_global": return "globe.asia.australia.fill"
+    case "zai_coding_plan":    return "chevron.left.forwardslash.chevron.right"
+    default:                   return "gauge.medium"
     }
 }
 
@@ -352,14 +370,20 @@ struct ProviderIconView: View {
     let size: CGFloat
 
     var body: some View {
-        if let kind = ProviderBrandIcon.Kind.from(providerId: providerId) {
-            ProviderBrandIcon(kind: kind)
-                .frame(width: size, height: size)
-                .foregroundStyle(kind.brandColor ?? .secondary)
-        } else {
-            Image(systemName: providerIconSystemName(providerId))
-                .font(.system(size: size))
-                .foregroundStyle(.secondary)
-        }
+        Image(systemName: providerIconSystemName(providerId))
+            .font(.system(size: size))
+            .foregroundStyle(providerBrandTint(providerId) ?? .secondary)
+    }
+}
+
+/// Brand tint per prototype DESIGN.md §3, applied to the SF Symbol fallback.
+/// `nil` means use the secondary text colour. Real brand glyphs (SVG → asset
+/// catalog) are deferred; see P2 V2 rework note.
+func providerBrandTint(_ providerId: String) -> Color? {
+    switch providerId {
+    case "claude":                  return Color(red: 0.851, green: 0.467, blue: 0.341)  // #d97757
+    case "kimi_cn", "kimi_global":  return Color(red: 0.090, green: 0.514, blue: 1.000)  // #1783ff
+    case "kiro":                    return Color(red: 0.565, green: 0.275, blue: 1.000)  // #9046ff
+    default:                        return nil
     }
 }

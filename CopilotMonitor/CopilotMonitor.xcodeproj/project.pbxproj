@@ -248,7 +248,6 @@
 		WIDGETSPB000000000000000 /* SharedPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHAREDPATHFR0000000000001 /* SharedPaths.swift */; };
 		WIDGETWSB000000000000000 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETSNAPFR0000000000001 /* WidgetSnapshot.swift */; };
 		WIDGETWLB000000000000000 /* WidgetLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETWLG000000000000000 /* WidgetLogger.swift */; };
-		BRANDICONBF0000000000000001 /* ProviderBrandIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = BRANDICONFR0000000000000001 /* ProviderBrandIcon.swift */; };
 		WIDGETWLA000000000000000 /* WidgetLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETWLG000000000000000 /* WidgetLogger.swift */; };
 		WIDGETMAINBF0000000000001 /* TokenKingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETMAINFR0000000000001 /* TokenKingWidget.swift */; };
 		WIDGETVWBF0000000000001 /* TokenKingWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETVWFR0000000000001 /* TokenKingWidgetView.swift */; };
@@ -519,7 +518,6 @@
 		WIDGETINP000000000000000 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = TokenKingWidget/Info.plist; sourceTree = "<group>"; };
 		WIDGETENT000000000000000 /* TokenKingWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TokenKingWidget/TokenKingWidget.entitlements; sourceTree = "<group>"; };
 		WIDGETWLG000000000000000 /* WidgetLogger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetLogger.swift; sourceTree = "<group>"; };
-		BRANDICONFR0000000000000001 /* ProviderBrandIcon.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProviderBrandIcon.swift; sourceTree = "<group>"; };
 		WIDGETMAINFR0000000000001 /* TokenKingWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenKingWidget.swift; sourceTree = "<group>"; };
 		WIDGETVWFR0000000000001 /* TokenKingWidgetView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenKingWidgetView.swift; sourceTree = "<group>"; };
 		WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetDesignToken.swift; sourceTree = "<group>"; };
@@ -727,7 +725,6 @@
 				SHAREDPATHFR0000000000001 /* SharedPaths.swift */,
 				WIDGETSNAPFR0000000000001 /* WidgetSnapshot.swift */,
 				WIDGETWLG000000000000000 /* WidgetLogger.swift */,
-				BRANDICONFR0000000000000001 /* ProviderBrandIcon.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -1407,7 +1404,6 @@
 				WIDGETMAINBF0000000000001 /* TokenKingWidget.swift in Sources */,
 				WIDGETVWBF0000000000001 /* TokenKingWidgetView.swift in Sources */,
 				WIDGETDTKBF0000000000001 /* WidgetDesignToken.swift in Sources */,
-				BRANDICONBF0000000000000001 /* ProviderBrandIcon.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

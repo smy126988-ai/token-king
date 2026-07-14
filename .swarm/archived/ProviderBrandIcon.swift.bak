@@ -189,7 +189,7 @@ extension ProviderBrandIcon.Kind {
     /// Map a `ProviderIdentifier.rawValue` to a brand icon, or `nil` if the
     /// provider doesn't have a matching prototype asset. Callers fall back to
     /// a generic SF Symbol in that case.
-    static func from(providerId: String) -> Kind? {
+    static func from(providerId: String) -> Self? {
         switch providerId {
         case "claude":                  return .claude
         case "codex", "opencode_zen":    return .codex
