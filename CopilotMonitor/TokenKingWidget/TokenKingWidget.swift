@@ -40,56 +40,45 @@ struct AuroraBackgroundView: View {
     var body: some View {
         ZStack {
             baseLinear
-            focalRadial
-            if colorScheme == .light {
-                centerRadial
+            ForEach(Array(radialStops.enumerated()), id: \.offset) { idx, color in
+                RadialGradient(
+                    colors: [color.opacity(0.6), color.opacity(0)],
+                    center: radialCenters[idx % radialCenters.count],
+                    startRadius: 8,
+                    endRadius: 220
+                )
+                .blendMode(.plusLighter)
             }
-            // Glass veil — `ultraThinMaterial` adapts to the colour scheme
-            // and gives the same "frosted" feel as the prototype's
-            // `rgba(255,255,255,0.24)` / `rgba(28,30,36,0.30)` overlays.
-            Rectangle()
-                .fill(.ultraThinMaterial)
         }
     }
 
-    private var palette: [Color] {
+    private var linearStops: [Color] {
         colorScheme == .dark
-            ? WidgetDesignToken.Aurora.dark
-            : WidgetDesignToken.Aurora.light
+            ? WidgetDesignToken.Aurora.darkLinear
+            : WidgetDesignToken.Aurora.lightLinear
     }
 
-    private var focalColor: Color {
+    private var radialStops: [Color] {
         colorScheme == .dark
-            ? WidgetDesignToken.Aurora.darkFocal
-            : WidgetDesignToken.Aurora.lightFocal
+            ? WidgetDesignToken.Aurora.darkRadial
+            : WidgetDesignToken.Aurora.lightRadial
     }
 
+    /// Radial focal anchors approximating the prototype's
+    /// `radial-gradient(... at 6% 0% / 100% 100% / 55% 50%)` positions.
+    private let radialCenters: [UnitPoint] = [
+        UnitPoint(x: 0.06, y: 0.0),
+        UnitPoint(x: 1.0, y: 1.0),
+        .center
+    ]
+
+    /// Base linear wash (150deg peach→pink→lavender / teal→indigo→black).
     private var baseLinear: some View {
         LinearGradient(
-            colors: palette,
+            colors: linearStops,
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
-    }
-
-    private var focalRadial: some View {
-        RadialGradient(
-            colors: [focalColor.opacity(0.65), focalColor.opacity(0)],
-            center: .topLeading,
-            startRadius: 8,
-            endRadius: 200
-        )
-        .blendMode(.plusLighter)
-    }
-
-    private var centerRadial: some View {
-        RadialGradient(
-            colors: [palette[2].opacity(0.55), palette[2].opacity(0)],
-            center: .center,
-            startRadius: 20,
-            endRadius: 180
-        )
-        .blendMode(.plusLighter)
     }
 }
 

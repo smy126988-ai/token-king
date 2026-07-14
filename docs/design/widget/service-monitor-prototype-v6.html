@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Service Monitor · 原型 v6 · 图标</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace; --sys:-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;
+    --kiro:#9046ff; --claude:#d97757; --kimi:#1783ff; --codexc:#10a37f; }
+  :root{
+    --wall:radial-gradient(1000px 720px at 6% 0%,#ffb98f 0,transparent 58%),radial-gradient(900px 800px at 100% 100%,#e9a9e0 0,transparent 55%),radial-gradient(700px 600px at 55% 50%,#b9a8f0 0,transparent 60%),linear-gradient(150deg,#ffcaa0,#eebbe0 55%,#c7d0f2);
+    --glass:rgba(255,255,255,0.24);--glass-foc:rgba(255,255,255,0.52);--hair:rgba(40,30,55,0.10);--hair-top:rgba(255,255,255,0.9);
+    --ink:#2a2433;--ink-2:#615a6d;--ink-faint:#9a92a4;--soft:rgba(40,30,55,0.05);--soft2:rgba(40,30,55,0.08);--track:rgba(40,30,55,0.13);
+    --glance:rgba(60,52,72,0.5);--accent:#0a84ff;--green:#28c63f;--amber:#e0972a;--red:#e8453f;
+    --shadow:0 22px 48px -22px rgba(60,40,80,0.34),0 2px 7px rgba(60,40,80,.10);
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --wall:radial-gradient(1000px 740px at 6% 0%,#1a3a44 0,transparent 56%),radial-gradient(840px 780px at 100% 100%,#281c44 0,transparent 52%),linear-gradient(150deg,#0d1316,#13101f 60%,#0c1417);
+    --glass:rgba(28,30,36,0.30);--glass-foc:rgba(28,30,36,0.5);--hair:rgba(255,255,255,0.12);--hair-top:rgba(255,255,255,0.16);
+    --ink:#eef2f0;--ink-2:#9aa4a6;--ink-faint:#646d71;--soft:rgba(255,255,255,0.045);--soft2:rgba(255,255,255,0.08);--track:rgba(255,255,255,0.12);
+    --glance:rgba(255,255,255,0.58);--accent:#0a84ff;--green:#34d94a;--amber:#f5b134;--red:#ff5b52;
+    --shadow:0 26px 54px -20px rgba(0,0,0,0.66),0 2px 8px rgba(0,0,0,0.4);
+  }}
+  [data-theme="light"]{
+    --wall:radial-gradient(1000px 720px at 6% 0%,#ffb98f 0,transparent 58%),radial-gradient(900px 800px at 100% 100%,#e9a9e0 0,transparent 55%),radial-gradient(700px 600px at 55% 50%,#b9a8f0 0,transparent 60%),linear-gradient(150deg,#ffcaa0,#eebbe0 55%,#c7d0f2);
+    --glass:rgba(255,255,255,0.24);--glass-foc:rgba(255,255,255,0.52);--hair:rgba(40,30,55,0.10);--hair-top:rgba(255,255,255,0.9);
+    --ink:#2a2433;--ink-2:#615a6d;--ink-faint:#9a92a4;--soft:rgba(40,30,55,0.05);--soft2:rgba(40,30,55,0.08);--track:rgba(40,30,55,0.13);
+    --glance:rgba(60,52,72,0.5);--accent:#0a84ff;--green:#28c63f;--amber:#e0972a;--red:#e8453f;
+    --shadow:0 22px 48px -22px rgba(60,40,80,0.34),0 2px 7px rgba(60,40,80,.10);
+  }
+  [data-theme="dark"]{
+    --wall:radial-gradient(1000px 740px at 6% 0%,#1a3a44 0,transparent 56%),radial-gradient(840px 780px at 100% 100%,#281c44 0,transparent 52%),linear-gradient(150deg,#0d1316,#13101f 60%,#0c1417);
+    --glass:rgba(28,30,36,0.30);--glass-foc:rgba(28,30,36,0.5);--hair:rgba(255,255,255,0.12);--hair-top:rgba(255,255,255,0.16);
+    --ink:#eef2f0;--ink-2:#9aa4a6;--ink-faint:#646d71;--soft:rgba(255,255,255,0.045);--soft2:rgba(255,255,255,0.08);--track:rgba(255,255,255,0.12);
+    --glance:rgba(255,255,255,0.58);--accent:#0a84ff;--green:#34d94a;--amber:#f5b134;--red:#ff5b52;
+    --shadow:0 26px 54px -20px rgba(0,0,0,0.66),0 2px 8px rgba(0,0,0,0.4);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sys);color:var(--ink);background:var(--wall);background-attachment:fixed;min-height:100vh;padding:36px 40px 80px;-webkit-font-smoothing:antialiased;transition:.3s}
+  .wrap{max-width:1120px;margin:0 auto}
+  .topbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:16px;flex-wrap:wrap}
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:9px}
+  h1{font-size:27px;font-weight:600;letter-spacing:-.02em}
+  .sub{color:var(--ink-2);font-size:13.5px;margin-top:8px;max-width:600px;line-height:1.6}
+  .controls{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+  .seg{display:flex;gap:2px;background:var(--soft2);border:1px solid var(--hair);border-radius:10px;padding:3px}
+  .seg button{font-family:var(--mono);font-size:11px;color:var(--ink-2);background:transparent;border:0;padding:6px 11px;border-radius:7px;cursor:pointer}
+  .seg button.on{background:var(--glass-foc);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .seglab{font-family:var(--mono);font-size:9px;color:var(--ink-faint);margin-right:8px;align-self:center}
+
+  .section-label{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-faint);margin:42px 0 18px;display:flex;align-items:center;gap:14px}
+  .section-label::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--hair),transparent)}
+  .section-label .hint{text-transform:none;letter-spacing:.01em;font-size:11px}
+  .row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+
+  .widget{position:relative;border-radius:22px;border:1px solid var(--hair);box-shadow:0 1px 0 var(--hair-top) inset,var(--shadow);overflow:hidden;
+    background:var(--glass);backdrop-filter:blur(38px) saturate(150%);-webkit-backdrop-filter:blur(38px) saturate(150%);transition:background .35s,backdrop-filter .35s}
+  body.focused .widget{background:var(--glass-foc);backdrop-filter:blur(30px) saturate(150%)}
+  .w-rings{width:380px;height:172px;padding:18px 6px 14px}
+  .w-med{width:380px;height:172px;padding:18px 20px}
+  .w-lg{width:380px;height:362px;padding:20px}
+
+  .w-head{display:flex;align-items:center;gap:8px}
+  .dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--glance)}
+  body.focused .dot.ok{background:var(--green)} body.focused .dot.warn{background:var(--amber)} body.focused .dot.down{background:var(--red)}
+  .w-name{font-size:14px;font-weight:600;letter-spacing:-.01em;color:var(--ink)}
+  .w-name .arrow{color:var(--ink-faint);font-weight:400;font-size:12px}
+  .port{font-family:var(--mono);font-size:10px;color:var(--ink-2);background:var(--soft);border:1px solid var(--hair);padding:2px 7px;border-radius:6px;flex:none}
+  .iconbtn{width:23px;height:23px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink-faint);background:transparent;border:1px solid var(--hair);cursor:pointer;flex:none}
+  .iconbtn svg{width:12px;height:12px}.spacer{margin-left:auto}
+
+  /* 品牌图标(单色字形 + 品牌色 tint;非选中态转灰跟随焦点) */
+  .ic{flex:none;fill:currentColor}
+  .ic-kiro{color:var(--kiro)} .ic-claude{color:var(--claude)} .ic-kimi{color:var(--kimi)}
+  .ic-codex{color:var(--ink)} .ic-opencode{color:var(--ink)} .ic-mimo{color:var(--ink-2)}
+  body:not(.focused) .ic{filter:grayscale(1);opacity:.78}   /* 模拟 vibrant 去色 */
+
+  .statetag{font-family:var(--mono);font-size:11px;margin-top:8px;color:var(--ink-2)}
+  .statetag b{font-weight:600;color:var(--ink-2)}
+  body.focused .statetag.ok b{color:var(--green)}body.focused .statetag.warn b{color:var(--amber)}body.focused .statetag.down b{color:var(--red)}
+
+  .metric{margin-top:12px}
+  .m-label{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-faint);display:flex;justify-content:space-between;align-items:center}
+  .m-label .badge{font-family:var(--mono);font-size:9px;color:var(--ink-2);background:var(--soft2);padding:2px 7px;border-radius:5px;text-transform:none}
+  .m-row{display:flex;align-items:baseline;gap:7px;margin-top:6px}
+  .big{font-family:var(--mono);font-weight:700;font-size:24px;line-height:1;letter-spacing:-.02em}
+  .sep{font-family:var(--mono);font-size:14px;color:var(--ink-faint)}.lim{font-family:var(--mono);font-size:14px;color:var(--ink-2)}
+  .pct{margin-left:auto;font-family:var(--mono);font-size:13px;color:var(--ink-2)}
+  .bar{margin-top:9px;height:6px;border-radius:6px;background:var(--track);overflow:hidden}
+  .bar>i{display:block;height:100%;border-radius:6px;background:var(--glance)}
+  body.focused .bar.s-ok>i{background:var(--green)}body.focused .bar.s-warn>i{background:var(--amber)}body.focused .bar.s-hot>i{background:var(--red)}
+  .dual{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+  .dwin .dh{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--ink-2);margin-bottom:5px}.dwin .dh .rst{color:var(--ink-faint)}
+
+  .rings{display:flex;justify-content:space-around;align-items:flex-start}
+  .gnode{display:flex;flex-direction:column;align-items:center;gap:7px}
+  .gauge{position:relative;width:var(--gs,64px);height:var(--gs,64px)}
+  .gauge svg.ring{position:absolute;inset:0;transform:rotate(-90deg)}
+  .gauge .trk{fill:none;stroke:var(--track);stroke-width:7}
+  .gauge .val{fill:none;stroke:var(--glance);stroke-width:7;stroke-linecap:round}
+  body.focused .gauge.s-ok .val{stroke:var(--green)}body.focused .gauge.s-warn .val{stroke:var(--amber)}body.focused .gauge.s-hot .val{stroke:var(--red)}
+  .gauge .ctr{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+  .gauge .ctr .ic{width:24px;height:24px}
+  .gpct{font-family:var(--mono);font-weight:600;font-size:13px;color:var(--ink)}
+  .gname{font-family:var(--mono);font-size:10px;color:var(--ink-faint)}
+
+  .w-foot{position:absolute;left:20px;right:20px;bottom:13px;display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:10px;color:var(--ink-faint)}
+
+  .multi{display:flex;flex-direction:column;gap:13px;margin-top:13px}
+  .mrow .mtop{display:flex;align-items:center;gap:8px}.mrow .mtop .nm{font-size:13px;font-weight:600}
+  .mrow .mtop .val{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+
+  .note{margin-top:42px;padding:16px 20px;border-left:2px solid var(--accent);background:var(--soft);border-radius:0 12px 12px 0;color:var(--ink-2);font-size:13px;line-height:1.7}
+  .note b{color:var(--ink)} .note code{font-family:var(--mono);font-size:12px;background:var(--soft2);padding:1px 6px;border-radius:5px}
+</style>
+</head>
+<body>
+
+<!-- 图标符号库(lobe-icons 单色版) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="ic-codex" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M8.086.457a6.105 6.105 0 013.046-.415c1.333.153 2.521.72 3.564 1.7a.117.117 0 00.107.029c1.408-.346 2.762-.224 4.061.366l.063.03.154.076c1.357.703 2.33 1.77 2.918 3.198.278.679.418 1.388.421 2.126a5.655 5.655 0 01-.18 1.631.167.167 0 00.04.155 5.982 5.982 0 011.578 2.891c.385 1.901-.01 3.615-1.183 5.14l-.182.22a6.063 6.063 0 01-2.934 1.851.162.162 0 00-.108.102c-.255.736-.511 1.364-.987 1.992-1.199 1.582-2.962 2.462-4.948 2.451-1.583-.008-2.986-.587-4.21-1.736a.145.145 0 00-.14-.032c-.518.167-1.04.191-1.604.185a5.924 5.924 0 01-2.595-.622 6.058 6.058 0 01-2.146-1.781c-.203-.269-.404-.522-.551-.821a7.74 7.74 0 01-.495-1.283 6.11 6.11 0 01-.017-3.064.166.166 0 00.008-.074.115.115 0 00-.037-.064 5.958 5.958 0 01-1.38-2.202 5.196 5.196 0 01-.333-1.589 6.915 6.915 0 01.188-2.132c.45-1.484 1.309-2.648 2.577-3.493.282-.188.55-.334.802-.438.286-.12.573-.22.861-.304a.129.129 0 00.087-.087A6.016 6.016 0 015.635 2.31C6.315 1.464 7.132.846 8.086.457zm-.804 7.85a.848.848 0 00-1.473.842l1.694 2.965-1.688 2.848a.849.849 0 001.46.864l1.94-3.272a.849.849 0 00.007-.854l-1.94-3.393zm5.446 6.24a.849.849 0 000 1.695h4.848a.849.849 0 000-1.696h-4.848z"></path></symbol>
+  <symbol id="ic-claude" viewBox="0 0 24 24"><path d="M4.709 15.955l4.72-2.647.08-.23-.08-.128H9.2l-.79-.048-2.698-.073-2.339-.097-2.266-.122-.571-.121L0 11.784l.055-.352.48-.321.686.06 1.52.103 2.278.158 1.652.097 2.449.255h.389l.055-.157-.134-.098-.103-.097-2.358-1.596-2.552-1.688-1.336-.972-.724-.491-.364-.462-.158-1.008.656-.722.881.06.225.061.893.686 1.908 1.476 2.491 1.833.365.304.145-.103.019-.073-.164-.274-1.355-2.446-1.446-2.49-.644-1.032-.17-.619a2.97 2.97 0 01-.104-.729L6.283.134 6.696 0l.996.134.42.364.62 1.414 1.002 2.229 1.555 3.03.456.898.243.832.091.255h.158V9.01l.128-1.706.237-2.095.23-2.695.08-.76.376-.91.747-.492.584.28.48.685-.067.444-.286 1.851-.559 2.903-.364 1.942h.212l.243-.242.985-1.306 1.652-2.064.73-.82.85-.904.547-.431h1.033l.76 1.129-.34 1.166-1.064 1.347-.881 1.142-1.264 1.7-.79 1.36.073.11.188-.02 2.856-.606 1.543-.28 1.841-.315.833.388.091.395-.328.807-1.969.486-2.309.462-3.439.813-.042.03.049.061 1.549.146.662.036h1.622l3.02.225.79.522.474.638-.079.485-1.215.62-1.64-.389-3.829-.91-1.312-.329h-.182v.11l1.093 1.068 2.006 1.81 2.509 2.33.127.578-.322.455-.34-.049-2.205-1.657-.851-.747-1.926-1.62h-.128v.17l.444.649 2.345 3.521.122 1.08-.17.353-.608.213-.668-.122-1.374-1.925-1.415-2.167-1.143-1.943-.14.08-.674 7.254-.316.37-.729.28-.607-.461-.322-.747.322-1.476.389-1.924.315-1.53.286-1.9.17-.632-.012-.042-.14.018-1.434 1.967-2.18 2.945-1.726 1.845-.414.164-.717-.37.067-.662.401-.589 2.388-3.036 1.44-1.882.93-1.086-.006-.158h-.055L4.132 18.56l-1.13.146-.487-.456.061-.746.231-.243 1.908-1.312-.006.006z"></path></symbol>
+  <symbol id="ic-kimi" viewBox="0 0 24 24"><path d="M21.846 0a1.923 1.923 0 110 3.846H20.15a.226.226 0 01-.227-.226V1.923C19.923.861 20.784 0 21.846 0z"></path><path d="M11.065 11.199l7.257-7.2c.137-.136.06-.41-.116-.41H14.3a.164.164 0 00-.117.051l-7.82 7.756c-.122.12-.302.013-.302-.179V3.82c0-.127-.083-.23-.185-.23H3.186c-.103 0-.186.103-.186.23V19.77c0 .128.083.23.186.23h2.69c.103 0 .186-.102.186-.23v-3.25c0-.069.025-.135.069-.178l2.424-2.406a.158.158 0 01.205-.023l6.484 4.772a7.677 7.677 0 003.453 1.283c.108.012.2-.095.2-.23v-3.06c0-.117-.07-.212-.164-.227a5.028 5.028 0 01-2.027-.807l-5.613-4.064c-.117-.078-.132-.279-.028-.381z"></path></symbol>
+  <symbol id="ic-kiro" viewBox="0 0 24 24"><path d="M4.594 6.677C6.67-2.226 18.746-2.211 21.16 6.632c.353 1.297 1.725 7.582-1.673 13.747-1.545 2.797-5.841 5.49-6.99 1.883C8.6 25.477 3.315 24.1 5.789 18.609l-.318.143c-3.57 1.305-3.863-1.208-3.173-2.513.45-.84.727-1.335.937-1.897.353-.975.458-1.568.593-2.498.27-1.837.277-3.607.765-5.167zm8.37.01a.92.92 0 00-.81.428c-.217.323-.33.825-.33 1.462 0 .705.15 1.89 1.14 1.89h.008c.757 0 1.214-.705 1.214-1.89 0-.622-.127-1.125-.367-1.455a1.014 1.014 0 00-.855-.435zm4.08 0a.92.92 0 00-.81.428c-.217.323-.33.825-.33 1.462 0 .705.15 1.89 1.14 1.89h.008c.757 0 1.215-.705 1.215-1.89 0-.622-.128-1.125-.368-1.455a1.014 1.014 0 00-.855-.435z"></path></symbol>
+  <symbol id="ic-opencode" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M16 6H8v12h8V6zm4 16H4V2h16v20z"></path></symbol>
+</defs></svg>
+
+<div class="wrap">
+
+  <div class="topbar">
+    <div>
+      <div class="kicker">ai-infra · design prototype · v6 · 品牌图标</div>
+      <h1>Service Monitor 桌面小组件</h1>
+      <p class="sub">v6:给每个服务/模型加上品牌图标(lobe-icons 单色版,品牌色 tint)。环中心放图标、卡片名字前放图标。非选中态图标自动转灰(跟焦点走)。两个开关切切看。</p>
+    </div>
+    <div class="controls">
+      <div><span class="seglab">主题</span><span class="seg" id="seg"><button data-t="system" class="on">跟随系统</button><button data-t="light">浅色</button><button data-t="dark">深色</button></span></div>
+      <div><span class="seglab">焦点</span><span class="seg" id="foc"><button data-f="0" class="on">非选中</button><button data-f="1">选中(获焦)</button></span></div>
+    </div>
+  </div>
+
+  <!-- SMALL rings: 图标在环中心 -->
+  <div class="section-label">小尺寸 · 环形表 <span class="hint">· 图标=身份(放环中心) / % 在下 / 环按用量上色</span></div>
+  <div class="row">
+    <div class="widget w-rings">
+      <div class="rings">
+        <div class="gnode"><div class="gauge s-ok" style="--gs:66px"><svg class="ring" viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="43"/><circle class="val" cx="50" cy="50" r="43" stroke-dasharray="270.2" stroke-dashoffset="193.3"/></svg><span class="ctr"><svg class="ic ic-kiro"><use href="#ic-kiro"/></svg></span></div><span class="gpct">28%</span><span class="gname">kiro</span></div>
+        <div class="gnode"><div class="gauge s-ok" style="--gs:66px"><svg class="ring" viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="43"/><circle class="val" cx="50" cy="50" r="43" stroke-dasharray="270.2" stroke-dashoffset="110.8"/></svg><span class="ctr"><svg class="ic ic-codex"><use href="#ic-codex"/></svg></span></div><span class="gpct">59%</span><span class="gname">codex</span></div>
+        <div class="gnode"><div class="gauge s-hot" style="--gs:66px"><svg class="ring" viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="43"/><circle class="val" cx="50" cy="50" r="43" stroke-dasharray="270.2" stroke-dashoffset="35.1"/></svg><span class="ctr"><svg class="ic ic-kimi"><use href="#ic-kimi"/></svg></span></div><span class="gpct">87%</span><span class="gname">kimi</span></div>
+        <div class="gnode"><div class="gauge s-ok" style="--gs:66px"><svg class="ring" viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="43"/><circle class="val" cx="50" cy="50" r="43" stroke-dasharray="270.2" stroke-dashoffset="162.1"/></svg><span class="ctr"><svg class="ic ic-claude"><use href="#ic-claude"/></svg></span></div><span class="gpct">40%</span><span class="gname">claude</span></div>
+      </div>
+      <div class="w-foot"><span>4 个模型</span><span>刷新 10:40</span></div>
+    </div>
+  </div>
+
+  <!-- MEDIUM -->
+  <div class="section-label">中尺寸 · 两类卡片 <span class="hint">· 图标在名字前</span></div>
+  <div class="row">
+    <div class="widget w-med">
+      <div class="w-head"><span class="dot ok"></span><svg class="ic ic-kiro" style="width:17px;height:17px"><use href="#ic-kiro"/></svg><span class="w-name">c2cc <span class="arrow">→ kiro</span></span>
+        <span class="port spacer">端口 8787</span>
+        <span class="iconbtn" style="margin-left:8px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v4h-4"/></svg></span></div>
+      <div class="statetag ok"><b>服务正常</b> · claude 可用 · 533ms</div>
+      <div class="metric" style="margin-top:11px">
+        <div class="m-label"><span>kiro 积分</span><span class="badge">KIRO POWER</span></div>
+        <div class="m-row"><span class="big">2,853</span><span class="sep">/</span><span class="lim">10,000</span><span class="pct">28.5%</span></div>
+        <div class="bar s-ok"><i style="width:28.5%"></i></div>
+      </div>
+      <div class="w-foot"><span>刷新于 10:40:33</span><span>每 120s</span></div>
+    </div>
+
+    <div class="widget w-med">
+      <div class="w-head"><span class="dot ok"></span><svg class="ic ic-codex" style="width:16px;height:16px"><use href="#ic-codex"/></svg><span class="w-name">codex</span>
+        <span class="port spacer">模型用量</span>
+        <span class="iconbtn" style="margin-left:8px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v4h-4"/></svg></span></div>
+      <div class="dual" style="margin-top:13px">
+        <div class="dwin"><div class="dh"><span>5 小时窗口 · 38/150</span><span class="rst">重置 2h13m</span></div><div class="bar s-ok"><i style="width:25%"></i></div></div>
+        <div class="dwin"><div class="dh"><span>周限额 · 1,180/2,000</span><span class="rst">周日重置</span></div><div class="bar s-ok"><i style="width:59%"></i></div></div>
+      </div>
+      <div class="w-foot"><span>刷新于 10:40:33</span><span>双窗口</span></div>
+    </div>
+  </div>
+
+  <!-- LARGE -->
+  <div class="section-label">大尺寸 · 聚合 <span class="hint">· 每行带图标</span></div>
+  <div class="row">
+    <div class="widget w-lg">
+      <div class="w-head"><span class="w-name" style="font-size:15px">AI-Infra</span><span class="iconbtn spacer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v4h-4"/></svg></span></div>
+      <div class="multi">
+        <div class="mrow"><div class="mtop"><span class="dot ok"></span><svg class="ic ic-kiro" style="width:15px;height:15px"><use href="#ic-kiro"/></svg><span class="nm">c2cc → kiro</span><span class="val">2,853/10k · 28%</span></div><div class="bar s-ok" style="margin-top:7px"><i style="width:28.5%"></i></div></div>
+        <div class="mrow"><div class="mtop"><span class="dot ok"></span><svg class="ic ic-codex" style="width:15px;height:15px"><use href="#ic-codex"/></svg><span class="nm">codex</span><span class="val">5h 25% · 周 59%</span></div><div class="bar s-ok" style="margin-top:7px"><i style="width:59%"></i></div></div>
+        <div class="mrow"><div class="mtop"><span class="dot warn"></span><svg class="ic ic-kimi" style="width:15px;height:15px"><use href="#ic-kimi"/></svg><span class="nm">kimi</span><span class="val">本月 87%</span></div><div class="bar s-hot" style="margin-top:7px"><i style="width:87%"></i></div></div>
+        <div class="mrow"><div class="mtop"><span class="dot ok"></span><svg class="ic ic-opencode" style="width:15px;height:15px"><use href="#ic-opencode"/></svg><span class="nm">opencode</span><span class="val">本月 12%</span></div><div class="bar s-ok" style="margin-top:7px"><i style="width:12%"></i></div></div>
+        <div class="mrow"><div class="mtop"><span class="dot ok"></span><svg class="ic ic-claude" style="width:15px;height:15px"><use href="#ic-claude"/></svg><span class="nm">claude</span><span class="val">本月 40%</span></div><div class="bar s-ok" style="margin-top:7px"><i style="width:40%"></i></div></div>
+      </div>
+      <div class="w-foot"><span>刷新于 10:40:33</span><span>5 项</span></div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>v6 加了品牌图标</b>(来源:lobe-icons 开源 AI 图标集,单色字形版 + 品牌色 tint):codex=OpenAI Codex 标、claude=橙、kiro=紫、kimi=蓝、opencode。环形表把图标放中心(电池组件式),卡片/行把图标放名字前。非选中态图标自动转灰跟随焦点。<br>
+    <b>请你定:</b>① 图标要<b>品牌色</b>(现在这样)还是<b>纯单色</b>(更统一);② 图标大小/位置;③ mimo 没现成图标(lobe 无),要不要用小米标或先留空。定了我就把图标打包进 SwiftUI app(asset catalog)。
+  </div>
+
+</div>
+<script>
+  const seg=document.getElementById('seg'),foc=document.getElementById('foc');
+  seg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;[...seg.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');
+    const t=b.dataset.t;if(t==='system')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);});
+  foc.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;[...foc.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');
+    document.body.classList.toggle('focused',b.dataset.f==='1');});
+</script>
+</body>
+</html>

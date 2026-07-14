@@ -1225,7 +1225,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "bash \"$SRCROOT/../scripts/inject-version.sh\" \"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\n";
+			shellScript = "PLIST=\"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\nif [ -f \"$PLIST\" ]; then\n  bash \"$SRCROOT/../scripts/inject-version.sh\" \"$PLIST\"\nelse\n  echo \"warning: Info.plist not yet at $PLIST; skipping version injection this pass\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
