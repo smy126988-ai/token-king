@@ -232,7 +232,21 @@ func write(_ snapshot: WidgetSnapshot) {
 
 **设计原则（用户定，不可违背）**：小部件布局由**数据颗粒度 + 尺寸物理空间**决定，不是"作者替用户挑看啥"。每个尺寸把它那块空间的信息密度吃满，用户自己选拖哪个尺寸到桌面。目标是"一眼看全貌"，全貌按尺寸递进：小尺寸看一家、中尺寸看一家详情或多家概览、大尺寸看多家详情。
 
-**通用规则**：英文、SF Symbols、不用 emoji、用量百分比显式写 `Used`/`Left`、不硬编码 RGB（进度条/状态色可用系统色）、建 `WidgetDesignToken`（命名与层级与 `MenuDesignToken` 同源）、USD 2 位小数。排序默认按 `usedPercent` 降序（最紧张的在前）。kind=usage 的 provider 显示 `spendUSD` 而非进度条。
+**P0 交付范围（用户明确优先级）**：第一版只要求「能放到桌面 Widget Gallery + 显示真实数据」。视觉先对齐现有调性即可，精细样式优化留到后续迭代。不要为 P0 追求像素级还原或复杂动效。
+
+**通用规则**：英文、SF Symbols、不用 emoji、用量百分比显式写 `Used`/`Left`、不硬编码 RGB（进度条/状态色可用系统色）、USD 2 位小数。排序默认按 `usedPercent` 降序（最紧张的在前）。kind=usage 的 provider 显示 `spendUSD` 而非进度条。
+
+**WidgetDesignToken（新建，SwiftUI 版，数值对齐 `MenuDesignToken`）**：
+- 现有 `MenuDesignToken`（`Helpers/MenuDesignToken.swift`）是 **AppKit**（`NSFont`/`NSColor`/CGFloat 常量），widget 用 **SwiftUI**，**不能直接复用代码**，需新建 `WidgetDesignToken`（放 widget target 或 `Shared/`），把下列视觉语言翻成 SwiftUI。
+- 数值对齐（从 `MenuDesignToken` 抄）：
+  - 正文字号 `13`（SwiftUI `.font(.system(size: 13))`）；数字/百分比用**等宽字体**（`.monospacedDigit()` 或 `.system(size:13, design:.monospaced)`）——对应现有 `Typography.monospacedFont`。
+  - SF Symbol 图标尺寸 `16`；状态圆点 `8`。
+  - 强调用 `.bold`（对应 `boldFont`），不用颜色强调普通文本。
+- 状态视觉语言（从 `StatusBarIconView` 提炼，widget 版简化）：
+  - 主用量图标 SF Symbol：`gauge.medium`（现有菜单栏用它表用量）。
+  - 临界（额度快满）状态：用**系统红**小圆点/描边（对应现有 `criticalBadge` systemRed），不用自定义 RGB。P0 可简单用 `.foregroundStyle(.red)` 于临界项。
+  - loading/error：widget 是静态快照，**不做转圈动画**；无数据显示 EmptyState 文案，stale 显示带时间戳的旧值。
+- 进度条/ring 颜色：用系统色（`.tint`/`.green`/`.orange`/`.red` 按 usedPercent 分档），不硬编码 RGB。
 
 **三尺寸各司其职**：
 
