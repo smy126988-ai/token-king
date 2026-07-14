@@ -8,6 +8,24 @@ struct TokenKingWidgetView: View {
     let entry: TokenKingEntry
 
     var body: some View {
+        // P2 V3: card corner radius + inner padding aligned with prototype.
+        // The `containerBackground` AuroraBackgroundView provides the
+        // gradient underneath, the rounded `background(.clear)` here lets
+        // the aurora show through while keeping content inside the corners.
+        ZStack {
+            RoundedRectangle(cornerRadius: WidgetDesignToken.cardCornerRadius, style: .continuous)
+                .strokeBorder(.tertiary.opacity(0.5), lineWidth: 0.5)
+            innerContent
+                .padding(12)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: WidgetDesignToken.cardCornerRadius, style: .continuous)
+                .fill(Color.clear)
+        )
+    }
+
+    @ViewBuilder
+    private var innerContent: some View {
         switch entry.readStatus {
         case .noFile:
             EmptyStateView(message: "Open Token King to populate")
@@ -91,38 +109,35 @@ struct SmallFamilyView: View {
     let snapshot: WidgetSnapshot
 
     var body: some View {
-        if let provider = topProvider(snapshot: snapshot) {
+        if let provider = topProvider(snapshot: snapshot),
+           let window = primaryWindow(of: provider) {
             VStack(spacing: WidgetDesignToken.rowGap) {
-                HStack(spacing: WidgetDesignToken.smallGap) {
-                    ProviderIconView(providerId: provider.id, size: WidgetDesignToken.iconSize)
-                    Text(provider.displayName)
-                        .font(.system(size: WidgetDesignToken.bodySize, weight: .semibold))
-                        .lineLimit(1)
-                    Spacer(minLength: 0)
+                ZStack {
+                    Circle()
+                        .stroke(.tertiary, lineWidth: 6)
+                    Circle()
+                        .trim(from: 0, to: min(window.usedPercent, 100) / 100)
+                        .stroke(window.usedPercent.severityColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                    // P2 V3: brand icon centred inside the ring, per prototype.
+                    ProviderIconView(providerId: provider.id, size: 22)
+                        .allowsHitTesting(false)
                 }
-                if let window = primaryWindow(of: provider) {
-                    ZStack {
-                        Circle()
-                            .stroke(.tertiary, lineWidth: 6)
-                        Circle()
-                            .trim(from: 0, to: min(window.usedPercent, 100) / 100)
-                            .stroke(window.usedPercent.severityColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                            .rotationEffect(.degrees(-90))
-                        VStack(spacing: 0) {
-                            Text("\(Int(window.usedPercent.rounded()))")
-                                .font(.system(size: WidgetDesignToken.percentSize, weight: .semibold, design: .monospaced))
-                            Text("Used")
-                                .font(.system(size: WidgetDesignToken.captionSize))
-                                .foregroundStyle(.secondary)
-                        }
+                .frame(maxWidth: .infinity)
+
+                VStack(spacing: 0) {
+                    Text("\(Int(window.usedPercent.rounded()))% Used")
+                        .font(.system(size: WidgetDesignToken.percentSize, weight: .semibold, design: .monospaced))
+                    if let resets = window.resetsAt {
+                        Text(RelativeResetFormatter.string(from: resets))
+                            .font(.system(size: WidgetDesignToken.captionSize, design: .monospaced))
+                            .foregroundStyle(.tertiary)
                     }
-                    .frame(maxWidth: .infinity)
                 }
-                if let window = primaryWindow(of: provider), let resets = window.resetsAt {
-                    Text(RelativeResetFormatter.string(from: resets))
-                        .font(.system(size: WidgetDesignToken.captionSize, design: .monospaced))
-                        .foregroundStyle(.tertiary)
-                }
+
+                Text(provider.displayName)
+                    .font(.system(size: WidgetDesignToken.bodySize, weight: .semibold))
+                    .lineLimit(1)
             }
         } else {
             EmptyStateView(message: "No providers")
