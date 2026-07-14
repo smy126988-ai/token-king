@@ -14,11 +14,82 @@ struct TokenKingWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: TokenKingProvider()) { entry in
             TokenKingWidgetView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .containerBackground(for: .widget) {
+                    AuroraBackgroundView()
+                }
         }
         .configurationDisplayName("Token King")
         .description("AI provider usage at a glance.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+    }
+}
+
+// MARK: - Aurora background (P2 V1)
+
+/// Decorative aurora gradient + ultraThinMaterial glass overlay.
+///
+/// Colour values are defined in `WidgetDesignToken.Aurora` (copied from the
+/// approved prototype). SwiftUI can't reproduce the CSS `radial-gradient(Npx
+/// at X% Y%)` exactly, so we approximate with two offset `RadialGradient`s
+/// plus a base `LinearGradient`. Goal: the same "warm peach → pink → lavender"
+/// mood in light, "deep teal → indigo → near-black" in dark, with a glass
+/// veil on top so the content stays readable.
+struct AuroraBackgroundView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        ZStack {
+            baseLinear
+            focalRadial
+            if colorScheme == .light {
+                centerRadial
+            }
+            // Glass veil — `ultraThinMaterial` adapts to the colour scheme
+            // and gives the same "frosted" feel as the prototype's
+            // `rgba(255,255,255,0.24)` / `rgba(28,30,36,0.30)` overlays.
+            Rectangle()
+                .fill(.ultraThinMaterial)
+        }
+    }
+
+    private var palette: [Color] {
+        colorScheme == .dark
+            ? WidgetDesignToken.Aurora.dark
+            : WidgetDesignToken.Aurora.light
+    }
+
+    private var focalColor: Color {
+        colorScheme == .dark
+            ? WidgetDesignToken.Aurora.darkFocal
+            : WidgetDesignToken.Aurora.lightFocal
+    }
+
+    private var baseLinear: some View {
+        LinearGradient(
+            colors: palette,
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var focalRadial: some View {
+        RadialGradient(
+            colors: [focalColor.opacity(0.65), focalColor.opacity(0)],
+            center: .topLeading,
+            startRadius: 8,
+            endRadius: 200
+        )
+        .blendMode(.plusLighter)
+    }
+
+    private var centerRadial: some View {
+        RadialGradient(
+            colors: [palette[2].opacity(0.55), palette[2].opacity(0)],
+            center: .center,
+            startRadius: 20,
+            endRadius: 180
+        )
+        .blendMode(.plusLighter)
     }
 }
 
