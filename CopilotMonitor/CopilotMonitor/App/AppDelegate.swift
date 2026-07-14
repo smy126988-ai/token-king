@@ -22,6 +22,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
     private var refreshActor: RefreshActor?
     private var monthlyTotalsRefreshTask: Task<Void, Never>?
 
+    // Widget snapshot writer bridge: assembles a WidgetSnapshot from the
+    // controller's cached state and hands it to WidgetSnapshotWriter. Wired
+    // up after `statusBarController` is created in
+    // `applicationDidFinishLaunching`; ticks alongside the 5s refresh loop.
+    private var widgetCoordinator: WidgetSnapshotCoordinator?
+
     // Bridge handoff: MenuBarExtraAccess calls this from ModernApp's body
     // evaluation. If `statusBarController` already exists (the normal case,
     // since `applicationDidFinishLaunching` runs first), we forward
@@ -302,10 +308,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         // controller's cache (populated by `refreshMonthlyTotalsCache`) so the
         // menu can render them synchronously.
         monthlyTotalsRefreshTask?.cancel()
+        // Widget bridge: assembled after the controller is up so it can read
+        // `cachedMonthlyTotals` and `providerResults` synchronously.
+        widgetCoordinator = WidgetSnapshotCoordinator(statusBarController: statusBarController)
         monthlyTotalsRefreshTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 await self?.statusBarController?.refreshMonthlyTotalsCache()
                 await self?.statusBarController?.refreshTokenStatsCache()
+                self?.widgetCoordinator?.tickAndWrite()
                 try? await Task.sleep(nanoseconds: 5_000_000_000)
             }
         }
@@ -313,6 +323,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         // menu without waiting for the first 5 s loop iteration.
         Task { await statusBarController?.refreshMonthlyTotalsCache() }
         Task { await statusBarController?.refreshTokenStatsCache() }
+        // Prime the widget snapshot file once so launch -> widget latency is
+        // bounded by the first successful provider fetch rather than the
+        // 30s writer throttle.
+        Task { self.widgetCoordinator?.primeAndWrite() }
         logger.info("🔄 [F2b] RefreshActor started; monthly totals refresh loop scheduled")
     }
 

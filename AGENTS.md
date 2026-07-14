@@ -126,6 +126,37 @@ log stream --predicate 'subsystem == "com.opencodeproviders"' --level debug
 ### How to get quota usage?
 - in `@/scripts/` directory, you can see all of the scripts for every providers to get quota usage.
 
+### WidgetKit desktop widget — manual R18 e2e checklist
+- **Why this section exists**: the widget's read path lives in a sandboxed
+  `TokenKingWidget.appex` process. `xcodebuild test` cannot simulate the
+  macOS sandbox wall (it runs the test target in-process and the home
+  relative path exception would be silently honoured by the test host).
+  These four scenarios therefore have to be exercised on a real desktop
+  by the user.
+- **When to run**: every time `TokenKingWidget.appex`'s entitlements,
+  `Shared/WidgetSnapshotReader.swift`, or `TokenKingWidget/TokenKingWidget.swift`
+  changes. The P0 commit / release workflow must include this checklist.
+- **How to run**:
+  1. Build + ad-hoc sign: `make release`.
+  2. Launch the app; let the writer run (snapshot appears in
+     `~/Library/Application Support/com.tokenking.app.shared/widget-snapshot.json`).
+  3. Add the widget to the desktop (right-click → Edit Widgets → search
+     "Token King" → add Small / Medium / Large).
+  4. Verify each scenario:
+     - **No file** — kill the main app, `rm` the snapshot file, wait for
+       widget refresh. Expect `EmptyStateView("Open Token King to populate")`.
+     - **Corrupt JSON** — `echo 'not json' > $snapshot`. Expect
+       `EmptyStateView("Snapshot corrupt")` and a `widget.provider` error
+       line in `log show`.
+     - **Half-written** — truncate the file mid-JSON. Expect `Snapshot corrupt`.
+     - **Stale** — `touch -t 202001010000 $snapshot` and force a widget
+       refresh. Expect `StaleBadge("Stale Xm")` plus the underlying data.
+- **Pass criteria**: each scenario shows the expected empty state, badge,
+  or fresh render within one 15-min timeline refresh (or sooner via
+  `WidgetCenter.shared.reloadAllTimelines()` if wired up). The
+  Console.app log line `widget.provider notice "read snapshot v1 ..."`
+  must fire on every successful read.
+
 ## Architecture Patterns
 
 ### SwiftUI Shell with AppKit Core
