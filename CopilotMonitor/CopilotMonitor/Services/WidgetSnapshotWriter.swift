@@ -3,6 +3,9 @@ import os.log
 
 /// Writes `WidgetSnapshot` JSON to the shared directory for the widget extension.
 /// Atomic writes via NSFileCoordinator; 30s throttle to avoid hammering disk.
+///
+/// Returns whether the caller should notify WidgetKit (`reloadTimelines`).
+/// The writer itself stays ignorant of WidgetKit so it can be tested in isolation.
 final class WidgetSnapshotWriter {
     static let shared = WidgetSnapshotWriter()
 
@@ -15,6 +18,7 @@ final class WidgetSnapshotWriter {
     private let throttleInterval: TimeInterval = 30
 
     private var lastWriteAt: Date?
+    private var lastNotifiedSnapshot: WidgetSnapshot?
     private let queue = DispatchQueue(label: "com.tokenking.widget.writer", qos: .utility)
 
     /// Override point for tests: inject a deterministic clock so the throttle
@@ -24,8 +28,12 @@ final class WidgetSnapshotWriter {
     private init() {}
 
     /// Write the snapshot to disk, subject to throttle.
-    /// - Parameter force: Bypass throttle (used at app launch to prime the cache).
-    func write(_ snapshot: WidgetSnapshot, force: Bool = false) {
+    /// - Parameters:
+    ///   - snapshot: The snapshot to persist.
+    ///   - force: Bypass throttle (used at app launch to prime the cache).
+    /// - Returns: `true` if the caller should notify WidgetKit that new data is available.
+    @discardableResult
+    func write(_ snapshot: WidgetSnapshot, force: Bool = false) -> Bool {
         // Throttle check (off the main queue to avoid blocking the 5s loop).
         let now = clock()
         let shouldWrite: Bool = queue.sync {
@@ -35,20 +43,38 @@ final class WidgetSnapshotWriter {
         }
         guard shouldWrite else {
             logger.debug("write() skipped (throttled, last=\(self.lastWriteAt ?? .distantPast, privacy: .public))")
-            return
+            return false
         }
 
         do {
             try writeAtomically(snapshot)
             queue.sync { lastWriteAt = now }
-            logger.notice("wrote snapshot v\(snapshot.version) providers=\(snapshot.providers.count) bytes=\(Self.byteCount(of: snapshot))")
+
+            let didContentChange = queue.sync {
+                if force {
+                    lastNotifiedSnapshot = snapshot
+                    return true
+                }
+                guard let previous = lastNotifiedSnapshot else {
+                    lastNotifiedSnapshot = snapshot
+                    return true
+                }
+                let changed = !previous.isContentEqual(to: snapshot)
+                if changed { lastNotifiedSnapshot = snapshot }
+                return changed
+            }
+
+            logger.notice("wrote snapshot v\(snapshot.version) providers=\(snapshot.providers.count) bytes=\(Self.byteCount(of: snapshot)) changed=\(didContentChange, privacy: .public)")
+            return didContentChange
         } catch {
             logger.error("write failed: \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 
     /// Force-write bypassing throttle. Used at app launch.
-    func writeNow(_ snapshot: WidgetSnapshot) {
+    @discardableResult
+    func writeNow(_ snapshot: WidgetSnapshot) -> Bool {
         write(snapshot, force: true)
     }
 

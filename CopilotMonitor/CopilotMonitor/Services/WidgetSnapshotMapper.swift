@@ -40,9 +40,13 @@ enum WidgetSnapshotMapper {
             // Display order: tightest quota first. For usage kind the single
             // window's usedPercent drives the order; for multi-window quota
             // providers we look at the primary window id (highest usedPercent)
-            // and fall back to the first window.
+            // and fall back to the first window. Use stable comparison so ties
+            // don't flip ordering due to floating-point noise.
             .sorted { lhs, rhs in
-                primaryUsedPercent(of: lhs) > primaryUsedPercent(of: rhs)
+                let l = primaryUsedPercent(of: lhs)
+                let r = primaryUsedPercent(of: rhs)
+                if isEssentiallyEqual(l, r) { return false }
+                return l > r
             }
 
         return WidgetSnapshot(
@@ -84,7 +88,7 @@ enum WidgetSnapshotMapper {
                 limit: entitlement
             ))
             appendMultiWindows(from: details, into: &windows, provider: identifier)
-            let primary = windows.max(by: { $0.usedPercent < $1.usedPercent })
+            let primary = primaryWindow(from: windows)
             return ProviderSnapshot(
                 id: identifier.rawValue,
                 displayName: identifier.displayName,
@@ -197,6 +201,30 @@ enum WidgetSnapshotMapper {
         // Logger context kept implicit — provider id is recoverable via the
         // outer caller if needed.
         _ = provider
+    }
+
+    // MARK: - Stable comparison helpers
+
+    /// Epsilon used to stabilise `Double` percent comparisons across the widget.
+    /// Differences below this threshold are treated as equal, eliminating
+    /// `28.999999999999996` vs `29` flips that otherwise shuffle `primaryWindowId`.
+    private static let percentEpsilon: Double = 1e-9
+
+    private static func isEssentiallyEqual(_ lhs: Double, _ rhs: Double) -> Bool {
+        abs(lhs - rhs) < percentEpsilon
+    }
+
+    /// Stable `max` that prefers the earlier window in `windows` when values are
+    /// within `percentEpsilon`. Keeps `primary` as the tie-break winner when it
+    /// is mathematically equivalent to a derived window.
+    private static func primaryWindow(from windows: [UsageWindow]) -> UsageWindow? {
+        guard let first = windows.first else { return nil }
+        return windows.dropFirst().reduce(first) { best, candidate in
+            if isEssentiallyEqual(best.usedPercent, candidate.usedPercent) {
+                return best
+            }
+            return candidate.usedPercent > best.usedPercent ? candidate : best
+        }
     }
 
     // MARK: - Helpers

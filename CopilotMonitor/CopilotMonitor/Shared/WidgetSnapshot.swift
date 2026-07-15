@@ -93,3 +93,27 @@ struct MonthlyCost: Codable, Equatable {
     /// RMB amount (optional, requires exchange rate).
     let rmb: Double?
 }
+
+// MARK: - Content equality (ignores heartbeat timestamps)
+
+extension WidgetSnapshot {
+    /// Compare semantic content, ignoring `snapshotAt` heartbeat updates.
+    /// Used to decide whether a fresh disk write should trigger `reloadTimelines`.
+    func isContentEqual(to other: WidgetSnapshot) -> Bool {
+        monthlyCost == other.monthlyCost &&
+        providers.count == other.providers.count &&
+        zip(providers, other.providers).allSatisfy { $0.isContentEqual(to: $1) }
+    }
+}
+
+extension ProviderSnapshot {
+    func isContentEqual(to other: ProviderSnapshot) -> Bool {
+        id == other.id &&
+        displayName == other.displayName &&
+        kind == other.kind &&
+        primaryWindowId == other.primaryWindowId &&
+        windows == other.windows &&
+        spendUSD == other.spendUSD
+        // Intentionally ignores `fetchedAt` — it is not yet populated by the mapper.
+    }
+}

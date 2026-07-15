@@ -50,21 +50,25 @@ while [[ $# -gt 0 ]]; do
     -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
     --*) echo "Unknown flag: $1" >&2; exit 2 ;;
     *)
-      # Positional argument is the target plist path.
-      if [ -f "$1" ]; then
-        INFO_PLIST="$1"
-        shift
-      else
-        echo "Unknown arg or missing file: $1" >&2
-        exit 2
-      fi
+      # Positional argument is the target plist path. Accept it even if the
+      # file does not exist yet; the fallback below will seed it from source.
+      INFO_PLIST="$1"
+      shift
       ;;
   esac
 done
 
 if [ ! -f "$INFO_PLIST" ]; then
-  echo "ERROR: Info.plist not found at $INFO_PLIST" >&2
-  exit 1
+  # The build artifact Info.plist may not have been processed yet (e.g. when
+  # this script runs as an early build phase). Seed it from the source plist
+  # so version injection can proceed without failing the build.
+  if [ -f "$SOURCE_PLIST" ]; then
+    mkdir -p "$(dirname "$INFO_PLIST")"
+    cp "$SOURCE_PLIST" "$INFO_PLIST"
+  else
+    echo "ERROR: Info.plist not found at $INFO_PLIST and source plist missing at $SOURCE_PLIST" >&2
+    exit 1
+  fi
 fi
 
 # Source git values (with override points for testing)

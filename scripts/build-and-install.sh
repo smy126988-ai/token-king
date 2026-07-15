@@ -21,6 +21,7 @@ xcodebuild build \
   -configuration Release \
   -derivedDataPath "$DERIVED" \
   -destination 'platform=macOS' \
+  ENABLE_USER_SCRIPT_SANDBOXING=NO \
   2>&1 | tail -3
 
 SRC="$DERIVED/Build/Products/Release/$APP_NAME.app"
@@ -37,8 +38,16 @@ echo "==> Installing to ${DST}…"
 rm -rf "$DST"
 cp -R "$SRC" "$DST"
 
-echo "==> Ad-hoc re-signing at final path…"
-codesign --force --deep --sign - "$DST"
+# Widget extension path used by both re-signing and PlugInKit registration below.
+WIDGET_APPEX="$DST/Contents/PlugIns/TokenKingWidget.appex"
+
+echo "==> Ad-hoc re-signing at final path (preserving per-target entitlements)…"
+APP_ENTITLEMENTS="$PROJECT_DIR/CopilotMonitor/CopilotMonitor.entitlements"
+WIDGET_ENTITLEMENTS="$PROJECT_DIR/TokenKingWidget/TokenKingWidget.entitlements"
+
+# Sign innermost widget extension first with its own entitlements, then the host app.
+codesign --force --sign - --entitlements "$WIDGET_ENTITLEMENTS" "$WIDGET_APPEX"
+codesign --force --sign - --entitlements "$APP_ENTITLEMENTS" "$DST"
 
 echo "==> Cleaning temporary build directory to avoid duplicate Launch Services entries…"
 
@@ -54,6 +63,22 @@ rm -rf "$DERIVED"
 if [ -x "$LSREGISTER" ]; then
   # Force-register the final /Applications app.
   "$LSREGISTER" -f "$DST" 2>/dev/null || true
+fi
+
+# Register the widget extension with PlugInKit so it appears in the widget gallery.
+WIDGET_BUNDLE_ID="com.tokenking.app.TokenKingWidget"
+if [ -d "$WIDGET_APPEX" ]; then
+  echo "==> Registering widget extension with PlugInKit…"
+  pluginkit -a "$WIDGET_APPEX" 2>/dev/null || true
+  echo "==> Enabling widget extension…"
+  pluginkit -e use -i "$WIDGET_BUNDLE_ID" 2>/dev/null || true
+
+  echo "==> Verifying widget registration…"
+  if pluginkit -m -p com.apple.widgetkit-extension 2>/dev/null | grep -q "$WIDGET_BUNDLE_ID"; then
+    echo "    widget registered and enabled ✓"
+  else
+    echo "    WARNING: widget not found in PlugInKit registry. Try restarting Dock or re-logging." >&2
+  fi
 fi
 
 echo "==> Verifying…"

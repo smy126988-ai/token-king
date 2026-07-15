@@ -1,5 +1,6 @@
 import Foundation
 import os.log
+import WidgetKit
 
 /// Bridges StatusBarController data → WidgetSnapshotMapper → WidgetSnapshotWriter.
 ///
@@ -25,7 +26,10 @@ final class WidgetSnapshotCoordinator {
     func tickAndWrite() {
         guard let controller = statusBarController else { return }
         let snapshot = buildSnapshot(controller: controller)
-        WidgetSnapshotWriter.shared.write(snapshot)
+        let didChange = WidgetSnapshotWriter.shared.write(snapshot)
+        if didChange {
+            WidgetCenter.shared.reloadAllTimelines()
+        }
     }
 
     /// Force-write a snapshot, bypassing throttle. Used at app launch.
@@ -35,7 +39,10 @@ final class WidgetSnapshotCoordinator {
             return
         }
         let snapshot = buildSnapshot(controller: controller)
-        WidgetSnapshotWriter.shared.writeNow(snapshot)
+        let didChange = WidgetSnapshotWriter.shared.writeNow(snapshot)
+        if didChange {
+            WidgetCenter.shared.reloadAllTimelines()
+        }
     }
 
     // MARK: - Snapshot construction

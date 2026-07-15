@@ -5131,7 +5131,9 @@ extension StatusBarController {
         .nanoGpt,
         .antigravity,
         .chutes,
-        .synthetic
+        .synthetic,
+        .braveSearch,
+        .tavilySearch
     ]
 }
 

@@ -1,84 +1,210 @@
 import SwiftUI
 import Foundation
 
-/// Design tokens for widget views. Values aligned with `MenuDesignToken` in
-/// `CopilotMonitor/Helpers/MenuDesignToken.swift` but using SwiftUI types.
+// ============================================================================
+// Widget design tokens — SwiftUI mirror of DESIGN.md (repo root).
+// ============================================================================
+// Every literal below traces to a key in DESIGN.md's YAML front matter.
+// Change the visual there first, then update these values. No stray hex.
+//   Layer 1: Color(hex:) / Color(light:dark:)   — value primitives
+//   Layer 2: WidgetDesignToken enum              — named tokens
+//   Layer 3: AuroraBackground / GlassCard        — composite views (see below)
+// ============================================================================
+
+// MARK: - Layer 1: Color primitives
+
+extension Color {
+    /// Hex string → Color. Accepts "#rrggbb" or "rrggbb".
+    init(hex: String) {
+        let s = hex.hasPrefix("#") ? String(hex.dropFirst()) : hex
+        var v: UInt64 = 0
+        Scanner(string: s).scanHexInt64(&v)
+        let r = Double((v & 0xFF0000) >> 16) / 255
+        let g = Double((v & 0x00FF00) >> 8) / 255
+        let b = Double(v & 0x0000FF) / 255
+        self.init(.sRGB, red: r, green: g, blue: b, opacity: 1)
+    }
+
+    /// Resolve a light/dark pair against the current appearance.
+    static func themed(light: Color, dark: Color, scheme: ColorScheme) -> Color {
+        scheme == .dark ? dark : light
+    }
+}
+
+// MARK: - Layer 2: Named tokens
+
 enum WidgetDesignToken {
-    // MARK: - Typography
+    // MARK: Typography (DESIGN.md typography.sizes)
+    static let wNameSize: CGFloat = 14
     static let bodySize: CGFloat = 13
+    static let percentRingSize: CGFloat = 13
+    static let percentBigSize: CGFloat = 24
     static let captionSize: CGFloat = 11
-    static let percentSize: CGFloat = 22
+    static let mLabelSize: CGFloat = 9.5
+    static let portSize: CGFloat = 10
+    static let slashLimitSize: CGFloat = 14
+    static let footerSize: CGFloat = 10
+    // Back-compat aliases (existing views reference these).
+    static let percentSize: CGFloat = 24
     static let percentLargeSize: CGFloat = 34
 
-    // MARK: - Spacing
+    // MARK: Spacing
     static let rowGap: CGFloat = 6
-    static let sectionGap: CGFloat = 10
+    static let sectionGap: CGFloat = 13
     static let smallGap: CGFloat = 4
+    static let largeRowGap: CGFloat = 8
+    static let largeBarTopMargin: CGFloat = 7
 
-    // MARK: - Icons
+    // MARK: Metrics (DESIGN.md metrics)
+    static let cardCornerRadius: CGFloat = 22
+    static let barHeight: CGFloat = 6
+    static let barRadius: CGFloat = 6
+    static let ringStroke: CGFloat = 7
+    static let ringDiameter: CGFloat = 66
+    static let dotSize: CGFloat = 8
+    static let hairline: CGFloat = 0.5
     static let iconSize: CGFloat = 14
-    static let statusDotSize: CGFloat = 6
+    static let ringIconSize: CGFloat = 24
+    static let mediumIconSize: CGFloat = 16
+    static let largeIconSize: CGFloat = 15
+    static let mediumRefreshSize: CGFloat = 23
+    static let smallRefreshRadius: CGFloat = 7
+    static let statusDotSize: CGFloat = 8
 
-    // MARK: - Colors (system colors only, no RGB)
+    // MARK: Layout constants (no stray literals in views)
+    static let zeroInt: Int = 0
+    static let singleLine: Int = 1
+    static let singleWindowCount: Int = 1
+    static let mediumVisibleCount: Int = 1
+    static let largeVisibleCount: Int = 5
+    static let snapshotVersion: Int = 1
+
+    static let zeroDouble: Double = 0
+    static let percentMax: Double = 100
+    static let secondsPerHour: Double = 3600
+    static let ringStart: CGFloat = 0
+    static let ringRotation: Double = -90
+    static let trackOpacity: Double = 0.13
+    static let badgeBackgroundOpacity: Double = 0.05
+    static let badgeStrokeOpacity: Double = 0.10
+    static let hairlineOpacity: Double = 0.5
+    static let zeroSpacing: CGFloat = 0
+    static let tinyGap: CGFloat = 2
+    static let zeroLength: CGFloat = 0
+    static let badgeHPadding: CGFloat = 7
+    static let badgeVPadding: CGFloat = 2
+    static let badgeRadius: CGFloat = 6
+    static let mediumLabelWidth: CGFloat = 50
+    static let percentMinWidth: CGFloat = 36
+
+    // MARK: Provider identifiers for widgets that filter by kind.
+    enum ProviderID {
+        static let braveSearch = "brave_search"
+        static let tavilySearch = "tavily_search"
+    }
+
+    // MARK: Preview fixture values
+    static let fixtureResetHours: Int = 240
+    static let fixtureKimiPercent: Double = 87
+    static let fixtureCodex5hPercent: Double = 25
+    static let fixtureCodexWeeklyPercent: Double = 59
+    static let fixtureClaudePercent: Double = 40
+    static let fixtureKiroPercent: Double = 28.5
+
+    // MARK: Severity colours (DESIGN.md severity)
+    enum Severity {
+        static let amberAt: Double = 60
+        static let redAt: Double = 85
+        static func green(_ s: ColorScheme) -> Color { .themed(light: Color(hex: "#28c63f"), dark: Color(hex: "#34d94a"), scheme: s) }
+        static func amber(_ s: ColorScheme) -> Color { .themed(light: Color(hex: "#e0972a"), dark: Color(hex: "#f5b134"), scheme: s) }
+        static func red(_ s: ColorScheme) -> Color { .themed(light: Color(hex: "#e8453f"), dark: Color(hex: "#ff5b52"), scheme: s) }
+    }
+
+    // Back-compat: system semantic colours (used where scheme isn't threaded).
     static let criticalColor: Color = .red
     static let warningColor: Color = .orange
     static let healthyColor: Color = .green
     static let neutralColor: Color = .secondary
 
-    // MARK: - Card
-    static let cardCornerRadius: CGFloat = 22
+    // MARK: Ink (DESIGN.md ink)
+    enum Ink {
+        static func primary(_ s: ColorScheme) -> Color { .themed(light: Color(hex: "#2a2433"), dark: Color(hex: "#eef2f0"), scheme: s) }
+        static func secondary(_ s: ColorScheme) -> Color { .themed(light: Color(hex: "#615a6d"), dark: Color(hex: "#9aa4a6"), scheme: s) }
+        static func faint(_ s: ColorScheme) -> Color { .themed(light: Color(hex: "#9a92a4"), dark: Color(hex: "#646d71"), scheme: s) }
+    }
 
-    // MARK: - Aurora background (decorative, P2 V1)
-    //
-    // Per AGENTS.md "no hard-coded RGB" is for semantic/UI roles
-    // (progress / status). The aurora wall is a decorative gradient
-    // background — it needs explicit hex values to reproduce the
-    // approved prototype. Values copied from
-    // `docs/design/widget/service-monitor-prototype-v6.html` (CSS --wall).
-    // Do NOT adjust without a new prototype pass.
+    // MARK: Brand tint (DESIGN.md brand) — identity only, kept restrained.
+    enum Brand {
+        static let kiro = Color(hex: "#9046ff")
+        static let claude = Color(hex: "#d97757")
+        static let kimi = Color(hex: "#1783ff")
+    }
+
+    // MARK: Aurora background (DESIGN.md aurora) — decorative gradient.
     enum Aurora {
-        /// Light mode: warm peach → pink → lavender.
-        /// Stops chosen to match the radial positions in the prototype
-        /// (top-left / bottom-right / centre), approximated in SwiftUI
-        /// without explicit pixel anchors.
-        static let light: [Color] = [
-            Color(red: 1.000, green: 0.729, blue: 0.561),  // #ffba8f (top-left)
-            Color(red: 0.914, green: 0.663, blue: 0.878),  // #e9a9e0 (bottom-right)
-            Color(red: 0.725, green: 0.659, blue: 0.941),  // #b9a8f0 (centre)
-            Color(red: 0.780, green: 0.733, blue: 0.949)   // #c7d0f2 (linear end)
-        ]
+        static let lightRadial: [Color] = ["#ffb98f", "#e9a9e0", "#b9a8f0"].map(Color.init(hex:))
+        static let lightLinear: [Color] = ["#ffcaa0", "#eebbe0", "#c7d0f2"].map(Color.init(hex:))
+        static let darkRadial: [Color] = ["#1a3a44", "#281c44"].map(Color.init(hex:))
+        static let darkLinear: [Color] = ["#0d1316", "#13101f", "#0c1417"].map(Color.init(hex:))
+    }
 
-        /// Dark mode: deep teal → indigo → near-black.
-        static let dark: [Color] = [
-            Color(red: 0.102, green: 0.227, blue: 0.267),  // #1a3a44 (top-left)
-            Color(red: 0.157, green: 0.110, blue: 0.267),  // #281c44 (bottom-right)
-            Color(red: 0.075, green: 0.122, blue: 0.149)   // #13101f (linear end)
-        ]
+    // MARK: Glass card (DESIGN.md glass)
+    enum Glass {
+        static func fill(_ s: ColorScheme) -> Color { .themed(light: Color(hex: "#ffffff"), dark: Color(hex: "#1c1e24"), scheme: s) }
+        static func opacity(_ s: ColorScheme) -> Double { s == .dark ? 0.30 : 0.24 }
+    }
+}
 
-        /// Top-left radial start (used for the warm/cool focal point).
-        static let lightFocal: Color = Color(red: 1.000, green: 0.792, blue: 0.627)  // #ffcaa0
-        static let darkFocal: Color = Color(red: 0.051, green: 0.075, blue: 0.086)   // #0d1316
+// MARK: - Layer 3: GlassCard modifier
 
-        /// Glass overlay (per prototype --glass, --glass-foc).
-        /// WidgetKit ignores custom .opacity layering; use `.ultraThinMaterial`
-        /// instead and tint slightly per color scheme.
-        static let glassOpacity: Double = 0.24
+/// Frosted glass card matching the prototype's `.widget` container:
+/// rounded rect + hairline stroke + ultraThinMaterial veil tinted per scheme.
+/// WidgetKit's Material blurs only the widget's own content (not the desktop
+/// wallpaper) — this is the platform ceiling, DESIGN.md §1.2.
+struct GlassCard: ViewModifier {
+    @Environment(\.colorScheme) private var scheme
+
+    func body(content: Content) -> some View {
+        content.background(
+            RoundedRectangle(cornerRadius: WidgetDesignToken.cardCornerRadius, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: WidgetDesignToken.cardCornerRadius, style: .continuous)
+                        .fill(WidgetDesignToken.Glass.fill(scheme).opacity(WidgetDesignToken.Glass.opacity(scheme)))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: WidgetDesignToken.cardCornerRadius, style: .continuous)
+                        .strokeBorder(.tertiary.opacity(WidgetDesignToken.hairlineOpacity), lineWidth: WidgetDesignToken.hairline)
+                )
+        )
     }
 }
 
 extension View {
-    /// Apply monospaced digits to a Text (matches MenuDesignToken.monospacedFont).
+    func glassCard() -> some View { modifier(GlassCard()) }
+}
+
+// MARK: - Helpers (unchanged behaviour)
+
+extension View {
     func monospacedDigits() -> some View {
         self.font(.system(.body, design: .monospaced))
     }
 }
 
 extension Double {
-    /// Map a usage percent (0-100+) to a system color.
+    /// Usage percent → system semantic colour (used where ColorScheme not threaded).
     var severityColor: Color {
-        if self >= 85 { return WidgetDesignToken.criticalColor }
-        if self >= 60 { return WidgetDesignToken.warningColor }
+        if self >= WidgetDesignToken.Severity.redAt { return WidgetDesignToken.criticalColor }
+        if self >= WidgetDesignToken.Severity.amberAt { return WidgetDesignToken.warningColor }
         return WidgetDesignToken.healthyColor
+    }
+
+    /// Usage percent → prototype-exact severity colour for the given scheme.
+    func severityColor(_ scheme: ColorScheme) -> Color {
+        if self >= WidgetDesignToken.Severity.redAt { return WidgetDesignToken.Severity.red(scheme) }
+        if self >= WidgetDesignToken.Severity.amberAt { return WidgetDesignToken.Severity.amber(scheme) }
+        return WidgetDesignToken.Severity.green(scheme)
     }
 }
 
