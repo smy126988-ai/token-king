@@ -251,15 +251,7 @@ struct MediumProviderCard: View {
                     .foregroundStyle(WidgetDesignToken.Ink.primary(scheme))
                     .lineLimit(WidgetDesignToken.singleLine)
                 Spacer(minLength: WidgetDesignToken.zeroLength)
-                ProviderBadge(text: provider.kind == .usage ? "模型用量" : "配额")
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: WidgetDesignToken.captionSize))
-                    .foregroundStyle(WidgetDesignToken.Ink.faint(scheme))
-                    .frame(width: WidgetDesignToken.mediumRefreshSize, height: WidgetDesignToken.mediumRefreshSize)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: WidgetDesignToken.smallRefreshRadius)
-                            .stroke(WidgetDesignToken.Ink.faint(scheme).opacity(WidgetDesignToken.hairlineOpacity), lineWidth: WidgetDesignToken.hairline)
-                    )
+                ProviderBadge(text: provider.kind == .usage ? "Usage" : "Quota")
             }
 
             // Body
@@ -303,9 +295,14 @@ struct MediumProviderCard: View {
                         CapsuleProgressBar(value: window.usedPercent)
                     }
                 } else {
-                    // Multi-window: rows per window
+                    // Multi-window: rows per window. Zero-usage windows are
+                    // collapsed — rows of "0%" bars carry no information.
+                    // When every window is idle, show all so the card never
+                    // renders empty.
+                    let activeWindows = provider.windows.filter { $0.usedPercent > WidgetDesignToken.zeroDouble }
+                    let visibleWindows = activeWindows.isEmpty ? provider.windows : activeWindows
                     VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
-                        ForEach(provider.windows, id: \.id) { window in
+                        ForEach(visibleWindows, id: \.id) { window in
                             VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
                                 HStack(spacing: WidgetDesignToken.smallGap) {
                                     windowLabelText(for: window)
@@ -327,11 +324,11 @@ struct MediumProviderCard: View {
 
             // Footer
             HStack(spacing: WidgetDesignToken.smallGap) {
-                Text("刷新于 \(fetchedAtString)")
+                Text("Updated \(fetchedAtString)")
                     .font(.system(size: WidgetDesignToken.footerSize, design: .monospaced))
                     .foregroundStyle(WidgetDesignToken.Ink.faint(scheme))
                 Spacer(minLength: WidgetDesignToken.zeroLength)
-                Text("每 15min")
+                Text("Every 15 min")
                     .font(.system(size: WidgetDesignToken.footerSize, design: .monospaced))
                     .foregroundStyle(WidgetDesignToken.Ink.faint(scheme))
             }
@@ -375,14 +372,6 @@ struct LargeOverviewView: View {
                     .font(.system(size: WidgetDesignToken.wNameSize, weight: .semibold))
                     .foregroundStyle(WidgetDesignToken.Ink.primary(scheme))
                 Spacer(minLength: WidgetDesignToken.zeroLength)
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: WidgetDesignToken.captionSize))
-                    .foregroundStyle(WidgetDesignToken.Ink.faint(scheme))
-                    .frame(width: WidgetDesignToken.mediumRefreshSize, height: WidgetDesignToken.mediumRefreshSize)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: WidgetDesignToken.smallRefreshRadius)
-                            .stroke(WidgetDesignToken.Ink.faint(scheme).opacity(WidgetDesignToken.hairlineOpacity), lineWidth: WidgetDesignToken.hairline)
-                    )
             }
 
             // Rows
@@ -416,26 +405,35 @@ struct LargeDetailView: View {
             ?? topProvider(snapshot: snapshot)
 
         if let provider = provider {
-            VStack(alignment: .leading, spacing: WidgetDesignToken.sectionGap) {
-                LargeProviderRow(provider: provider)
-                if provider.windows.count > WidgetDesignToken.singleWindowCount {
-                    VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
-                        ForEach(provider.windows, id: \.id) { window in
-                            HStack(spacing: WidgetDesignToken.smallGap) {
-                                windowLabelText(for: window)
-                                    .font(.system(size: WidgetDesignToken.captionSize))
-                                    .foregroundStyle(WidgetDesignToken.Ink.secondary(scheme))
-                                Spacer(minLength: WidgetDesignToken.zeroLength)
-                                Text("\(Int(window.usedPercent.rounded()))%")
-                                    .font(.system(size: WidgetDesignToken.captionSize, design: .monospaced))
-                                    .foregroundStyle(WidgetDesignToken.Ink.secondary(scheme))
+            // Vertically centred: the large canvas left a dead empty band at
+            // the bottom when content was pinned to the top.
+            VStack(spacing: WidgetDesignToken.zeroLength) {
+                Spacer(minLength: WidgetDesignToken.zeroLength)
+                VStack(alignment: .leading, spacing: WidgetDesignToken.sectionGap) {
+                    LargeProviderRow(provider: provider)
+                    // Same zero-collapse rule as the medium card.
+                    let activeWindows = provider.windows.filter { $0.usedPercent > WidgetDesignToken.zeroDouble }
+                    let visibleWindows = activeWindows.isEmpty ? provider.windows : activeWindows
+                    if visibleWindows.count > WidgetDesignToken.singleWindowCount {
+                        VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
+                            ForEach(visibleWindows, id: \.id) { window in
+                                HStack(spacing: WidgetDesignToken.smallGap) {
+                                    windowLabelText(for: window)
+                                        .font(.system(size: WidgetDesignToken.captionSize))
+                                        .foregroundStyle(WidgetDesignToken.Ink.secondary(scheme))
+                                    Spacer(minLength: WidgetDesignToken.zeroLength)
+                                    Text("\(Int(window.usedPercent.rounded()))%")
+                                        .font(.system(size: WidgetDesignToken.captionSize, design: .monospaced))
+                                        .foregroundStyle(WidgetDesignToken.Ink.secondary(scheme))
+                                }
+                                CapsuleProgressBar(value: window.usedPercent)
                             }
-                            CapsuleProgressBar(value: window.usedPercent)
                         }
                     }
                 }
+                Spacer(minLength: WidgetDesignToken.zeroLength)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             EmptyStateView(message: "No providers")
         }
@@ -524,8 +522,10 @@ struct LargeProviderRow: View {
         guard let window = primaryWindow(of: provider) else {
             return ""
         }
+        // Multi-window providers show only the primary window here; the full
+        // "5h 25% · 7d 59%" chain was the main cause of name truncation.
         if provider.windows.count > WidgetDesignToken.singleWindowCount {
-            return provider.windows.map { "\($0.label) \(Int($0.usedPercent.rounded()))%" }.joined(separator: " · ")
+            return "\(window.label) \(Int(window.usedPercent.rounded()))%"
         }
         if let used = window.used, let limit = window.limit {
             return "\(IntegerFormatter.string(from: used))/\(abbreviatedLimit(limit)) · \(Int(window.usedPercent.rounded()))%"
@@ -747,22 +747,22 @@ extension WidgetSnapshot {
             providers: [
                 ProviderSnapshot(id: "kimi_cn", displayName: "Kimi", kind: .quota,
                     primaryWindowId: "monthly",
-                    windows: [UsageWindow(id: "monthly", label: "本月", usedPercent: WidgetDesignToken.fixtureKimiPercent,
+                    windows: [UsageWindow(id: "monthly", label: "Monthly", usedPercent: WidgetDesignToken.fixtureKimiPercent,
                         resetsAt: reset(WidgetDesignToken.fixtureResetHours), used: 8700, limit: 10000)],
                     spendUSD: nil, fetchedAt: now),
                 ProviderSnapshot(id: "codex", displayName: "Codex", kind: .quota,
                     primaryWindowId: "5h",
                     windows: [
-                        UsageWindow(id: "5h", label: "5 小时", usedPercent: WidgetDesignToken.fixtureCodex5hPercent, resetsAt: reset(2), used: 38, limit: 150),
-                        UsageWindow(id: "weekly", label: "周限额", usedPercent: WidgetDesignToken.fixtureCodexWeeklyPercent, resetsAt: reset(72), used: 1180, limit: 2000)],
+                        UsageWindow(id: "5h", label: "5 hours", usedPercent: WidgetDesignToken.fixtureCodex5hPercent, resetsAt: reset(2), used: 38, limit: 150),
+                        UsageWindow(id: "weekly", label: "Weekly", usedPercent: WidgetDesignToken.fixtureCodexWeeklyPercent, resetsAt: reset(72), used: 1180, limit: 2000)],
                     spendUSD: nil, fetchedAt: now),
                 ProviderSnapshot(id: "claude", displayName: "Claude", kind: .quota,
                     primaryWindowId: "5h",
-                    windows: [UsageWindow(id: "5h", label: "5 小时", usedPercent: WidgetDesignToken.fixtureClaudePercent, resetsAt: reset(3), used: 40, limit: 100)],
+                    windows: [UsageWindow(id: "5h", label: "5 hours", usedPercent: WidgetDesignToken.fixtureClaudePercent, resetsAt: reset(3), used: 40, limit: 100)],
                     spendUSD: nil, fetchedAt: now),
                 ProviderSnapshot(id: "kiro", displayName: "Kiro", kind: .quota,
                     primaryWindowId: "power",
-                    windows: [UsageWindow(id: "power", label: "积分", usedPercent: WidgetDesignToken.fixtureKiroPercent, resetsAt: reset(120), used: 2853, limit: 10000)],
+                    windows: [UsageWindow(id: "power", label: "Credits", usedPercent: WidgetDesignToken.fixtureKiroPercent, resetsAt: reset(120), used: 2853, limit: 10000)],
                     spendUSD: nil, fetchedAt: now),
                 ProviderSnapshot(id: "openrouter", displayName: "OpenRouter", kind: .usage,
                     primaryWindowId: nil, windows: [], spendUSD: 37.42, fetchedAt: now)
