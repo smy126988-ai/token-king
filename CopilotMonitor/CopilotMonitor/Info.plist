@@ -23,11 +23,11 @@
 	<key>MACOSX_DEPLOYMENT_TARGET</key>
 	<string>13.0</string>
 	<key>SUAllowsAutomaticUpdates</key>
-	<false/>
+	<true/>
 	<key>SUAutomaticallyUpdate</key>
 	<false/>
 	<key>SUEnableAutomaticChecks</key>
-	<false/>
+	<true/>
 	<key>SUFeedURL</key>
 	<string>https://smy126988-ai.github.io/token-king/appcast.xml</string>
 	<key>SUPublicEDKey</key>

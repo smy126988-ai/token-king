@@ -11,7 +11,7 @@
 | Copilot, Nano-GPT, MiniMax, OpenCode Go | `~/.local/share/opencode/auth.json` |
 | Antigravity (Gemini) | `~/.config/opencode/antigravity-accounts.json` |
 | Antigravity (Local cache) | `~/Library/Application Support/Antigravity/User/globalStorage/state.vscdb` |
-| Kiro | Authenticated `kiro-cli` session; OpenCode Bar does not read local Kiro token databases |
+| Kiro | **Disabled in current version.** Authenticated `kiro-cli` session; not surfaced in app or CLI. |
 | Grok | `~/.grok/auth.json`, `~/.grok/sessions/**/signals.json`, optional grok.com browser cookies |
 
 ---
@@ -313,11 +313,13 @@ The bundled [`scripts/query-opencode-go.sh`](/Users/kargnas/projects/opencode-ba
 
 ---
 
-## 7. Kiro
+## 7. Kiro (disabled in current version)
 
 **Usage source:** `kiro-cli chat --no-interactive "/usage"`
 
-Kiro currently exposes billing usage through the authenticated Kiro CLI experience. OpenCode Bar uses `kiro-cli` as the integration boundary and does not read Kiro's local auth database or token storage directly.
+> Kiro is currently **hard-disabled** in the Token King app and CLI. The integration described below remains in the repository but is not surfaced to users in this version.
+
+Kiro exposes billing usage through the authenticated Kiro CLI experience. OpenCode Bar uses `kiro-cli` as the integration boundary and does not read Kiro's local auth database or token storage directly.
 
 ```bash
 kiro-cli chat --no-interactive "/usage"
@@ -603,7 +605,7 @@ Test scripts are located in the `scripts/` folder:
 | `query-copilot.sh` | GitHub Copilot |
 | `query-minimax.sh` | MiniMax Coding Plan |
 | `query-opencode-go.sh` | OpenCode Go |
-| `query-kiro.sh` | Kiro |
+| `query-kiro.sh` | Kiro (disabled in current version; not surfaced in app/CLI) |
 | `query-grok.sh` | Grok |
 | `query-gemini-cli.sh` | Antigravity - Gemini CLI quota |
 | `query-gemini-oauth-creds.sh` | Gemini CLI oauth_creds identity/token inspection |

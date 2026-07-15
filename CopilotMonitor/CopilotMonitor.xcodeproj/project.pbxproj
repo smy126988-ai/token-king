@@ -8,18 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		012FFA684052927F4624305D /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63B7463DD780920A82671FE3 /* Cocoa.framework */; };
+		01F3CEDD4DF8427C9D85D492 /* ClaudeProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2988F859C63495EA525AEA2 /* ClaudeProviderTests.swift */; };
 		059C5594082971953C6B21C5 /* F2bE2ETests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D97B25E6EB0CE5E48A27A737 /* F2bE2ETests.swift */; };
 		0B6CF8BEB936A2055F19AA8C /* CodexProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76783C44AA2329AE3FA7E981 /* CodexProvider.swift */; };
 		0EA5E7A5BCD47582D6C2175B /* TokenManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF0C48368166F3AD0C79F92 /* TokenManager.swift */; };
 		0EA5E7A5BCD47582D6C2175C /* TokenManagerOpenCodeCodexAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF0C48368166F3AD0C79F93 /* TokenManagerOpenCodeCodexAuth.swift */; };
-		46132F9E42454E918DA49B4D /* TokenManagerProviderAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 586AED36BD3C4BF0AF6BB7E1 /* TokenManagerProviderAuth.swift */; };
-		381E0D675B344773894DEAEA /* StatusBarMenuBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF11C5E6594E4F5286956E7A /* StatusBarMenuBuilder.swift */; };
-		7C1D441F289C47008A6F9C1A /* StatusBarUsageDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E9E591B17364B32936C99CA /* StatusBarUsageDisplay.swift */; };
-		205B409C50D74AD483CF7DDF /* StatusBarRefreshAndF2b.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A8188B5FB145D2A7C7C102 /* StatusBarRefreshAndF2b.swift */; };
-		84AEBB71D73B42A880B82E2E /* TokenManagerProviderAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 586AED36BD3C4BF0AF6BB7E1 /* TokenManagerProviderAuth.swift */; };
-		219CDE95F9D84CF199315B68 /* TokenManagerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A974BD938254650B40E5681 /* TokenManagerModels.swift */; };
-		11DD5CEEB9FA083728D151DD /* TavilyLiveIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A255270920EBB45B5176EFA /* TavilyLiveIntegrationTests.swift */; };
 		1B1E8B0FD5CAE020A1013FFA /* TimeZone+UTC.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCE215EDDBE3407B8E477617B1A9D6A3 /* TimeZone+UTC.swift */; };
+		205B409C50D74AD483CF7DDF /* StatusBarRefreshAndF2b.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A8188B5FB145D2A7C7C102 /* StatusBarRefreshAndF2b.swift */; };
+		219CDE95F9D84CF199315B68 /* TokenManagerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A974BD938254650B40E5681 /* TokenManagerModels.swift */; };
 		23AA5FD37F2062EACCA79F50 /* GeminiCLIProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B63B85E0F2A8C591D7E26AE2 /* GeminiCLIProviderTests.swift */; };
 		25B8765A7AE249798F95274F /* PricingTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A6F09D053C04780AAEB8EE7 /* PricingTable.swift */; };
 		27A0B56ADAC5B75A3270F90D /* CopilotProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4AE672516E564CC52739BD9 /* CopilotProvider.swift */; };
@@ -31,22 +27,31 @@
 		283348FD2F313096004DADE1 /* ProviderUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4158558E58B121A9D13C48C3 /* ProviderUsage.swift */; };
 		283348FE2F313096004DADE1 /* TokenManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF0C48368166F3AD0C79F92 /* TokenManager.swift */; };
 		283348FE2F313096004DADE2 /* TokenManagerOpenCodeCodexAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF0C48368166F3AD0C79F93 /* TokenManagerOpenCodeCodexAuth.swift */; };
-		C49ECE19640D4C6DAE17E752 /* TokenManagerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A974BD938254650B40E5681 /* TokenManagerModels.swift */; };
 		283348FF2F313096004DADE1 /* BrowserCookieService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2707EF99248FCDEFDEE3DA9C /* BrowserCookieService.swift */; };
 		283349012F313176004DADE1 /* ChutesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283349002F313176004DADE1 /* ChutesProvider.swift */; };
 		283349022F313176004DADE1 /* ChutesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283349002F313176004DADE1 /* ChutesProvider.swift */; };
 		3598A5E3900D37EA08DEA6F4 /* KeySourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94055A7CFB59D90DA90B27A0 /* KeySourceTests.swift */; };
+		36DF35D8A8344F6BAE3A1E24 /* BuildFile in Sources */ = {isa = PBXBuildFile; };
+		381E0D675B344773894DEAEA /* StatusBarMenuBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF11C5E6594E4F5286956E7A /* StatusBarMenuBuilder.swift */; };
 		390C3E920A03C8890AAA1CEE /* AntigravityProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1DA8E47F4CFEFC3571708AD /* AntigravityProvider.swift */; };
+		3A5F4CE914494278AFDA260E /* CLIFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A7819F28A1A46218574EC86 /* CLIFormatterTests.swift */; };
 		45D1CB0DC44F442ABC2C124EC1E2628D /* BraveSearchProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3757ACF7CDCF402D9A9280465146654E /* BraveSearchProviderTests.swift */; };
+		46132F9E42454E918DA49B4D /* TokenManagerProviderAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 586AED36BD3C4BF0AF6BB7E1 /* TokenManagerProviderAuth.swift */; };
 		4DC6ED1C88C04187A63ED81C361099DA /* OpenCodeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = OC2222222222222222222222 /* OpenCodeProvider.swift */; };
 		4FEFA86B7FBC950D4DA82949 /* TimeZone+UTC.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCE215EDDBE3407B8E477617B1A9D6A3 /* TimeZone+UTC.swift */; };
 		632E52F6050FAD5CAF928E36 /* CopilotProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED35D8BD06A436306085737D /* CopilotProviderTests.swift */; };
 		668B6906C95903D51823808A /* DependencyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D2B4000E33060BA5E00351B /* DependencyTests.swift */; };
 		68CE796F262067298FE88469 /* BrowserCookieService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2707EF99248FCDEFDEE3DA9C /* BrowserCookieService.swift */; };
+		69D6DDB24942483D90154E07 /* AntigravityProviderVarintTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 809C5F4DE9614EA7AFA97ABE /* AntigravityProviderVarintTests.swift */; };
 		6C4146861DE2C13836DE1D35 /* CopilotHistoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1085A77EF4A58E5B5EC71B /* CopilotHistoryService.swift */; };
 		6E20731420660405A73659A3 /* ModernApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6279E48B0F50E99C3B23C4F3 /* ModernApp.swift */; };
+		6E7602C0A30D407C805EEB62 /* SubscriptionSettingsManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4122A310609449CAAE08CA5C /* SubscriptionSettingsManagerTests.swift */; };
 		7023538D2C1FD2C142C4D0C6 /* tavily_usage_response.json in Resources */ = {isa = PBXBuildFile; fileRef = 08AE97C415017492D0809041 /* tavily_usage_response.json */; };
+		7345BB6FC3B442CCC1D6D42F /* UsagePredictor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1B8FEB2608EC24CC89AD504 /* UsagePredictor.swift */; };
+		7C1D441F289C47008A6F9C1A /* StatusBarUsageDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E9E591B17364B32936C99CA /* StatusBarUsageDisplay.swift */; };
 		7C7800B96DEE77EBE9DAD5E8 /* KeySource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2E141A81879AD0D9434ED6 /* KeySource.swift */; };
+		7D786F4CE7A6241BD963227B /* WidgetSnapshotReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C50760A0F5FFEAE2042D31E6 /* WidgetSnapshotReader.swift */; };
+		84AEBB71D73B42A880B82E2E /* TokenManagerProviderAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 586AED36BD3C4BF0AF6BB7E1 /* TokenManagerProviderAuth.swift */; };
 		87297CDD8B65F7EF0BC5D650 /* ProviderManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F40F1AC76A49A9B9DF74B0 /* ProviderManager.swift */; };
 		8EA90F9E26F29FC7938D2924 /* ProviderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BDA856BBC854D3FF310EA51 /* ProviderViewModel.swift */; };
 		A0A0A0A0A0A0A0A0A0A00A1 /* VersionInjectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0A0A0A0A0A0A0A0A0A00A4 /* VersionInjectionTests.swift */; };
@@ -60,7 +65,6 @@
 		A454D8C22F30544900E355E3 /* MenuBarExtraAccess in Frameworks */ = {isa = PBXBuildFile; productRef = MBA2222222222222222222222 /* MenuBarExtraAccess */; };
 		A454D8C42F30548900E355E3 /* ZaiCodingPlanProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A454D8C32F30548900E355E3 /* ZaiCodingPlanProvider.swift */; };
 		A55555555555555555555555 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A66666666666666666666666 /* Assets.xcassets */; };
-		WIDGETAST0000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A66666666666666666666666 /* Assets.xcassets */; };
 		A7E5552C32E6B46F047AC1C6 /* KeySource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2E141A81879AD0D9434ED6 /* KeySource.swift */; };
 		AD95EBD6AE3134DF4C797577 /* ClaudeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DDC1B4DE6B5118CE4AE8F82 /* ClaudeProvider.swift */; };
 		AM1111111111111111111111 /* AppMigrationHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = AM2222222222222222222222 /* AppMigrationHelper.swift */; };
@@ -69,12 +73,14 @@
 		B0B14142AFE641ACB3474246 /* PricingTableTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A1F577E5DDC41A19316CDBC /* PricingTableTests.swift */; };
 		B237AD902AEC471FADEA44B6 /* BrowserCookieServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10F736FBCBA4B3DB7D95AE6 /* BrowserCookieServiceTests.swift */; };
 		B248782F500D3B09E0CE5AC8 /* ProviderUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4158558E58B121A9D13C48C3 /* ProviderUsage.swift */; };
+		B2E1A0D737779A8704AD8A22 /* WidgetSnapshotReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71E2AAD25CDE294DF4845E9B /* WidgetSnapshotReaderTests.swift */; };
 		B452E4DDD82E777D8394D295 /* TavilySearchProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36C2B344956C6CBB5D2AA5E3 /* TavilySearchProviderTests.swift */; };
 		B58BAD3BFD97973070A2A892 /* MenuResultBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54353FD130DDE0500F6B367F /* MenuResultBuilderTests.swift */; };
 		BA1D5B2614A9475EB4AF48282FFE4FFE /* TimeZoneUTCTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 447C5D12B4E04EC9A89ECAD71741968A /* TimeZoneUTCTests.swift */; };
 		BCDE4599B74AF7A799CE1D /* StatusBarIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0CA52627AF05BD67B56E /* StatusBarIconView.swift */; };
 		BRAVEAPP1111111111111111 /* BraveSearchProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BRAVEFILE22222222222222 /* BraveSearchProvider.swift */; };
 		C1471F6E1B6A6336057AF4D6 /* TavilyLiveIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A255270920EBB45B5176EFA /* TavilyLiveIntegrationTests.swift */; };
+		C49ECE19640D4C6DAE17E752 /* TokenManagerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A974BD938254650B40E5681 /* TokenManagerModels.swift */; };
 		C770099D14F30416045F8AFA /* ai_infra_keys.yaml in Resources */ = {isa = PBXBuildFile; fileRef = CF23F2A5CF0366FB78011DCA /* ai_infra_keys.yaml */; };
 		CB3FA9AE43F3466269FA56F4 /* ProviderProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE39D5663A7ABADC7E54B91D /* ProviderProtocol.swift */; };
 		CC0000000000000000000EBF /* ClaudeCodeExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000EFR /* ClaudeCodeExtractor.swift */; };
@@ -119,9 +125,9 @@
 		ERRCLASSBF1111111111 /* ErrorClassificationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ERRCLASSFR1111111111 /* ErrorClassificationTests.swift */; };
 		ERRFILTBF11111111111 /* ErrorFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ERRFILTFR11111111111 /* ErrorFilterTests.swift */; };
 		F08C918116D7B3024B68C81A /* MenuDesignToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C7C9FDB4600114F02B2915 /* MenuDesignToken.swift */; };
-		F11111111111111111111111 /* UsagePredictor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22222222222222222222222 /* UsagePredictor.swift */; };
 		F35960B456C28D71BE7575A5 /* GeminiCLIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06EC3B683EB6892E4F9C8316 /* GeminiCLIProvider.swift */; };
 		FED391651D48BD797F1C6092 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63B7463DD780920A82671FE3 /* Cocoa.framework */; };
+		FF0934BA268C8BA6EDD65A9D /* WidgetSnapshotReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C50760A0F5FFEAE2042D31E6 /* WidgetSnapshotReader.swift */; };
 		GROKAPP11111111111111 /* GrokProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = GROKFILE2222222222222 /* GrokProvider.swift */; };
 		GROKCLI11111111111111 /* GrokProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = GROKFILE2222222222222 /* GrokProvider.swift */; };
 		GROKTESTBF11111111111 /* GrokProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = GROKTESTFR11111111111 /* GrokProviderTests.swift */; };
@@ -144,9 +150,6 @@
 		KL0000000000000000000TBF /* KimiCLILegacyExtractorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = KL0000000000000000000TFR /* KimiCLILegacyExtractorTests.swift */; };
 		MCST000000000000000000BF1 /* MonthCostCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = MCST000000000000000000FR1 /* MonthCostCalculator.swift */; };
 		MCST000000000000000000BF2 /* MonthCostCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MCST000000000000000000FR2 /* MonthCostCalculatorTests.swift */; };
-		PEAT000000000000000000BF1 /* ProviderEnumAlignmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = PEAT000000000000000000FR1 /* ProviderEnumAlignmentTests.swift */; };
-		PST0000000000000000000BF1 /* PricingSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = PST0000000000000000000FR1 /* PricingSnapshotTests.swift */; };
-		TSAT000000000000000000BF2 /* TokenStatsAggregatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TSAT000000000000000000FR2 /* TokenStatsAggregatorTests.swift */; };
 		ME1111111111111111111111 /* MenuEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = ME2222222222222222222222 /* MenuEnums.swift */; };
 		MIGRATIONPSTESTBF1111111111 /* MigrationPresetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MIGRATIONPSTESTFR1111111111 /* MigrationPresetTests.swift */; };
 		MIMOAPP1111111111111111 /* MimoProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = MIMOFILE22222222222222 /* MimoProvider.swift */; };
@@ -178,16 +181,19 @@
 		OR6666666666666666666666 /* openrouter_credits_response.json in Resources */ = {isa = PBXBuildFile; fileRef = OR5555555555555555555555 /* openrouter_credits_response.json */; };
 		OR8888888888888888888888 /* openrouter_key_response.json in Resources */ = {isa = PBXBuildFile; fileRef = OR7777777777777777777777 /* openrouter_key_response.json */; };
 		OZ1111111111111111111111 /* OpenCodeZenProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = OZ2222222222222222222222 /* OpenCodeZenProvider.swift */; };
+		PEAT000000000000000000BF1 /* ProviderEnumAlignmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = PEAT000000000000000000FR1 /* ProviderEnumAlignmentTests.swift */; };
 		PMB111111111111111111111 /* ProviderMenuBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = PMB222222222222222222222 /* ProviderMenuBuilder.swift */; };
 		PMBF1F3TESTBF1000000000 /* ProviderMenuBuilderF1F3Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = PMBF1F3TESTFR1000000000 /* ProviderMenuBuilderF1F3Tests.swift */; };
 		PR1111111111111111111111 /* ProviderResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = PR2222222222222222222222 /* ProviderResult.swift */; };
 		PROVREGIONTESTBF1111111111 /* ProviderRegionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = PROVREGIONTESTFR1111111111 /* ProviderRegionTests.swift */; };
 		PRRESULTTESTBUILD11111111 /* ProviderResultTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = PRRESULTTESTFILE11111111 /* ProviderResultTests.swift */; };
+		PST0000000000000000000BF1 /* PricingSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = PST0000000000000000000FR1 /* PricingSnapshotTests.swift */; };
 		RA00100000000000000000BF1 /* RefreshActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = RA00100000000000000000FR1 /* RefreshActor.swift */; };
 		RA00100000000000000000BF2 /* RefreshActorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = RA00100000000000000000FR2 /* RefreshActorTests.swift */; };
 		SBCCTRLMODETMBF1111 /* StatusBarControllerTestingModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SBCCTRLMODETMFR1111 /* StatusBarControllerTestingModeTests.swift */; };
 		SBCCTRLTESTBF111111111 /* StatusBarControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SBCCTRLTESTFR111111111 /* StatusBarControllerTests.swift */; };
 		SBCF000000000000000000BF2 /* StatusBarControllerF4Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SBCF000000000000000000FR2 /* StatusBarControllerF4Tests.swift */; };
+		SHAREDPATHSBF0000000000001 /* SharedPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHAREDPATHFR0000000000001 /* SharedPaths.swift */; };
 		SP1111111111111111111111 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = SP2222222222222222222222 /* Sparkle */; };
 		SS1111111111111111111111 /* SubscriptionSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = SS2222222222222222222222 /* SubscriptionSettings.swift */; };
 		SUBMGRIOSOBF11111111111 /* SubscriptionSettingsManagerIsolationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SUBMGRIOSOFR11111111111 /* SubscriptionSettingsManagerIsolationTests.swift */; };
@@ -226,36 +232,30 @@
 		VOLCANOTESTBF111111111111 /* VolcanoArkProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = VOLCANOTESTFR11111111111 /* VolcanoArkProviderTests.swift */; };
 		VOLCANOTYPESAPP11111111111 /* VolcanoArkTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = VOLCANOTYPESFILE2222222222 /* VolcanoArkTypes.swift */; };
 		VOLCANOTYPESCLI11111111111 /* VolcanoArkTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = VOLCANOTYPESFILE2222222222 /* VolcanoArkTypes.swift */; };
+		WIDGETAST0000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A66666666666666666666666 /* Assets.xcassets */; };
+		WIDGETCOORDBF000000000001 /* WidgetSnapshotCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETCOORDFR000000000001 /* WidgetSnapshotCoordinator.swift */; };
+		WIDGETDTKBF0000000000001 /* WidgetDesignToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */; };
+		WIDGETEMB000000000000000 /* TokenKingWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = WIDGETAEX000000000000000 /* TokenKingWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		WIDGETFNB000000000000000 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = WIDGETFNF000000000000000 /* Foundation.framework */; };
+		WIDGETMAINBF0000000000001 /* TokenKingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETMAINFR0000000000001 /* TokenKingWidget.swift */; };
+		WIDGETMAPBF00000000000001 /* WidgetSnapshotMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETMAPFR00000000000001 /* WidgetSnapshotMapper.swift */; };
+		WIDGETMAPTSTBF00000000001 /* WidgetSnapshotMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETMAPTSTFR0000000001 /* WidgetSnapshotMapperTests.swift */; };
+		WIDGETPEB0000000000000001 /* ProviderEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETPEF0000000000000001 /* ProviderEntity.swift */; };
+		WIDGETPSB0000000000000001 /* ProviderSelectionIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETPSF0000000000000001 /* ProviderSelectionIntent.swift */; };
+		WIDGETSNAPBF0000000000001 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETSNAPFR0000000000001 /* WidgetSnapshot.swift */; };
+		WIDGETSPB000000000000000 /* SharedPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHAREDPATHFR0000000000001 /* SharedPaths.swift */; };
+		WIDGETSUB000000000000000 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = WIDGETSUF000000000000000 /* SwiftUI.framework */; };
+		WIDGETVWBF0000000000001 /* TokenKingWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETVWFR0000000000001 /* TokenKingWidgetView.swift */; };
+		WIDGETWKB000000000000000 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = WIDGETWKF000000000000000 /* WidgetKit.framework */; };
+		WIDGETWLA000000000000000 /* WidgetLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETWLG000000000000000 /* WidgetLogger.swift */; };
+		WIDGETWLB000000000000000 /* WidgetLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETWLG000000000000000 /* WidgetLogger.swift */; };
+		WIDGETWRITERBF000000000001 /* WidgetSnapshotWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETWRITERFR000000000001 /* WidgetSnapshotWriter.swift */; };
+		WIDGETWRITERTBF0000000000 /* WidgetSnapshotWriterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETWRITERTFR0000000000 /* WidgetSnapshotWriterTests.swift */; };
+		WIDGETWSB000000000000000 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETSNAPFR0000000000001 /* WidgetSnapshot.swift */; };
 		ZA0000000000000000000EBF /* ZAIExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = ZA0000000000000000000EFR /* ZAIExtractor.swift */; };
 		ZA0000000000000000000TBF /* ZAIExtractorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ZA0000000000000000000TFR /* ZAIExtractorTests.swift */; };
 		ZHIPUAPP111111111111111 /* ZhipuGLMProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = ZHIPUFILE222222222222 /* ZhipuGLMProvider.swift */; };
 		ZHIPUCLI111111111111111 /* ZhipuGLMProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = ZHIPUFILE222222222222 /* ZhipuGLMProvider.swift */; };
-		69D6DDB24942483D90154E07 /* AntigravityProviderVarintTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 809C5F4DE9614EA7AFA97ABE /* AntigravityProviderVarintTests.swift */; };
-		3A5F4CE914494278AFDA260E /* CLIFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A7819F28A1A46218574EC86 /* CLIFormatterTests.swift */; };
-		01F3CEDD4DF8427C9D85D492 /* ClaudeProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2988F859C63495EA525AEA2 /* ClaudeProviderTests.swift */; };
-		6E7602C0A30D407C805EEB62 /* SubscriptionSettingsManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4122A310609449CAAE08CA5C /* SubscriptionSettingsManagerTests.swift */; };
-		36DF35D8A8344F6BAE3A1E24 /* ZaiCodingPlanProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED7AADDA053D4A6B93C34E67 /* ZaiCodingPlanProviderTests.swift */; };
-		SHAREDPATHSBF0000000000001 /* SharedPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHAREDPATHFR0000000000001 /* SharedPaths.swift */; };
-		WIDGETSNAPBF0000000000001 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETSNAPFR0000000000001 /* WidgetSnapshot.swift */; };
-		WIDGETMAPBF00000000000001 /* WidgetSnapshotMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETMAPFR00000000000001 /* WidgetSnapshotMapper.swift */; };
-		WIDGETWRITERBF000000000001 /* WidgetSnapshotWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETWRITERFR000000000001 /* WidgetSnapshotWriter.swift */; };
-		WIDGETCOORDBF000000000001 /* WidgetSnapshotCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETCOORDFR000000000001 /* WidgetSnapshotCoordinator.swift */; };
-		WIDGETMAPTSTBF00000000001 /* WidgetSnapshotMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETMAPTSTFR0000000001 /* WidgetSnapshotMapperTests.swift */; };
-		WIDGETWRITERTBF0000000000 /* WidgetSnapshotWriterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETWRITERTFR0000000000 /* WidgetSnapshotWriterTests.swift */; };
-		WIDGETEMB000000000000000 /* TokenKingWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = WIDGETAEX000000000000000 /* TokenKingWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		WIDGETWKB000000000000000 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = WIDGETWKF000000000000000 /* WidgetKit.framework */; };
-		WIDGETSUB000000000000000 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = WIDGETSUF000000000000000 /* SwiftUI.framework */; };
-		WIDGETFNB000000000000000 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = WIDGETFNF000000000000000 /* Foundation.framework */; };
-		WIDGETSPB000000000000000 /* SharedPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHAREDPATHFR0000000000001 /* SharedPaths.swift */; };
-		WIDGETWSB000000000000000 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETSNAPFR0000000000001 /* WidgetSnapshot.swift */; };
-		WIDGETWLB000000000000000 /* WidgetLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETWLG000000000000000 /* WidgetLogger.swift */; };
-		WIDGETWLA000000000000000 /* WidgetLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETWLG000000000000000 /* WidgetLogger.swift */; };
-		WIDGETMAINBF0000000000001 /* TokenKingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETMAINFR0000000000001 /* TokenKingWidget.swift */; };
-		WIDGETVWBF0000000000001 /* TokenKingWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETVWFR0000000000001 /* TokenKingWidgetView.swift */; };
-		WIDGETDTKBF0000000000001 /* WidgetDesignToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */; };
-		WIDGETPEB0000000000000001 /* ProviderEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETPEF0000000000000001 /* ProviderEntity.swift */; };
-		WIDGETPSB0000000000000001 /* ProviderSelectionIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETPSF0000000000000001 /* ProviderSelectionIntent.swift */; };
-
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -326,25 +326,33 @@
 		08AE97C415017492D0809041 /* tavily_usage_response.json */ = {isa = PBXFileReference; includeInIndex = 1; path = tavily_usage_response.json; sourceTree = "<group>"; };
 		0F6CE62C58ECA852F25FEF30 /* MenuResultBuilder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MenuResultBuilder.swift; sourceTree = "<group>"; };
 		18F40F1AC76A49A9B9DF74B0 /* ProviderManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProviderManager.swift; sourceTree = "<group>"; };
+		1E9E591B17364B32936C99CA /* StatusBarUsageDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarUsageDisplay.swift; sourceTree = "<group>"; };
 		24BD2AE5B12FABC3E915AE27 /* MultiProviderStatusBarIconView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MultiProviderStatusBarIconView.swift; sourceTree = "<group>"; };
 		2707EF99248FCDEFDEE3DA9C /* BrowserCookieService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BrowserCookieService.swift; sourceTree = "<group>"; };
 		283349002F313176004DADE1 /* ChutesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChutesProvider.swift; sourceTree = "<group>"; };
+		2A974BD938254650B40E5681 /* TokenManagerModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenManagerModels.swift; sourceTree = "<group>"; };
 		2D2B4000E33060BA5E00351B /* DependencyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DependencyTests.swift; sourceTree = "<group>"; };
+		36A8188B5FB145D2A7C7C102 /* StatusBarRefreshAndF2b.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarRefreshAndF2b.swift; sourceTree = "<group>"; };
 		36C2B344956C6CBB5D2AA5E3 /* TavilySearchProviderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TavilySearchProviderTests.swift; sourceTree = "<group>"; };
 		3757ACF7CDCF402D9A9280465146654E /* BraveSearchProviderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BraveSearchProviderTests.swift; sourceTree = "<group>"; };
+		4122A310609449CAAE08CA5C /* SubscriptionSettingsManagerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SubscriptionSettingsManagerTests.swift; sourceTree = "<group>"; };
 		4158558E58B121A9D13C48C3 /* ProviderUsage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProviderUsage.swift; sourceTree = "<group>"; };
 		447C5D12B4E04EC9A89ECAD71741968A /* TimeZoneUTCTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TimeZoneUTCTests.swift; sourceTree = "<group>"; };
 		4DDC1B4DE6B5118CE4AE8F82 /* ClaudeProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClaudeProvider.swift; sourceTree = "<group>"; };
 		54353FD130DDE0500F6B367F /* MenuResultBuilderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MenuResultBuilderTests.swift; sourceTree = "<group>"; };
+		586AED36BD3C4BF0AF6BB7E1 /* TokenManagerProviderAuth.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenManagerProviderAuth.swift; sourceTree = "<group>"; };
 		6279E48B0F50E99C3B23C4F3 /* ModernApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ModernApp.swift; sourceTree = "<group>"; };
 		63B7463DD780920A82671FE3 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
+		71E2AAD25CDE294DF4845E9B /* WidgetSnapshotReaderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotReaderTests.swift; sourceTree = "<group>"; };
 		76783C44AA2329AE3FA7E981 /* CodexProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CodexProvider.swift; sourceTree = "<group>"; };
 		7A255270920EBB45B5176EFA /* TavilyLiveIntegrationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TavilyLiveIntegrationTests.swift; sourceTree = "<group>"; };
+		809C5F4DE9614EA7AFA97ABE /* AntigravityProviderVarintTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AntigravityProviderVarintTests.swift; sourceTree = "<group>"; };
 		8A1F577E5DDC41A19316CDBC /* PricingTableTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PricingTableTests.swift; sourceTree = "<group>"; };
 		8BDA856BBC854D3FF310EA51 /* ProviderViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ViewModels/ProviderViewModel.swift; sourceTree = "<group>"; };
 		8F0ECB3B429456A48F1A4E69 /* SearchEngineTitleTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SearchEngineTitleTests.swift; sourceTree = "<group>"; };
 		94055A7CFB59D90DA90B27A0 /* KeySourceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeySourceTests.swift; sourceTree = "<group>"; };
 		9A6F09D053C04780AAEB8EE7 /* PricingTable.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PricingTable.swift; sourceTree = "<group>"; };
+		9A7819F28A1A46218574EC86 /* CLIFormatterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CLIFormatterTests.swift; sourceTree = "<group>"; };
 		9B1085A77EF4A58E5B5EC71B /* CopilotHistoryService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CopilotHistoryService.swift; sourceTree = "<group>"; };
 		9F2E141A81879AD0D9434ED6 /* KeySource.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeySource.swift; sourceTree = "<group>"; };
 		A0A0A0A0A0A0A0A0A0A00A4 /* VersionInjectionTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VersionInjectionTests.swift; sourceTree = "<group>"; };
@@ -365,7 +373,9 @@
 		B63B85E0F2A8C591D7E26AE2 /* GeminiCLIProviderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GeminiCLIProviderTests.swift; sourceTree = "<group>"; };
 		BE39D5663A7ABADC7E54B91D /* ProviderProtocol.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProviderProtocol.swift; sourceTree = "<group>"; };
 		BRAVEFILE22222222222222 /* BraveSearchProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BraveSearchProvider.swift; sourceTree = "<group>"; };
+		C1B8FEB2608EC24CC89AD504 /* UsagePredictor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UsagePredictor.swift; sourceTree = "<group>"; };
 		C1C7C9FDB4600114F02B2915 /* MenuDesignToken.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MenuDesignToken.swift; sourceTree = "<group>"; };
+		C50760A0F5FFEAE2042D31E6 /* WidgetSnapshotReader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotReader.swift; sourceTree = "<group>"; };
 		C8493409A9188CFF5B73D5B3 /* MenuDesignTokenTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MenuDesignTokenTests.swift; sourceTree = "<group>"; };
 		CC0000000000000000000EFR /* ClaudeCodeExtractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClaudeCodeExtractor.swift; sourceTree = "<group>"; };
 		CC0000000000000000000TFR /* ClaudeCodeExtractorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClaudeCodeExtractorTests.swift; sourceTree = "<group>"; };
@@ -385,14 +395,10 @@
 		CURSORFILE222222222222 /* CursorProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorProvider.swift; sourceTree = "<group>"; };
 		CURSORTSTFR11111111111 /* CursorProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorProviderTests.swift; sourceTree = "<group>"; };
 		D22222222222222222222222 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
-		FF11C5E6594E4F5286956E7A /* StatusBarMenuBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarMenuBuilder.swift; sourceTree = "<group>"; };
-		1E9E591B17364B32936C99CA /* StatusBarUsageDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarUsageDisplay.swift; sourceTree = "<group>"; };
-		36A8188B5FB145D2A7C7C102 /* StatusBarRefreshAndF2b.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarRefreshAndF2b.swift; sourceTree = "<group>"; };
+		D2988F859C63495EA525AEA2 /* ClaudeProviderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClaudeProviderTests.swift; sourceTree = "<group>"; };
 		D97B25E6EB0CE5E48A27A737 /* F2bE2ETests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = F2bE2ETests.swift; path = F2bE2ETests.swift; sourceTree = "<group>"; };
 		DBF0C48368166F3AD0C79F92 /* TokenManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenManager.swift; sourceTree = "<group>"; };
 		DBF0C48368166F3AD0C79F93 /* TokenManagerOpenCodeCodexAuth.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenManagerOpenCodeCodexAuth.swift; sourceTree = "<group>"; };
-		586AED36BD3C4BF0AF6BB7E1 /* TokenManagerProviderAuth.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenManagerProviderAuth.swift; sourceTree = "<group>"; };
-		2A974BD938254650B40E5681 /* TokenManagerModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenManagerModels.swift; sourceTree = "<group>"; };
 		DBG000000000000000000010 /* DebugLog.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DebugLog.swift; sourceTree = "<group>"; };
 		DCE215EDDBE3407B8E477617B1A9D6A3 /* TimeZone+UTC.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "TimeZone+UTC.swift"; sourceTree = "<group>"; };
 		DETAILSUBOCFR1111111111 /* DetailSubmenuOpenCodeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailSubmenuOpenCodeTests.swift; sourceTree = "<group>"; };
@@ -408,8 +414,8 @@
 		ERRCLASSFR1111111111 /* ErrorClassificationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorClassificationTests.swift; sourceTree = "<group>"; };
 		ERRFILTFR11111111111 /* ErrorFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorFilterTests.swift; sourceTree = "<group>"; };
 		F1DA8E47F4CFEFC3571708AD /* AntigravityProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AntigravityProvider.swift; sourceTree = "<group>"; };
-		F22222222222222222222222 /* UsagePredictor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsagePredictor.swift; sourceTree = "<group>"; };
 		F4AE672516E564CC52739BD9 /* CopilotProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CopilotProvider.swift; sourceTree = "<group>"; };
+		FF11C5E6594E4F5286956E7A /* StatusBarMenuBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarMenuBuilder.swift; sourceTree = "<group>"; };
 		GROKFILE2222222222222 /* GrokProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrokProvider.swift; sourceTree = "<group>"; };
 		GROKTESTFR11111111111 /* GrokProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrokProviderTests.swift; sourceTree = "<group>"; };
 		HUNYUANFILE22222222222 /* HunyuanProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HunyuanProvider.swift; sourceTree = "<group>"; };
@@ -426,9 +432,6 @@
 		KL0000000000000000000TFR /* KimiCLILegacyExtractorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KimiCLILegacyExtractorTests.swift; sourceTree = "<group>"; };
 		MCST000000000000000000FR1 /* MonthCostCalculator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MonthCostCalculator.swift; sourceTree = "<group>"; };
 		MCST000000000000000000FR2 /* MonthCostCalculatorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MonthCostCalculatorTests.swift; sourceTree = "<group>"; };
-		PEAT000000000000000000FR1 /* ProviderEnumAlignmentTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProviderEnumAlignmentTests.swift; sourceTree = "<group>"; };
-		PST0000000000000000000FR1 /* PricingSnapshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PricingSnapshotTests.swift; sourceTree = "<group>"; };
-		TSAT000000000000000000FR2 /* TokenStatsAggregatorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenStatsAggregatorTests.swift; sourceTree = "<group>"; };
 		ME2222222222222222222222 /* MenuEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuEnums.swift; sourceTree = "<group>"; };
 		MIGRATIONPSTESTFR1111111111 /* MigrationPresetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationPresetTests.swift; sourceTree = "<group>"; };
 		MIMOFILE22222222222222 /* MimoProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MimoProvider.swift; sourceTree = "<group>"; };
@@ -454,16 +457,19 @@
 		OR5555555555555555555555 /* openrouter_credits_response.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = openrouter_credits_response.json; sourceTree = "<group>"; };
 		OR7777777777777777777777 /* openrouter_key_response.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = openrouter_key_response.json; sourceTree = "<group>"; };
 		OZ2222222222222222222222 /* OpenCodeZenProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpenCodeZenProvider.swift; sourceTree = "<group>"; };
+		PEAT000000000000000000FR1 /* ProviderEnumAlignmentTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProviderEnumAlignmentTests.swift; sourceTree = "<group>"; };
 		PMB222222222222222222222 /* ProviderMenuBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderMenuBuilder.swift; sourceTree = "<group>"; };
 		PMBF1F3TESTFR1000000000 /* ProviderMenuBuilderF1F3Tests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProviderMenuBuilderF1F3Tests.swift; sourceTree = "<group>"; };
 		PR2222222222222222222222 /* ProviderResult.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProviderResult.swift; sourceTree = "<group>"; };
 		PROVREGIONTESTFR1111111111 /* ProviderRegionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderRegionTests.swift; sourceTree = "<group>"; };
 		PRRESULTTESTFILE11111111 /* ProviderResultTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProviderResultTests.swift; sourceTree = "<group>"; };
+		PST0000000000000000000FR1 /* PricingSnapshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PricingSnapshotTests.swift; sourceTree = "<group>"; };
 		RA00100000000000000000FR1 /* RefreshActor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RefreshActor.swift; sourceTree = "<group>"; };
 		RA00100000000000000000FR2 /* RefreshActorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RefreshActorTests.swift; sourceTree = "<group>"; };
 		SBCCTRLMODETMFR1111 /* StatusBarControllerTestingModeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatusBarControllerTestingModeTests.swift; sourceTree = "<group>"; };
 		SBCCTRLTESTFR111111111 /* StatusBarControllerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatusBarControllerTests.swift; sourceTree = "<group>"; };
 		SBCF000000000000000000FR2 /* StatusBarControllerF4Tests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatusBarControllerF4Tests.swift; sourceTree = "<group>"; };
+		SHAREDPATHFR0000000000001 /* SharedPaths.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SharedPaths.swift; sourceTree = "<group>"; };
 		SS2222222222222222222222 /* SubscriptionSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionSettings.swift; sourceTree = "<group>"; };
 		SUBMGRIOSOFR11111111111 /* SubscriptionSettingsManagerIsolationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionSettingsManagerIsolationTests.swift; sourceTree = "<group>"; };
 		SUBPLANDISPFR1111111111 /* SubscriptionPlanDisplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionPlanDisplayTests.swift; sourceTree = "<group>"; };
@@ -499,34 +505,27 @@
 		VOLCANOSIGNERFILE222222222 /* VolcanoArkSigner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VolcanoArkSigner.swift; sourceTree = "<group>"; };
 		VOLCANOTESTFR11111111111 /* VolcanoArkProviderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VolcanoArkProviderTests.swift; sourceTree = "<group>"; };
 		VOLCANOTYPESFILE2222222222 /* VolcanoArkTypes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VolcanoArkTypes.swift; sourceTree = "<group>"; };
+		WIDGETAEX000000000000000 /* TokenKingWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TokenKingWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		WIDGETCOORDFR000000000001 /* WidgetSnapshotCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotCoordinator.swift; sourceTree = "<group>"; };
+		WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetDesignToken.swift; sourceTree = "<group>"; };
+		WIDGETENT000000000000000 /* TokenKingWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TokenKingWidget/TokenKingWidget.entitlements; sourceTree = "<group>"; };
+		WIDGETFNF000000000000000 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		WIDGETINP000000000000000 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = TokenKingWidget/Info.plist; sourceTree = "<group>"; };
+		WIDGETMAINFR0000000000001 /* TokenKingWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenKingWidget.swift; sourceTree = "<group>"; };
+		WIDGETMAPFR00000000000001 /* WidgetSnapshotMapper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotMapper.swift; sourceTree = "<group>"; };
+		WIDGETMAPTSTFR0000000001 /* WidgetSnapshotMapperTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotMapperTests.swift; sourceTree = "<group>"; };
+		WIDGETPEF0000000000000001 /* ProviderEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Intent/ProviderEntity.swift; sourceTree = "<group>"; };
+		WIDGETPSF0000000000000001 /* ProviderSelectionIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Intent/ProviderSelectionIntent.swift; sourceTree = "<group>"; };
+		WIDGETSNAPFR0000000000001 /* WidgetSnapshot.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
+		WIDGETSUF000000000000000 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/SwiftUI.framework; sourceTree = DEVELOPER_DIR; };
+		WIDGETVWFR0000000000001 /* TokenKingWidgetView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenKingWidgetView.swift; sourceTree = "<group>"; };
+		WIDGETWKF000000000000000 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/WidgetKit.framework; sourceTree = DEVELOPER_DIR; };
+		WIDGETWLG000000000000000 /* WidgetLogger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetLogger.swift; sourceTree = "<group>"; };
+		WIDGETWRITERFR000000000001 /* WidgetSnapshotWriter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotWriter.swift; sourceTree = "<group>"; };
+		WIDGETWRITERTFR0000000000 /* WidgetSnapshotWriterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotWriterTests.swift; sourceTree = "<group>"; };
 		ZA0000000000000000000EFR /* ZAIExtractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ZAIExtractor.swift; sourceTree = "<group>"; };
 		ZA0000000000000000000TFR /* ZAIExtractorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ZAIExtractorTests.swift; sourceTree = "<group>"; };
 		ZHIPUFILE222222222222 /* ZhipuGLMProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZhipuGLMProvider.swift; sourceTree = "<group>"; };
-		809C5F4DE9614EA7AFA97ABE /* AntigravityProviderVarintTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AntigravityProviderVarintTests.swift; sourceTree = "<group>"; };
-		9A7819F28A1A46218574EC86 /* CLIFormatterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CLIFormatterTests.swift; sourceTree = "<group>"; };
-		D2988F859C63495EA525AEA2 /* ClaudeProviderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClaudeProviderTests.swift; sourceTree = "<group>"; };
-		4122A310609449CAAE08CA5C /* SubscriptionSettingsManagerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SubscriptionSettingsManagerTests.swift; sourceTree = "<group>"; };
-		CE0000000000000000000TFR /* CodexExtractorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CodexExtractorTests.swift; sourceTree = "<group>"; };
-		SHAREDPATHFR0000000000001 /* SharedPaths.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SharedPaths.swift; sourceTree = "<group>"; };
-		WIDGETSNAPFR0000000000001 /* WidgetSnapshot.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
-		WIDGETMAPFR00000000000001 /* WidgetSnapshotMapper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotMapper.swift; sourceTree = "<group>"; };
-		WIDGETWRITERFR000000000001 /* WidgetSnapshotWriter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotWriter.swift; sourceTree = "<group>"; };
-		WIDGETCOORDFR000000000001 /* WidgetSnapshotCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotCoordinator.swift; sourceTree = "<group>"; };
-		WIDGETMAPTSTFR0000000001 /* WidgetSnapshotMapperTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotMapperTests.swift; sourceTree = "<group>"; };
-		WIDGETWRITERTFR0000000000 /* WidgetSnapshotWriterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotWriterTests.swift; sourceTree = "<group>"; };
-		WIDGETAEX000000000000000 /* TokenKingWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TokenKingWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		WIDGETWKF000000000000000 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/WidgetKit.framework; sourceTree = DEVELOPER_DIR; };
-		WIDGETSUF000000000000000 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/SwiftUI.framework; sourceTree = DEVELOPER_DIR; };
-		WIDGETFNF000000000000000 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
-		WIDGETINP000000000000000 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = TokenKingWidget/Info.plist; sourceTree = "<group>"; };
-		WIDGETENT000000000000000 /* TokenKingWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TokenKingWidget/TokenKingWidget.entitlements; sourceTree = "<group>"; };
-		WIDGETWLG000000000000000 /* WidgetLogger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetLogger.swift; sourceTree = "<group>"; };
-		WIDGETMAINFR0000000000001 /* TokenKingWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenKingWidget.swift; sourceTree = "<group>"; };
-		WIDGETVWFR0000000000001 /* TokenKingWidgetView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenKingWidgetView.swift; sourceTree = "<group>"; };
-		WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetDesignToken.swift; sourceTree = "<group>"; };
-		WIDGETPEF0000000000000001 /* ProviderEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Intent/ProviderEntity.swift; sourceTree = "<group>"; };
-		WIDGETPSF0000000000000001 /* ProviderSelectionIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Intent/ProviderSelectionIntent.swift; sourceTree = "<group>"; };
-
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -693,21 +692,6 @@
 			);
 			sourceTree = "<group>";
 		};
-		WIDGETGRP000000000000000 /* TokenKingWidget */ = {
-			isa = PBXGroup;
-			children = (
-				WIDGETINP000000000000000 /* Info.plist */,
-				WIDGETENT000000000000000 /* TokenKingWidget.entitlements */,
-				WIDGETMAINFR0000000000001 /* TokenKingWidget.swift */,
-				WIDGETVWFR0000000000001 /* TokenKingWidgetView.swift */,
-				WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */,
-				WIDGETPEF0000000000000001 /* ProviderEntity.swift */,
-				WIDGETPSF0000000000000001 /* ProviderSelectionIntent.swift */,
-				WIDGETAEX000000000000000 /* TokenKingWidget.appex */,
-			);
-			path = TokenKingWidget;
-			sourceTree = "<group>";
-		};
 		ACCCCCCCCCCCCCCCCCCCCCCC /* CopilotMonitor */ = {
 			isa = PBXGroup;
 			children = (
@@ -724,16 +708,6 @@
 				1D81BD5EF6E11EA1F43B6746 /* CopilotMonitor */,
 			);
 			path = CopilotMonitor;
-			sourceTree = "<group>";
-		};
-		WIDGETSHAREDAPPGP0000001 /* Shared */ = {
-			isa = PBXGroup;
-			children = (
-				SHAREDPATHFR0000000000001 /* SharedPaths.swift */,
-				WIDGETSNAPFR0000000000001 /* WidgetSnapshot.swift */,
-				WIDGETWLG000000000000000 /* WidgetLogger.swift */,
-			);
-			path = Shared;
 			sourceTree = "<group>";
 		};
 		ADDDDDDDDDDDDDDDDDDDDDDD /* Products */ = {
@@ -774,7 +748,6 @@
 		C77777777777777777777777 /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				F22222222222222222222222 /* UsagePredictor.swift */,
 				DBF0C48368166F3AD0C79F92 /* TokenManager.swift */,
 				DBF0C48368166F3AD0C79F93 /* TokenManagerOpenCodeCodexAuth.swift */,
 				586AED36BD3C4BF0AF6BB7E1 /* TokenManagerProviderAuth.swift */,
@@ -790,6 +763,7 @@
 				WIDGETMAPFR00000000000001 /* WidgetSnapshotMapper.swift */,
 				WIDGETWRITERFR000000000001 /* WidgetSnapshotWriter.swift */,
 				WIDGETCOORDFR000000000001 /* WidgetSnapshotCoordinator.swift */,
+				C1B8FEB2608EC24CC89AD504 /* UsagePredictor.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -960,28 +934,10 @@
 				9A7819F28A1A46218574EC86 /* CLIFormatterTests.swift */,
 				D2988F859C63495EA525AEA2 /* ClaudeProviderTests.swift */,
 				4122A310609449CAAE08CA5C /* SubscriptionSettingsManagerTests.swift */,
-				ED7AADDA053D4A6B93C34E67 /* ZaiCodingPlanProviderTests.swift */,
 			);
 			path = CopilotMonitorTests;
 			sourceTree = "<group>";
 		};
-		WIDGETSHAREDTSTGP0000001 /* Shared */ = {
-			isa = PBXGroup;
-			children = (
-				WIDGETMAPTSTFR0000000001 /* WidgetSnapshotMapperTests.swift */,
-			);
-			path = Shared;
-			sourceTree = "<group>";
-		};
-		WIDGETSVCSTSTGP00000001 /* Services */ = {
-			isa = PBXGroup;
-			children = (
-				WIDGETWRITERTFR0000000000 /* WidgetSnapshotWriterTests.swift */,
-			);
-			path = Services;
-			sourceTree = "<group>";
-		};
-
 		TOOOOOOOOOOOOOOOOOOOOOOO /* Fixtures */ = {
 			isa = PBXGroup;
 			children = (
@@ -998,6 +954,49 @@
 				A1B2C3D4E5F60718293A4B63 /* exchange_rate_error.json */,
 			);
 			path = Fixtures;
+			sourceTree = "<group>";
+		};
+		WIDGETGRP000000000000000 /* TokenKingWidget */ = {
+			isa = PBXGroup;
+			children = (
+				WIDGETINP000000000000000 /* Info.plist */,
+				WIDGETENT000000000000000 /* TokenKingWidget.entitlements */,
+				WIDGETMAINFR0000000000001 /* TokenKingWidget.swift */,
+				WIDGETVWFR0000000000001 /* TokenKingWidgetView.swift */,
+				WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */,
+				WIDGETPEF0000000000000001 /* ProviderEntity.swift */,
+				WIDGETPSF0000000000000001 /* ProviderSelectionIntent.swift */,
+				WIDGETAEX000000000000000 /* TokenKingWidget.appex */,
+			);
+			path = TokenKingWidget;
+			sourceTree = "<group>";
+		};
+		WIDGETSHAREDAPPGP0000001 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				SHAREDPATHFR0000000000001 /* SharedPaths.swift */,
+				WIDGETSNAPFR0000000000001 /* WidgetSnapshot.swift */,
+				WIDGETWLG000000000000000 /* WidgetLogger.swift */,
+				C50760A0F5FFEAE2042D31E6 /* WidgetSnapshotReader.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		WIDGETSHAREDTSTGP0000001 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				WIDGETMAPTSTFR0000000001 /* WidgetSnapshotMapperTests.swift */,
+				71E2AAD25CDE294DF4845E9B /* WidgetSnapshotReaderTests.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		WIDGETSVCSTSTGP00000001 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				WIDGETWRITERTFR0000000000 /* WidgetSnapshotWriterTests.swift */,
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1065,23 +1064,6 @@
 			productReference = A77777777777777777777777 /* Token King.app */;
 			productType = "com.apple.product-type.application";
 		};
-		WIDGETTGT000000000000000 /* TokenKingWidget */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = WIDGETBLS000000000000000 /* Build configuration list for PBXNativeTarget "TokenKingWidget" */;
-			buildPhases = (
-				WIDGETSRB000000000000000 /* Sources */,
-				WIDGETFRK000000000000000 /* Frameworks */,
-				WIDGETRSB000000000000000 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = TokenKingWidget;
-			productName = TokenKingWidget;
-			productReference = WIDGETAEX000000000000000 /* TokenKingWidget.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
 		CLI8888888888888888888888 /* opencodebar-cli */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = CLI9999999999999999999999 /* Build configuration list for PBXNativeTarget "opencodebar-cli" */;
@@ -1118,6 +1100,23 @@
 			productName = CopilotMonitorTests;
 			productReference = TDDDDDDDDDDDDDDDDDDDDDD /* CopilotMonitorTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		WIDGETTGT000000000000000 /* TokenKingWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = WIDGETBLS000000000000000 /* Build configuration list for PBXNativeTarget "TokenKingWidget" */;
+			buildPhases = (
+				WIDGETSRB000000000000000 /* Sources */,
+				WIDGETFRK000000000000000 /* Frameworks */,
+				WIDGETRSB000000000000000 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TokenKingWidget;
+			productName = TokenKingWidget;
+			productReference = WIDGETAEX000000000000000 /* TokenKingWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -1275,7 +1274,6 @@
 				E11111111111111111111111 /* CopilotUsage.swift in Sources */,
 				283348FA2F313096004DADE1 /* UsageHistory.swift in Sources */,
 				SS1111111111111111111111 /* SubscriptionSettings.swift in Sources */,
-				F11111111111111111111111 /* UsagePredictor.swift in Sources */,
 				283348FB2F313096004DADE1 /* GeminiCLIProvider.swift in Sources */,
 				283348FC2F313096004DADE1 /* ProviderProtocol.swift in Sources */,
 				283348FD2F313096004DADE1 /* ProviderUsage.swift in Sources */,
@@ -1346,6 +1344,8 @@
 				RA00100000000000000000BF1 /* RefreshActor.swift in Sources */,
 				TUF000000000000000000BF2 /* TokenUsageFormatter.swift in Sources */,
 				4FEFA86B7FBC950D4DA82949 /* TimeZone+UTC.swift in Sources */,
+				7D786F4CE7A6241BD963227B /* WidgetSnapshotReader.swift in Sources */,
+				7345BB6FC3B442CCC1D6D42F /* UsagePredictor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1399,21 +1399,6 @@
 				CLICOPILOTUSAGE111111111 /* CopilotUsage.swift in Sources */,
 				A7E5552C32E6B46F047AC1C6 /* KeySource.swift in Sources */,
 				1B1E8B0FD5CAE020A1013FFA /* TimeZone+UTC.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		WIDGETSRB000000000000000 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				WIDGETSPB000000000000000 /* SharedPaths.swift in Sources */,
-				WIDGETWSB000000000000000 /* WidgetSnapshot.swift in Sources */,
-				WIDGETWLB000000000000000 /* WidgetLogger.swift in Sources */,
-				WIDGETMAINBF0000000000001 /* TokenKingWidget.swift in Sources */,
-				WIDGETVWBF0000000000001 /* TokenKingWidgetView.swift in Sources */,
-				WIDGETDTKBF0000000000001 /* WidgetDesignToken.swift in Sources */,
-				WIDGETPEB0000000000000001 /* ProviderEntity.swift in Sources */,
-				WIDGETPSB0000000000000001 /* ProviderSelectionIntent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1495,9 +1480,26 @@
 				3A5F4CE914494278AFDA260E /* CLIFormatterTests.swift in Sources */,
 				01F3CEDD4DF8427C9D85D492 /* ClaudeProviderTests.swift in Sources */,
 				6E7602C0A30D407C805EEB62 /* SubscriptionSettingsManagerTests.swift in Sources */,
-				36DF35D8A8344F6BAE3A1E24 /* ZaiCodingPlanProviderTests.swift in Sources */,
+				36DF35D8A8344F6BAE3A1E24 /* BuildFile in Sources */,
 				WIDGETMAPTSTBF00000000001 /* WidgetSnapshotMapperTests.swift in Sources */,
 				WIDGETWRITERTBF0000000000 /* WidgetSnapshotWriterTests.swift in Sources */,
+				B2E1A0D737779A8704AD8A22 /* WidgetSnapshotReaderTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		WIDGETSRB000000000000000 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				WIDGETSPB000000000000000 /* SharedPaths.swift in Sources */,
+				WIDGETWSB000000000000000 /* WidgetSnapshot.swift in Sources */,
+				WIDGETWLB000000000000000 /* WidgetLogger.swift in Sources */,
+				WIDGETMAINBF0000000000001 /* TokenKingWidget.swift in Sources */,
+				WIDGETVWBF0000000000001 /* TokenKingWidgetView.swift in Sources */,
+				WIDGETDTKBF0000000000001 /* WidgetDesignToken.swift in Sources */,
+				WIDGETPEB0000000000000001 /* ProviderEntity.swift in Sources */,
+				WIDGETPSB0000000000000001 /* ProviderSelectionIntent.swift in Sources */,
+				FF0934BA268C8BA6EDD65A9D /* WidgetSnapshotReader.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1780,56 +1782,6 @@
 			};
 			name = Release;
 		};
-		WIDGETDBG000000000000000 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = TokenKingWidget/TokenKingWidget.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = "";
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = TokenKingWidget/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tokenking.app.TokenKingWidget;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Debug;
-		};
-		WIDGETREL000000000000000 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = TokenKingWidget/TokenKingWidget.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = "";
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = TokenKingWidget/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tokenking.app.TokenKingWidget;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
 		CLICCCCCCCCCCCCCCCCCCCCC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1922,6 +1874,56 @@
 			};
 			name = Release;
 		};
+		WIDGETDBG000000000000000 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TokenKingWidget/TokenKingWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TokenKingWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tokenking.app.TokenKingWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		WIDGETREL000000000000000 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TokenKingWidget/TokenKingWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TokenKingWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tokenking.app.TokenKingWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1939,15 +1941,6 @@
 			buildConfigurations = (
 				B88888888888888888888888 /* Debug */,
 				B99999999999999999999999 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		WIDGETBLS000000000000000 /* Build configuration list for PBXNativeTarget "TokenKingWidget" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				WIDGETDBG000000000000000 /* Debug */,
-				WIDGETREL000000000000000 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1984,6 +1977,15 @@
 			buildConfigurations = (
 				TLLLLLLLLLLLLLLLLLLLLLL /* Debug */,
 				TMMMMMMMMMMMMMMMMMMMMMM /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		WIDGETBLS000000000000000 /* Build configuration list for PBXNativeTarget "TokenKingWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				WIDGETDBG000000000000000 /* Debug */,
+				WIDGETREL000000000000000 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

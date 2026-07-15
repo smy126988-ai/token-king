@@ -1,4 +1,7 @@
 #if false
+// MARK: - DEAD CODE CANDIDATE
+// This file is a confirmed dead-code candidate and is excluded from compilation.
+
 import AppKit
 import Foundation
 import os.log

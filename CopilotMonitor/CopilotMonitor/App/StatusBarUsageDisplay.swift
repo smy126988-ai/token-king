@@ -1,4 +1,7 @@
 #if false
+// MARK: - DEAD CODE CANDIDATE
+// This file is a confirmed dead-code candidate and is excluded from compilation.
+
 import Foundation
 
 /// Computes usage percentages, status snapshots, and quota alert candidates for the status bar.

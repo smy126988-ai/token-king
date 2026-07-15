@@ -226,10 +226,6 @@ final class StatusBarController: NSObject {
     var cachedTokenStats: TokenStatsAggregator.Snapshot?
     var lastTokenStatsFetchAt: Date?
 
-    private var usagePredictor: UsagePredictor {
-        UsagePredictor(weights: predictionPeriod.weights)
-    }
-
     enum HistoryFetchResult {
         case none
         case success
@@ -247,6 +243,10 @@ final class StatusBarController: NSObject {
         let prediction: UsagePrediction?
         let isStale: Bool
         let hasNoData: Bool
+    }
+
+    private var usagePredictor: UsagePredictor {
+        UsagePredictor(weights: predictionPeriod.weights)
     }
 
     var refreshInterval: RefreshInterval {

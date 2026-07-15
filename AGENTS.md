@@ -126,13 +126,17 @@ log stream --predicate 'subsystem == "com.opencodeproviders"' --level debug
 ### How to get quota usage?
 - in `@/scripts/` directory, you can see all of the scripts for every providers to get quota usage.
 
-### WidgetKit desktop widget — manual R18 e2e checklist
+### WidgetKit desktop widget — R18 e2e checklist
 - **Why this section exists**: the widget's read path lives in a sandboxed
   `TokenKingWidget.appex` process. `xcodebuild test` cannot simulate the
   macOS sandbox wall (it runs the test target in-process and the home
   relative path exception would be silently honoured by the test host).
-  These four scenarios therefore have to be exercised on a real desktop
-  by the user.
+  The sandbox-specific scenarios therefore still have to be exercised on a
+  real desktop by the user.
+- **Automated coverage**: `WidgetSnapshotReaderTests` covers the first four
+  boundary scenarios (missing file, corrupt JSON, truncated JSON, stale age)
+  via `CopilotMonitor/Shared/WidgetSnapshotReader.swift`. Run it with
+  `xcodebuild test -scheme CopilotMonitor -destination 'platform=macOS'`.
 - **When to run**: every time `TokenKingWidget.appex`'s entitlements,
   `Shared/WidgetSnapshotReader.swift`, or `TokenKingWidget/TokenKingWidget.swift`
   changes. The P0 commit / release workflow must include this checklist.

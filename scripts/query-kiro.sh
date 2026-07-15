@@ -2,6 +2,9 @@
 
 # Query Kiro billing usage through the authenticated Kiro CLI.
 # Authentication remains owned by Kiro; this script does not read local token databases.
+#
+# NOTE: This script is currently NOT called by the Token King App or CLI.
+# Kiro is hard-disabled in the current version and is not surfaced in the UI.
 
 set -euo pipefail
 

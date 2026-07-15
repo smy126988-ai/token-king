@@ -227,26 +227,26 @@ extension BaseTokenKingProvider {
     /// Read the shared snapshot from disk and tag the entry with this provider's kind.
     func readEntry(selectedProviderId: String? = nil) -> TokenKingEntry {
         let url = SharedPaths.snapshotURL
-        let fm = FileManager.default
-        guard fm.fileExists(atPath: url.path) else {
+        let result = WidgetSnapshotReader.read(at: url, now: Date(), staleThreshold: Self.staleThreshold)
+
+        switch result {
+        case .noFile:
             WidgetLogger.provider.warning("snapshot file does not exist at \(url.path, privacy: .public)")
             return TokenKingEntry(date: Date(), kind: Self.kind, selectedProviderId: selectedProviderId, snapshot: nil, readStatus: .noFile, snapshotAgeSeconds: nil)
-        }
 
-        do {
-            let data = try Data(contentsOf: url)
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            let snapshot = try decoder.decode(WidgetSnapshot.self, from: data)
-
-            let age = Date().timeIntervalSince(snapshot.snapshotAt)
-            let status: TokenKingEntry.ReadStatus = age > Self.staleThreshold ? .stale : .ok
-            WidgetLogger.provider.notice("read snapshot v\(snapshot.version) providers=\(snapshot.providers.count) ageSec=\(Int(age), privacy: .public) status=\(status.rawValueString, privacy: .public)")
-
-            return TokenKingEntry(date: Date(), kind: Self.kind, selectedProviderId: selectedProviderId, snapshot: snapshot, readStatus: status, snapshotAgeSeconds: age)
-        } catch {
-            WidgetLogger.provider.error("decode failed: \(error.localizedDescription, privacy: .public)")
+        case .corrupt:
+            WidgetLogger.provider.error("decode failed")
             return TokenKingEntry(date: Date(), kind: Self.kind, selectedProviderId: selectedProviderId, snapshot: nil, readStatus: .corrupt, snapshotAgeSeconds: nil)
+
+        case .stale(let snapshot, let age):
+            let status: TokenKingEntry.ReadStatus = .stale
+            WidgetLogger.provider.notice("read snapshot v\(snapshot.version) providers=\(snapshot.providers.count) ageSec=\(Int(age), privacy: .public) status=\(status.rawValueString, privacy: .public)")
+            return TokenKingEntry(date: Date(), kind: Self.kind, selectedProviderId: selectedProviderId, snapshot: snapshot, readStatus: status, snapshotAgeSeconds: age)
+
+        case .ok(let snapshot, let age):
+            let status: TokenKingEntry.ReadStatus = .ok
+            WidgetLogger.provider.notice("read snapshot v\(snapshot.version) providers=\(snapshot.providers.count) ageSec=\(Int(age), privacy: .public) status=\(status.rawValueString, privacy: .public)")
+            return TokenKingEntry(date: Date(), kind: Self.kind, selectedProviderId: selectedProviderId, snapshot: snapshot, readStatus: status, snapshotAgeSeconds: age)
         }
     }
 
