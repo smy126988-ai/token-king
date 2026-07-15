@@ -87,6 +87,20 @@ let rightX = MenuDesignToken.rightElementX  // 270 (computed)
 - **ALWAYS** reuse `createDisabledLabelView()` when possible instead of creating custom NSView
 - When adding new constants, add them to `MenuDesignToken.swift` first, then update this section
 
+### Widget Visual Rules (MUST follow `@DESIGN.md`)
+All `TokenKingWidget/` visual work — layout, colour, typography, spacing — MUST follow the
+single source of truth at repo root `DESIGN.md` (YAML front matter = machine-readable tokens,
+markdown body = rationale). Visual target: prototype at `docs/design/widget/service-monitor-prototype-v6.html`.
+- **NEVER** hardcode hex/pt values in widget views — every literal in `TokenKingWidget/WidgetDesignToken.swift`
+  MUST trace to a key in `DESIGN.md`. Change the visual in `DESIGN.md` first, then update the token file.
+- **Focus-aware states**: build only the full-colour version with semantic colours (`.severityColor`)
+  + `.primary/.secondary`; the system auto-derives the de-saturated (`vibrant`) version on desktop blur.
+  Do NOT hand-write two states, and do NOT swap the background to solid white when selected — it stays glass.
+  The white progress bar in non-selected state is a macOS feature, NOT a bug — do not "fix" it.
+- **Semantic colour only**: progress/ring colour = usage severity (`<60 green / 60–85 amber / >85 red`);
+  brand tint is identity-only and restrained (kiro/claude/kimi tinted, rest `.secondary`).
+- Acceptance = token-drift check + VLM screenshot score (≥80 vs prototype) + four-state visual pass.
+
 ### Pre-Development Setup (MUST run before any work)
 Before starting any development work, run:
 ```bash
