@@ -140,89 +140,16 @@ enum WidgetDesignToken {
         static let kimi = Color(hex: "#1783ff")
     }
 
-    // MARK: Aurora background (DESIGN.md aurora) — decorative gradient.
-    enum Aurora {
-        static let lightRadial: [Color] = ["#ffb98f", "#e9a9e0", "#b9a8f0"].map(Color.init(hex:))
-        static let lightLinear: [Color] = ["#ffcaa0", "#eebbe0", "#c7d0f2"].map(Color.init(hex:))
-        static let darkRadial: [Color] = ["#1a3a44", "#281c44"].map(Color.init(hex:))
-        static let darkLinear: [Color] = ["#0d1316", "#13101f", "#0c1417"].map(Color.init(hex:))
-    }
-
-    // MARK: Glass card (DESIGN.md glass)
-    // Light-touch glass: a glossy top→bottom sheen + hairline rim, applied
-    // OVER the aurora so the colour shows through (not an opaque veil).
-    enum Glass {
-        /// Back-compat (no longer used for a full veil; kept for callers/tests).
-        static func fill(_ s: ColorScheme) -> Color { .themed(light: Color(hex: "#ffffff"), dark: Color(hex: "#1c1e24"), scheme: s) }
-        static func opacity(_ s: ColorScheme) -> Double { s == .dark ? 0.30 : 0.24 }
-
-        /// Glossy highlight at the card's top edge.
-        static func sheenTop(_ s: ColorScheme) -> Color {
-            .themed(light: Color(hex: "#ffffff").opacity(0.35),
-                    dark: Color(hex: "#ffffff").opacity(0.14), scheme: s)
-        }
-        /// Sheen fades to (near) clear at the bottom so aurora dominates.
-        static func sheenBottom(_ s: ColorScheme) -> Color {
-            .themed(light: Color(hex: "#ffffff").opacity(0.06),
-                    dark: Color(hex: "#ffffff").opacity(0.02), scheme: s)
-        }
-        /// Hairline rim — the primary carrier of the glass illusion.
-        static func rim(_ s: ColorScheme) -> Color {
-            .themed(light: Color(hex: "#ffffff").opacity(0.55),
-                    dark: Color(hex: "#ffffff").opacity(0.22), scheme: s)
-        }
-    }
+    // Aurora/Glass background tokens removed: the system owns the widget
+    // background on the macOS desktop (see GlassCard note below). Branding
+    // comes from content tokens (Severity/Ink/Brand), not a painted background.
 }
 
-// MARK: - Layer 3: GlassCard modifier
-
-/// Frosted glass surface over the aurora `containerBackground`.
-///
-/// P0 fix (DESIGN.md §1.2 / Apple `Material` docs): WidgetKit's `Material`
-/// blurs only the widget's own content, NOT the desktop wallpaper — so a
-/// full-bleed `.ultraThinMaterial` + opaque white veil covers 100% of the
-/// aurora and washes it to near-white. The prototype's glass feel comes from
-/// EDGE treatment, not a blurred surface: a light top→bottom sheen (glossy
-/// highlight) + a hairline rim. The aurora shows through as vivid colour.
-///
-/// The whole aesthetic is gated to `.fullColor`; in `.vibrant`/`.accented`
-/// the system desaturates/removes backgrounds, so we skip the sheen there.
-struct GlassCard: ViewModifier {
-    @Environment(\.colorScheme) private var scheme
-    @Environment(\.widgetRenderingMode) private var renderingMode
-
-    func body(content: Content) -> some View {
-        content.background {
-            if renderingMode == .fullColor {
-                let shape = RoundedRectangle(cornerRadius: WidgetDesignToken.cardCornerRadius, style: .continuous)
-                shape
-                    // Glossy sheen: bright at the top, fading to clear — reads as
-                    // a glass surface without hiding the aurora underneath.
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                WidgetDesignToken.Glass.sheenTop(scheme),
-                                WidgetDesignToken.Glass.sheenBottom(scheme)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    // Hairline rim — the primary carrier of the glass illusion.
-                    .overlay(
-                        shape.strokeBorder(
-                            WidgetDesignToken.Glass.rim(scheme),
-                            lineWidth: WidgetDesignToken.hairline
-                        )
-                    )
-            }
-        }
-    }
-}
-
-extension View {
-    func glassCard() -> some View { modifier(GlassCard()) }
-}
+// Layer 3 removed: no GlassCard / painted background. The system owns the
+// widget background on the macOS desktop (wallpaper-aware frosted material via
+// `.containerBackground(for: .widget)`). Every attempt to draw our own aurora +
+// Material + scrim fought the system and rendered muddy grey in fullColor.
+// Branding now comes from content tokens (Severity/Ink/Brand), not a background.
 
 // MARK: - Helpers (unchanged behaviour)
 
