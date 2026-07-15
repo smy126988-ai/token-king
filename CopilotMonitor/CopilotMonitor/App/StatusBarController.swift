@@ -683,6 +683,8 @@ final class StatusBarController: NSObject {
         settingsSubmenu.addItem(statusBarOptionsItem)
         updateStatusBarDisplayMenuState()
 
+        settingsSubmenu.addItem(buildEnabledProvidersMenu())
+
         launchAtLoginItem = NSMenuItem(title: "开机启动", action: #selector(launchAtLoginClicked), keyEquivalent: "")
         launchAtLoginItem.image = NSImage(systemSymbolName: "power", accessibilityDescription: "Launch at Login")
         launchAtLoginItem.target = self
@@ -880,6 +882,28 @@ final class StatusBarController: NSObject {
                   let identifier = ProviderIdentifier(rawValue: idString) else { continue }
             item.state = isProviderEnabled(identifier) ? .on : .off
         }
+    }
+
+    /// "显示/隐藏服务商" submenu: one checkable item per enabled provider,
+    /// wired to the existing `toggleProvider(_:)` / `updateEnabledProvidersMenu()`
+    /// pair. The menu was declared long ago but never attached anywhere —
+    /// this is the missing entry point.
+    private func buildEnabledProvidersMenu() -> NSMenuItem {
+        let parent = NSMenuItem(title: "显示/隐藏服务商", action: nil, keyEquivalent: "")
+        parent.image = NSImage(systemSymbolName: "eye", accessibilityDescription: "Show or Hide Providers")
+        let submenu = NSMenu()
+        for identifier in ProviderIdentifier.allCases.filter(\.isEnabled) {
+            let item = NSMenuItem(title: identifier.displayName,
+                                  action: #selector(toggleProvider(_:)),
+                                  keyEquivalent: "")
+            item.target = self
+            item.representedObject = identifier.rawValue
+            item.state = isProviderEnabled(identifier) ? .on : .off
+            submenu.addItem(item)
+        }
+        parent.submenu = submenu
+        enabledProvidersMenu = submenu
+        return parent
     }
 
     private func buildCurrencyMenu() -> NSMenuItem {

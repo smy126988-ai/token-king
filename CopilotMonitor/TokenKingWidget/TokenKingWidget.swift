@@ -257,6 +257,50 @@ extension BaseTokenKingProvider {
         WidgetLogger.provider.debug("timeline next=\(nextRefresh, privacy: .public) status=\(entry.readStatus.rawValueString, privacy: .public)")
         return Timeline(entries: [entry], policy: .after(nextRefresh))
     }
+
+    // MARK: - HTTP-first reads (P1)
+
+    /// Try to read the snapshot over the app's loopback HTTP bridge.
+    ///
+    /// Returns nil on any failure (app not running, timeout, non-200, decode
+    /// error) so the caller falls back to the file channel. This is the
+    /// preferred path: it sidesteps sandbox file-coordination stalls and
+    /// always sees the writer's latest flush.
+    func readEntryViaHTTP(selectedProviderId: String? = nil) async -> TokenKingEntry? {
+        var request = URLRequest(url: SharedPaths.localSnapshotURL)
+        request.timeoutInterval = 2
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+                WidgetLogger.provider.debug("http snapshot: non-200 response, falling back to file")
+                return nil
+            }
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let snapshot = try decoder.decode(WidgetSnapshot.self, from: data)
+            let age = Date().timeIntervalSince(snapshot.snapshotAt)
+            let status: TokenKingEntry.ReadStatus = age > Self.staleThreshold ? .stale : .ok
+            WidgetLogger.provider.notice("read snapshot via http v\(snapshot.version, privacy: .public) providers=\(snapshot.providers.count, privacy: .public) ageSec=\(Int(age), privacy: .public) status=\(status.rawValueString, privacy: .public)")
+            return TokenKingEntry(date: Date(), kind: Self.kind, selectedProviderId: selectedProviderId, snapshot: snapshot, readStatus: status, snapshotAgeSeconds: age)
+        } catch {
+            WidgetLogger.provider.debug("http snapshot failed (\(error.localizedDescription, privacy: .public)); falling back to file")
+            return nil
+        }
+    }
+
+    /// HTTP-first entry: loopback server, then file fallback.
+    func readEntryHTTPFirst(selectedProviderId: String? = nil) async -> TokenKingEntry {
+        await readEntryViaHTTP(selectedProviderId: selectedProviderId) ?? readEntry(selectedProviderId: selectedProviderId)
+    }
+
+    /// HTTP-first timeline with the same 15-minute refresh policy.
+    func makeTimelineHTTPFirst(selectedProviderId: String? = nil) async -> Timeline<TokenKingEntry> {
+        let entry = await readEntryHTTPFirst(selectedProviderId: selectedProviderId)
+        let nextRefresh = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date().addingTimeInterval(900)
+        WidgetLogger.provider.debug("timeline next=\(nextRefresh, privacy: .public) status=\(entry.readStatus.rawValueString, privacy: .public)")
+        return Timeline(entries: [entry], policy: .after(nextRefresh))
+    }
 }
 
 // MARK: - AppIntent providers
@@ -268,11 +312,11 @@ struct SmallProvider: BaseTokenKingProvider, AppIntentTimelineProvider {
     typealias Entry = TokenKingEntry
 
     func snapshot(for configuration: ProviderSelectionIntent, in context: Context) async -> TokenKingEntry {
-        readEntry(selectedProviderId: configuration.provider?.id)
+        await readEntryHTTPFirst(selectedProviderId: configuration.provider?.id)
     }
 
     func timeline(for configuration: ProviderSelectionIntent, in context: Context) async -> Timeline<TokenKingEntry> {
-        makeTimeline(selectedProviderId: configuration.provider?.id)
+        await makeTimelineHTTPFirst(selectedProviderId: configuration.provider?.id)
     }
 }
 
@@ -283,11 +327,11 @@ struct MediumDetailProvider: BaseTokenKingProvider, AppIntentTimelineProvider {
     typealias Entry = TokenKingEntry
 
     func snapshot(for configuration: ProviderSelectionIntent, in context: Context) async -> TokenKingEntry {
-        readEntry(selectedProviderId: configuration.provider?.id)
+        await readEntryHTTPFirst(selectedProviderId: configuration.provider?.id)
     }
 
     func timeline(for configuration: ProviderSelectionIntent, in context: Context) async -> Timeline<TokenKingEntry> {
-        makeTimeline(selectedProviderId: configuration.provider?.id)
+        await makeTimelineHTTPFirst(selectedProviderId: configuration.provider?.id)
     }
 }
 
@@ -298,11 +342,11 @@ struct LargeDetailProvider: BaseTokenKingProvider, AppIntentTimelineProvider {
     typealias Entry = TokenKingEntry
 
     func snapshot(for configuration: ProviderSelectionIntent, in context: Context) async -> TokenKingEntry {
-        readEntry(selectedProviderId: configuration.provider?.id)
+        await readEntryHTTPFirst(selectedProviderId: configuration.provider?.id)
     }
 
     func timeline(for configuration: ProviderSelectionIntent, in context: Context) async -> Timeline<TokenKingEntry> {
-        makeTimeline(selectedProviderId: configuration.provider?.id)
+        await makeTimelineHTTPFirst(selectedProviderId: configuration.provider?.id)
     }
 }
 
@@ -314,11 +358,11 @@ struct MediumOverviewProvider: BaseTokenKingProvider, TimelineProvider {
     typealias Entry = TokenKingEntry
 
     func getSnapshot(in context: Context, completion: @escaping (TokenKingEntry) -> Void) {
-        completion(readEntry())
+        Task { completion(await readEntryHTTPFirst()) }
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TokenKingEntry>) -> Void) {
-        completion(makeTimeline())
+        Task { completion(await makeTimelineHTTPFirst()) }
     }
 }
 
@@ -328,11 +372,11 @@ struct LargeOverviewProvider: BaseTokenKingProvider, TimelineProvider {
     typealias Entry = TokenKingEntry
 
     func getSnapshot(in context: Context, completion: @escaping (TokenKingEntry) -> Void) {
-        completion(readEntry())
+        Task { completion(await readEntryHTTPFirst()) }
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TokenKingEntry>) -> Void) {
-        completion(makeTimeline())
+        Task { completion(await makeTimelineHTTPFirst()) }
     }
 }
 
@@ -342,11 +386,11 @@ struct SearchEnginesProvider: BaseTokenKingProvider, TimelineProvider {
     typealias Entry = TokenKingEntry
 
     func getSnapshot(in context: Context, completion: @escaping (TokenKingEntry) -> Void) {
-        completion(readEntry())
+        Task { completion(await readEntryHTTPFirst()) }
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TokenKingEntry>) -> Void) {
-        completion(makeTimeline())
+        Task { completion(await makeTimelineHTTPFirst()) }
     }
 }
 

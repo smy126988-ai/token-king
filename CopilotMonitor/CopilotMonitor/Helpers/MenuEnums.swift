@@ -31,9 +31,9 @@ enum PredictionPeriod: Int, CaseIterable {
 
     var title: String {
         switch self {
-        case .oneWeek: return "7 天"
-        case .twoWeeks: return "14 天"
-        case .threeWeeks: return "21 天"
+        case .oneWeek: return String(localized: "7 days", comment: "Prediction period menu title")
+        case .twoWeeks: return String(localized: "14 days", comment: "Prediction period menu title")
+        case .threeWeeks: return String(localized: "21 days", comment: "Prediction period menu title")
         }
     }
 
@@ -59,9 +59,9 @@ enum BraveSearchRefreshMode: Int, CaseIterable {
 
     var title: String {
         switch self {
-        case .eventOnly: return "仅基于事件"
-        case .apiEverySixHours: return "每 6 小时 API 同步"
-        case .hybrid: return "混合（事件 + 6 小时 API）"
+        case .eventOnly: return String(localized: "Event only", comment: "Brave Search refresh mode menu title")
+        case .apiEverySixHours: return String(localized: "API sync every 6 hours", comment: "Brave Search refresh mode menu title")
+        case .hybrid: return String(localized: "Hybrid (events + 6-hour API)", comment: "Brave Search refresh mode menu title")
         }
     }
 
@@ -94,9 +94,9 @@ enum MenuBarDisplayMode: Int, CaseIterable {
 
     var title: String {
         switch self {
-        case .totalCost: return "总花费"
-        case .iconOnly: return "仅图标"
-        case .onlyShow: return "仅显示"
+        case .totalCost: return String(localized: "Total Cost", comment: "Menu bar display mode menu title")
+        case .iconOnly: return String(localized: "Icon Only", comment: "Menu bar display mode menu title")
+        case .onlyShow: return String(localized: "Only Show", comment: "Menu bar display mode menu title")
         }
     }
 
@@ -110,9 +110,9 @@ enum OnlyShowMode: Int, CaseIterable {
 
     var title: String {
         switch self {
-        case .pinnedProvider: return "固定服务商"
-        case .alertFirst: return "告警优先"
-        case .recentChange: return "仅最近额度变化"
+        case .pinnedProvider: return String(localized: "Pinned Provider", comment: "Only-show mode menu title")
+        case .alertFirst: return String(localized: "Alert First", comment: "Only-show mode menu title")
+        case .recentChange: return String(localized: "Recent Change Only", comment: "Only-show mode menu title")
         }
     }
 
@@ -154,8 +154,8 @@ enum Currency: String, CaseIterable {
 
     var menuTitle: String {
         switch self {
-        case .usd: return "US Dollar ($)"
-        case .rmb: return "人民币 (¥)"
+        case .usd: return String(localized: "US Dollar ($)", comment: "Currency menu title")
+        case .rmb: return String(localized: "Chinese Yuan (¥)", comment: "Currency menu title")
         }
     }
 }

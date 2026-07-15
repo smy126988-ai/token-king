@@ -28,6 +28,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
     // `applicationDidFinishLaunching`; ticks alongside the 5s refresh loop.
     private var widgetCoordinator: WidgetSnapshotCoordinator?
 
+    // Loopback snapshot server: lets the widget extension read the latest
+    // snapshot over HTTP (127.0.0.1 only) instead of a coordinated file read.
+    // Started in `startRefreshActor`; failure is non-fatal — the widget
+    // silently falls back to the file channel.
+    private var localHTTPServer: LocalHTTPServer?
+
     // Bridge handoff: MenuBarExtraAccess calls this from ModernApp's body
     // evaluation. If `statusBarController` already exists (the normal case,
     // since `applicationDidFinishLaunching` runs first), we forward
@@ -282,6 +288,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         startRefreshActor()
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        localHTTPServer?.stop()
+    }
+
     /// F2b: construct and start the RefreshActor, share it with the controller,
     /// and run a periodic task that refreshes the controller's monthly-totals
     /// cache + rebuilds the menu.
@@ -311,6 +321,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         // Widget bridge: assembled after the controller is up so it can read
         // `cachedMonthlyTotals` and `providerResults` synchronously.
         widgetCoordinator = WidgetSnapshotCoordinator(statusBarController: statusBarController)
+        // Loopback HTTP bridge for the widget: serves the snapshot file
+        // fresh on every request. Non-fatal if the port is taken.
+        let server = LocalHTTPServer()
+        server.start()
+        localHTTPServer = server
         monthlyTotalsRefreshTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 await self?.statusBarController?.refreshMonthlyTotalsCache()

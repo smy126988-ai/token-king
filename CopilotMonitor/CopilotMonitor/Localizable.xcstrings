@@ -1,0 +1,160 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "7 days" : {
+      "comment" : "Prediction period menu title",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 天"
+          }
+        }
+      }
+    },
+    "14 days" : {
+      "comment" : "Prediction period menu title",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "14 天"
+          }
+        }
+      }
+    },
+    "21 days" : {
+      "comment" : "Prediction period menu title",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "21 天"
+          }
+        }
+      }
+    },
+    "Event only" : {
+      "comment" : "Brave Search refresh mode menu title",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅基于事件"
+          }
+        }
+      }
+    },
+    "API sync every 6 hours" : {
+      "comment" : "Brave Search refresh mode menu title",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每 6 小时 API 同步"
+          }
+        }
+      }
+    },
+    "Hybrid (events + 6-hour API)" : {
+      "comment" : "Brave Search refresh mode menu title",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "混合（事件 + 6 小时 API）"
+          }
+        }
+      }
+    },
+    "Total Cost" : {
+      "comment" : "Menu bar display mode menu title",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总花费"
+          }
+        }
+      }
+    },
+    "Icon Only" : {
+      "comment" : "Menu bar display mode menu title",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅图标"
+          }
+        }
+      }
+    },
+    "Only Show" : {
+      "comment" : "Menu bar display mode menu title",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅显示"
+          }
+        }
+      }
+    },
+    "Pinned Provider" : {
+      "comment" : "Only-show mode menu title",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "固定服务商"
+          }
+        }
+      }
+    },
+    "Alert First" : {
+      "comment" : "Only-show mode menu title",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "告警优先"
+          }
+        }
+      }
+    },
+    "Recent Change Only" : {
+      "comment" : "Only-show mode menu title",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅最近额度变化"
+          }
+        }
+      }
+    },
+    "US Dollar ($)" : {
+      "comment" : "Currency menu title",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "US Dollar ($)"
+          }
+        }
+      }
+    },
+    "Chinese Yuan (¥)" : {
+      "comment" : "Currency menu title",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "人民币 (¥)"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

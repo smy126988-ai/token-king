@@ -20,6 +20,19 @@ enum SharedPaths {
     /// Snapshot file name — JSON encoded `WidgetSnapshot` v1.
     static let snapshotFileName = "widget-snapshot.json"
 
+    /// TCP port on 127.0.0.1 where the main app serves the current snapshot
+    /// over HTTP (`LocalHTTPServer`). Compiled into both the app (server) and
+    /// the widget (client) so both ends always agree. When the server is
+    /// unreachable the widget falls back to the file channel.
+    static let localSnapshotPort: UInt16 = 9999
+
+    /// Loopback URL the widget fetches for the freshest snapshot.
+    /// The literal is a compile-time constant and always parses; the fallback
+    /// is unreachable but avoids a force unwrap.
+    static var localSnapshotURL: URL {
+        URL(string: "http://127.0.0.1:\(localSnapshotPort)/snapshot") ?? URL(fileURLWithPath: "/dev/null")
+    }
+
     // MARK: - Path resolution
 
     /// Resolve the current user's real home directory.
