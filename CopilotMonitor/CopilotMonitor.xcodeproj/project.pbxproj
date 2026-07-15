@@ -253,6 +253,8 @@
 		WIDGETMAINBF0000000000001 /* TokenKingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETMAINFR0000000000001 /* TokenKingWidget.swift */; };
 		WIDGETVWBF0000000000001 /* TokenKingWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETVWFR0000000000001 /* TokenKingWidgetView.swift */; };
 		WIDGETDTKBF0000000000001 /* WidgetDesignToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */; };
+		WIDGETPEB0000000000000001 /* ProviderEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETPEF0000000000000001 /* ProviderEntity.swift */; };
+		WIDGETPSB0000000000000001 /* ProviderSelectionIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETPSF0000000000000001 /* ProviderSelectionIntent.swift */; };
 
 /* End PBXBuildFile section */
 
@@ -522,6 +524,8 @@
 		WIDGETMAINFR0000000000001 /* TokenKingWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenKingWidget.swift; sourceTree = "<group>"; };
 		WIDGETVWFR0000000000001 /* TokenKingWidgetView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenKingWidgetView.swift; sourceTree = "<group>"; };
 		WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetDesignToken.swift; sourceTree = "<group>"; };
+		WIDGETPEF0000000000000001 /* ProviderEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Intent/ProviderEntity.swift; sourceTree = "<group>"; };
+		WIDGETPSF0000000000000001 /* ProviderSelectionIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Intent/ProviderSelectionIntent.swift; sourceTree = "<group>"; };
 
 /* End PBXFileReference section */
 
@@ -697,6 +701,8 @@
 				WIDGETMAINFR0000000000001 /* TokenKingWidget.swift */,
 				WIDGETVWFR0000000000001 /* TokenKingWidgetView.swift */,
 				WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */,
+				WIDGETPEF0000000000000001 /* ProviderEntity.swift */,
+				WIDGETPSF0000000000000001 /* ProviderSelectionIntent.swift */,
 				WIDGETAEX000000000000000 /* TokenKingWidget.appex */,
 			);
 			path = TokenKingWidget;
@@ -1406,6 +1412,8 @@
 				WIDGETMAINBF0000000000001 /* TokenKingWidget.swift in Sources */,
 				WIDGETVWBF0000000000001 /* TokenKingWidgetView.swift in Sources */,
 				WIDGETDTKBF0000000000001 /* WidgetDesignToken.swift in Sources */,
+				WIDGETPEB0000000000000001 /* ProviderEntity.swift in Sources */,
+				WIDGETPSB0000000000000001 /* ProviderSelectionIntent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1777,7 +1785,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TokenKingWidget/TokenKingWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
@@ -1802,7 +1810,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TokenKingWidget/TokenKingWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;

@@ -42,6 +42,8 @@ enum WidgetDesignToken {
     static let captionSize: CGFloat = 11
     static let mLabelSize: CGFloat = 9.5
     static let portSize: CGFloat = 10
+    static let slashLimitSize: CGFloat = 14
+    static let footerSize: CGFloat = 10
     // Back-compat aliases (existing views reference these).
     static let percentSize: CGFloat = 24
     static let percentLargeSize: CGFloat = 34
@@ -50,6 +52,8 @@ enum WidgetDesignToken {
     static let rowGap: CGFloat = 6
     static let sectionGap: CGFloat = 13
     static let smallGap: CGFloat = 4
+    static let largeRowGap: CGFloat = 8
+    static let largeBarTopMargin: CGFloat = 7
 
     // MARK: Metrics (DESIGN.md metrics)
     static let cardCornerRadius: CGFloat = 22
@@ -60,7 +64,52 @@ enum WidgetDesignToken {
     static let dotSize: CGFloat = 8
     static let hairline: CGFloat = 0.5
     static let iconSize: CGFloat = 14
+    static let ringIconSize: CGFloat = 24
+    static let mediumIconSize: CGFloat = 16
+    static let largeIconSize: CGFloat = 15
+    static let mediumRefreshSize: CGFloat = 23
+    static let smallRefreshRadius: CGFloat = 7
     static let statusDotSize: CGFloat = 8
+
+    // MARK: Layout constants (no stray literals in views)
+    static let zeroInt: Int = 0
+    static let singleLine: Int = 1
+    static let singleWindowCount: Int = 1
+    static let mediumVisibleCount: Int = 1
+    static let largeVisibleCount: Int = 5
+    static let snapshotVersion: Int = 1
+
+    static let zeroDouble: Double = 0
+    static let percentMax: Double = 100
+    static let secondsPerHour: Double = 3600
+    static let ringStart: CGFloat = 0
+    static let ringRotation: Double = -90
+    static let trackOpacity: Double = 0.13
+    static let badgeBackgroundOpacity: Double = 0.05
+    static let badgeStrokeOpacity: Double = 0.10
+    static let hairlineOpacity: Double = 0.5
+    static let zeroSpacing: CGFloat = 0
+    static let tinyGap: CGFloat = 2
+    static let zeroLength: CGFloat = 0
+    static let badgeHPadding: CGFloat = 7
+    static let badgeVPadding: CGFloat = 2
+    static let badgeRadius: CGFloat = 6
+    static let mediumLabelWidth: CGFloat = 50
+    static let percentMinWidth: CGFloat = 36
+
+    // MARK: Provider identifiers for widgets that filter by kind.
+    enum ProviderID {
+        static let braveSearch = "brave_search"
+        static let tavilySearch = "tavily_search"
+    }
+
+    // MARK: Preview fixture values
+    static let fixtureResetHours: Int = 240
+    static let fixtureKimiPercent: Double = 87
+    static let fixtureCodex5hPercent: Double = 25
+    static let fixtureCodexWeeklyPercent: Double = 59
+    static let fixtureClaudePercent: Double = 40
+    static let fixtureKiroPercent: Double = 28.5
 
     // MARK: Severity colours (DESIGN.md severity)
     enum Severity {
@@ -100,34 +149,74 @@ enum WidgetDesignToken {
     }
 
     // MARK: Glass card (DESIGN.md glass)
+    // Light-touch glass: a glossy top→bottom sheen + hairline rim, applied
+    // OVER the aurora so the colour shows through (not an opaque veil).
     enum Glass {
+        /// Back-compat (no longer used for a full veil; kept for callers/tests).
         static func fill(_ s: ColorScheme) -> Color { .themed(light: Color(hex: "#ffffff"), dark: Color(hex: "#1c1e24"), scheme: s) }
         static func opacity(_ s: ColorScheme) -> Double { s == .dark ? 0.30 : 0.24 }
+
+        /// Glossy highlight at the card's top edge.
+        static func sheenTop(_ s: ColorScheme) -> Color {
+            .themed(light: Color(hex: "#ffffff").opacity(0.35),
+                    dark: Color(hex: "#ffffff").opacity(0.14), scheme: s)
+        }
+        /// Sheen fades to (near) clear at the bottom so aurora dominates.
+        static func sheenBottom(_ s: ColorScheme) -> Color {
+            .themed(light: Color(hex: "#ffffff").opacity(0.06),
+                    dark: Color(hex: "#ffffff").opacity(0.02), scheme: s)
+        }
+        /// Hairline rim — the primary carrier of the glass illusion.
+        static func rim(_ s: ColorScheme) -> Color {
+            .themed(light: Color(hex: "#ffffff").opacity(0.55),
+                    dark: Color(hex: "#ffffff").opacity(0.22), scheme: s)
+        }
     }
 }
 
 // MARK: - Layer 3: GlassCard modifier
 
-/// Frosted glass card matching the prototype's `.widget` container:
-/// rounded rect + hairline stroke + ultraThinMaterial veil tinted per scheme.
-/// WidgetKit's Material blurs only the widget's own content (not the desktop
-/// wallpaper) — this is the platform ceiling, DESIGN.md §1.2.
+/// Frosted glass surface over the aurora `containerBackground`.
+///
+/// P0 fix (DESIGN.md §1.2 / Apple `Material` docs): WidgetKit's `Material`
+/// blurs only the widget's own content, NOT the desktop wallpaper — so a
+/// full-bleed `.ultraThinMaterial` + opaque white veil covers 100% of the
+/// aurora and washes it to near-white. The prototype's glass feel comes from
+/// EDGE treatment, not a blurred surface: a light top→bottom sheen (glossy
+/// highlight) + a hairline rim. The aurora shows through as vivid colour.
+///
+/// The whole aesthetic is gated to `.fullColor`; in `.vibrant`/`.accented`
+/// the system desaturates/removes backgrounds, so we skip the sheen there.
 struct GlassCard: ViewModifier {
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.widgetRenderingMode) private var renderingMode
 
     func body(content: Content) -> some View {
-        content.background(
-            RoundedRectangle(cornerRadius: WidgetDesignToken.cardCornerRadius, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: WidgetDesignToken.cardCornerRadius, style: .continuous)
-                        .fill(WidgetDesignToken.Glass.fill(scheme).opacity(WidgetDesignToken.Glass.opacity(scheme)))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: WidgetDesignToken.cardCornerRadius, style: .continuous)
-                        .strokeBorder(.tertiary.opacity(0.5), lineWidth: WidgetDesignToken.hairline)
-                )
-        )
+        content.background {
+            if renderingMode == .fullColor {
+                let shape = RoundedRectangle(cornerRadius: WidgetDesignToken.cardCornerRadius, style: .continuous)
+                shape
+                    // Glossy sheen: bright at the top, fading to clear — reads as
+                    // a glass surface without hiding the aurora underneath.
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                WidgetDesignToken.Glass.sheenTop(scheme),
+                                WidgetDesignToken.Glass.sheenBottom(scheme)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    // Hairline rim — the primary carrier of the glass illusion.
+                    .overlay(
+                        shape.strokeBorder(
+                            WidgetDesignToken.Glass.rim(scheme),
+                            lineWidth: WidgetDesignToken.hairline
+                        )
+                    )
+            }
+        }
     }
 }
 
