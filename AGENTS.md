@@ -140,7 +140,11 @@ log stream --predicate 'subsystem == "com.opencodeproviders"' --level debug
 - **When to run**: every time `TokenKingWidget.appex`'s entitlements,
   `Shared/WidgetSnapshotReader.swift`, or `TokenKingWidget/TokenKingWidget.swift`
   changes. The P0 commit / release workflow must include this checklist.
-- **How to run**:
+- **Manual scenarios**: run `./scripts/r18-manual-test.sh` on a real desktop.
+  It performs the kill-app / remove-file / corrupt / truncate / stale /
+  restart operations one scenario at a time and prints the expected desktop
+  result for a human to confirm; the original snapshot is restored on exit.
+- **How to run manually** (what the script automates):
   1. Build + ad-hoc sign: `make release`.
   2. Launch the app; let the writer run (snapshot appears in
      `~/Library/Application Support/com.tokenking.app.shared/widget-snapshot.json`).
