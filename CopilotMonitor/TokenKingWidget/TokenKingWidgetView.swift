@@ -7,7 +7,12 @@ struct TokenKingWidgetView: View {
     let entry: TokenKingEntry
 
     var body: some View {
+        // The aurora background is a light gradient in both appearances, so pin
+        // content to the light colour scheme — Ink.primary/secondary then resolve
+        // to the dark ink that reads on the gradient (matches quota-float's
+        // light-card / dark-text pairing). The system still handles vibrant.
         innerContent
+            .environment(\.colorScheme, .light)
     }
 
     @ViewBuilder

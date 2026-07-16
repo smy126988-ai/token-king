@@ -140,6 +140,49 @@ enum WidgetDesignToken {
         static let kimi = Color(hex: "#1783ff")
     }
 
+    // MARK: Aurora tiers — quota-float palette (colours only, drawn as a single
+    // gradient layer in containerBackground; NO material/scrim on top, which is
+    // what turned the old aurora muddy in fullColor). See the design-tokens doc.
+    enum Aurora {
+        struct Tier {
+            let cool: Color
+            let glow: Color
+            let warm: Color
+            let linearMid: Color
+            let linearWarm: Color
+            let linearEnd: Color
+            let opacity: Double
+            let angle: Double // gradient-angle in degrees
+        }
+
+        static let healthy = Tier(
+            cool: Color(hex: "#b9d5ee"), glow: Color(hex: "#dff4e5"), warm: Color(hex: "#c7ddf2"),
+            linearMid: Color(hex: "#c7c9d1"), linearWarm: Color(hex: "#c7ddf2"), linearEnd: Color(hex: "#eef4fb"),
+            opacity: 0.42, angle: 145)
+        static let caution = Tier(
+            cool: Color(hex: "#b7d0ec"), glow: Color(hex: "#fff0ba"), warm: Color(hex: "#f4c979"),
+            linearMid: Color(hex: "#c7c9d1"), linearWarm: Color(hex: "#e4e7ed"), linearEnd: Color(hex: "#f1f5f8"),
+            opacity: 0.50, angle: 213)
+        static let critical = Tier(
+            cool: Color(hex: "#c4cee0"), glow: Color(hex: "#ffd8a8"), warm: Color(hex: "#f07260"),
+            linearMid: Color(hex: "#c7c9d1"), linearWarm: Color(hex: "#e3e4e9"), linearEnd: Color(hex: "#f3f5f8"),
+            opacity: 0.56, angle: 213)
+
+        /// Pick a tier from used-percent, matching Severity thresholds (amber 60, red 85).
+        static func tier(forUsedPercent p: Double) -> Tier {
+            if p >= WidgetDesignToken.Severity.redAt { return critical }
+            if p >= WidgetDesignToken.Severity.amberAt { return caution }
+            return healthy
+        }
+    }
+
+    // Ink for content sitting on the light aurora gradient — quota-float uses
+    // near-black #17191f on its light card. Kept separate from the dark-card Ink.
+    enum AuroraInk {
+        static let primary = Color(hex: "#17191f")
+        static let secondary = Color(red: 0.09, green: 0.10, blue: 0.12).opacity(0.62)
+        static let faint = Color(red: 0.09, green: 0.10, blue: 0.12).opacity(0.42)
+    }
 }
 
 // Layer 3 removed: the system owns the widget background on the macOS

@@ -39,12 +39,10 @@ struct TokenKingWidgetSmall: Widget {
         AppIntentConfiguration(kind: kind, intent: ProviderSelectionIntent.self, provider: SmallProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    // Let the system own the background: on the macOS desktop it
-                    // provides the wallpaper-aware frosted material (native look)
-                    // and removes/replaces this in vibrant/accented modes. Drawing
-                    // our own gradient here fought the system and looked muddy in
-                    // fullColor.
-                    Color.clear
+                    // Single-layer tier gradient (quota-float palette). Pure
+                    // SwiftUI gradient, no material/scrim — renders full-colour
+                    // on the desktop; the system replaces it in vibrant/accented.
+                    AuroraBackgroundView(snapshot: entry.snapshot)
                 }
         }
         .configurationDisplayName("Token King Small")
@@ -60,12 +58,10 @@ struct TokenKingWidgetMediumOverview: Widget {
         StaticConfiguration(kind: kind, provider: MediumOverviewProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    // Let the system own the background: on the macOS desktop it
-                    // provides the wallpaper-aware frosted material (native look)
-                    // and removes/replaces this in vibrant/accented modes. Drawing
-                    // our own gradient here fought the system and looked muddy in
-                    // fullColor.
-                    Color.clear
+                    // Single-layer tier gradient (quota-float palette). Pure
+                    // SwiftUI gradient, no material/scrim — renders full-colour
+                    // on the desktop; the system replaces it in vibrant/accented.
+                    AuroraBackgroundView(snapshot: entry.snapshot)
                 }
         }
         .configurationDisplayName("Token King Medium Overview")
@@ -81,12 +77,10 @@ struct TokenKingWidgetMediumDetail: Widget {
         AppIntentConfiguration(kind: kind, intent: ProviderSelectionIntent.self, provider: MediumDetailProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    // Let the system own the background: on the macOS desktop it
-                    // provides the wallpaper-aware frosted material (native look)
-                    // and removes/replaces this in vibrant/accented modes. Drawing
-                    // our own gradient here fought the system and looked muddy in
-                    // fullColor.
-                    Color.clear
+                    // Single-layer tier gradient (quota-float palette). Pure
+                    // SwiftUI gradient, no material/scrim — renders full-colour
+                    // on the desktop; the system replaces it in vibrant/accented.
+                    AuroraBackgroundView(snapshot: entry.snapshot)
                 }
         }
         .configurationDisplayName("Token King Medium Detail")
@@ -102,12 +96,10 @@ struct TokenKingWidgetLargeOverview: Widget {
         StaticConfiguration(kind: kind, provider: LargeOverviewProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    // Let the system own the background: on the macOS desktop it
-                    // provides the wallpaper-aware frosted material (native look)
-                    // and removes/replaces this in vibrant/accented modes. Drawing
-                    // our own gradient here fought the system and looked muddy in
-                    // fullColor.
-                    Color.clear
+                    // Single-layer tier gradient (quota-float palette). Pure
+                    // SwiftUI gradient, no material/scrim — renders full-colour
+                    // on the desktop; the system replaces it in vibrant/accented.
+                    AuroraBackgroundView(snapshot: entry.snapshot)
                 }
         }
         .configurationDisplayName("Token King Large Overview")
@@ -123,12 +115,10 @@ struct TokenKingWidgetLargeDetail: Widget {
         AppIntentConfiguration(kind: kind, intent: ProviderSelectionIntent.self, provider: LargeDetailProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    // Let the system own the background: on the macOS desktop it
-                    // provides the wallpaper-aware frosted material (native look)
-                    // and removes/replaces this in vibrant/accented modes. Drawing
-                    // our own gradient here fought the system and looked muddy in
-                    // fullColor.
-                    Color.clear
+                    // Single-layer tier gradient (quota-float palette). Pure
+                    // SwiftUI gradient, no material/scrim — renders full-colour
+                    // on the desktop; the system replaces it in vibrant/accented.
+                    AuroraBackgroundView(snapshot: entry.snapshot)
                 }
         }
         .configurationDisplayName("Token King Large Detail")
@@ -144,17 +134,57 @@ struct TokenKingWidgetSearchEngines: Widget {
         StaticConfiguration(kind: kind, provider: SearchEnginesProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    // Let the system own the background: on the macOS desktop it
-                    // provides the wallpaper-aware frosted material (native look)
-                    // and removes/replaces this in vibrant/accented modes. Drawing
-                    // our own gradient here fought the system and looked muddy in
-                    // fullColor.
-                    Color.clear
+                    // Single-layer tier gradient (quota-float palette). Pure
+                    // SwiftUI gradient, no material/scrim — renders full-colour
+                    // on the desktop; the system replaces it in vibrant/accented.
+                    AuroraBackgroundView(snapshot: entry.snapshot)
                 }
         }
         .configurationDisplayName("Token King Search Engines")
         .description("Brave + Tavily search usage.")
         .supportedFamilies([.systemLarge])
+    }
+}
+
+// MARK: - Aurora background
+
+/// Single-layer tier gradient drawn into `containerBackground`. Colours come
+/// from the quota-float palette (WidgetDesignToken.Aurora). This is a pure
+/// SwiftUI gradient — NO `.ultraThinMaterial` / scrim on top, which is what
+/// turned the previous aurora muddy in fullColor. Self-contained pixels render
+/// as full colour on the desktop; in vibrant/accented the system replaces it.
+struct AuroraBackgroundView: View {
+    let tier: WidgetDesignToken.Aurora.Tier
+
+    init(snapshot: WidgetSnapshot?) {
+        let peak = snapshot?.providers
+            .flatMap { $0.windows }
+            .map { $0.usedPercent }
+            .max() ?? WidgetDesignToken.zeroDouble
+        self.tier = WidgetDesignToken.Aurora.tier(forUsedPercent: peak)
+    }
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [tier.cool, tier.linearMid, tier.linearWarm, tier.linearEnd],
+                startPoint: angleStart, endPoint: angleEnd
+            )
+            RadialGradient(colors: [tier.cool.opacity(0.9), .clear],
+                           center: UnitPoint(x: 0.52, y: 0.12), startRadius: 0, endRadius: 220)
+            RadialGradient(colors: [tier.glow.opacity(0.78), .clear],
+                           center: UnitPoint(x: 0.28, y: 0.68), startRadius: 0, endRadius: 170)
+            RadialGradient(colors: [tier.warm.opacity(0.64), .clear],
+                           center: UnitPoint(x: 0.82, y: 0.82), startRadius: 0, endRadius: 150)
+        }
+    }
+
+    // Map CSS gradient-angle (deg, 0 = up) to SwiftUI start/end unit points.
+    private var angleStart: UnitPoint {
+        tier.angle < 180 ? .topLeading : .bottomLeading
+    }
+    private var angleEnd: UnitPoint {
+        tier.angle < 180 ? .bottomTrailing : .topTrailing
     }
 }
 
