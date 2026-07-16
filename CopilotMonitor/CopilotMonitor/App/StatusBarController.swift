@@ -1132,6 +1132,21 @@ final class StatusBarController: NSObject {
         return payAsYouGoInCurrency + subscriptionsInCurrency
     }
 
+    /// Real monthly spend for the widget: actual pay-as-you-go charges plus the
+    /// user's configured subscription fees. This is what the user actually pays
+    /// — not the token-volume API-equivalent estimate that overstates cost by
+    /// orders of magnitude for subscription users. Returns `nil` when there is
+    /// no spend to report so the widget hides the row instead of showing $0.
+    func widgetMonthlySpend() -> MonthlyCost? {
+        let payAsYouGoUSD = calculatePayAsYouGoTotal(providerResults: providerResults, copilotUsage: currentUsage)
+        let subscriptionsUSD = SubscriptionSettingsManager.shared.totalMonthlyCost(inCurrency: .usd, formatter: currencyFormatter)
+        let usd = payAsYouGoUSD + subscriptionsUSD
+        guard usd > 0 else { return nil }
+        let rate = currencyFormatter.currentRate
+        let rmb = rate > 0 ? usd * rate : nil
+        return MonthlyCost(usd: usd, rmb: rmb)
+    }
+
     private struct AlertProviderCandidate {
         let identifier: ProviderIdentifier
         let usedPercent: Double

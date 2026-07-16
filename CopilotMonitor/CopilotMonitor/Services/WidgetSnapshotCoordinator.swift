@@ -49,42 +49,13 @@ final class WidgetSnapshotCoordinator {
 
     /// Compose a snapshot from the controller's cached state.
     private func buildSnapshot(controller: StatusBarController) -> WidgetSnapshot {
-        let monthlyCost = computeMonthlyCost(controller: controller)
+        // Real monthly spend (actual pay-as-you-go charges + subscription fees),
+        // not the token-volume API-equivalent estimate that overstated cost by
+        // orders of magnitude for subscription users.
+        let monthlyCost = controller.widgetMonthlySpend()
         return WidgetSnapshotMapper.makeSnapshot(
             providerResults: controller.providerResults,
             monthlyCost: monthlyCost
         )
-    }
-
-    /// Aggregate monthly cost from `cachedMonthlyTotals`.
-    ///
-    /// `MonthlyTotal` only carries RMB (per-provider, derived from
-    /// `MonthCostCalculator` against the pricing table). We sum the RMB
-    /// column and derive USD via `CurrencyFormatter.currentRate`
-    /// (USD→CNY exchange rate), so the widget's USD figure tracks what the
-    /// menu's "monthly API equivalent" section displays after the same conversion.
-    ///
-    /// Returns `nil` when there is nothing to report (no provider data yet),
-    /// so the widget can show "no data" rather than "$0.00".
-    private func computeMonthlyCost(controller: StatusBarController) -> MonthlyCost? {
-        let totals = controller.cachedMonthlyTotals
-        guard !totals.isEmpty else { return nil }
-
-        let rmb = totals.reduce(0.0) { $0 + $1.totalCostRMB }
-        guard rmb > 0 else { return nil }
-
-        // rate is USD→CNY: usd * rate == rmb. Guard against zero / negative
-        // rate (shouldn't happen — CurrencyFormatter falls back to 7.2 — but
-        // a misconfigured formatter or pre-init write must not produce inf/NaN
-        // in the JSON that the widget would then display as garbage).
-        let rate = controller.currencyFormatter.currentRate
-        guard rate > 0 else {
-            // RMB is meaningful but USD is not — still emit a partial snapshot
-            // so the widget can show RMB; drop the bad USD field.
-            return MonthlyCost(usd: 0, rmb: rmb)
-        }
-
-        let usd = rmb / rate
-        return MonthlyCost(usd: usd, rmb: rmb)
     }
 }
