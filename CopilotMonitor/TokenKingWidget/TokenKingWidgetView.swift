@@ -8,7 +8,6 @@ struct TokenKingWidgetView: View {
 
     var body: some View {
         innerContent
-            .glassCard()
     }
 
     @ViewBuilder

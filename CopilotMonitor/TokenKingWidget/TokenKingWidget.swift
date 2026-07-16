@@ -39,7 +39,12 @@ struct TokenKingWidgetSmall: Widget {
         AppIntentConfiguration(kind: kind, intent: ProviderSelectionIntent.self, provider: SmallProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    AuroraBackgroundView()
+                    // Let the system own the background: on the macOS desktop it
+                    // provides the wallpaper-aware frosted material (native look)
+                    // and removes/replaces this in vibrant/accented modes. Drawing
+                    // our own gradient here fought the system and looked muddy in
+                    // fullColor.
+                    Color.clear
                 }
         }
         .configurationDisplayName("Token King Small")
@@ -55,7 +60,12 @@ struct TokenKingWidgetMediumOverview: Widget {
         StaticConfiguration(kind: kind, provider: MediumOverviewProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    AuroraBackgroundView()
+                    // Let the system own the background: on the macOS desktop it
+                    // provides the wallpaper-aware frosted material (native look)
+                    // and removes/replaces this in vibrant/accented modes. Drawing
+                    // our own gradient here fought the system and looked muddy in
+                    // fullColor.
+                    Color.clear
                 }
         }
         .configurationDisplayName("Token King Medium Overview")
@@ -71,7 +81,12 @@ struct TokenKingWidgetMediumDetail: Widget {
         AppIntentConfiguration(kind: kind, intent: ProviderSelectionIntent.self, provider: MediumDetailProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    AuroraBackgroundView()
+                    // Let the system own the background: on the macOS desktop it
+                    // provides the wallpaper-aware frosted material (native look)
+                    // and removes/replaces this in vibrant/accented modes. Drawing
+                    // our own gradient here fought the system and looked muddy in
+                    // fullColor.
+                    Color.clear
                 }
         }
         .configurationDisplayName("Token King Medium Detail")
@@ -87,7 +102,12 @@ struct TokenKingWidgetLargeOverview: Widget {
         StaticConfiguration(kind: kind, provider: LargeOverviewProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    AuroraBackgroundView()
+                    // Let the system own the background: on the macOS desktop it
+                    // provides the wallpaper-aware frosted material (native look)
+                    // and removes/replaces this in vibrant/accented modes. Drawing
+                    // our own gradient here fought the system and looked muddy in
+                    // fullColor.
+                    Color.clear
                 }
         }
         .configurationDisplayName("Token King Large Overview")
@@ -103,7 +123,12 @@ struct TokenKingWidgetLargeDetail: Widget {
         AppIntentConfiguration(kind: kind, intent: ProviderSelectionIntent.self, provider: LargeDetailProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    AuroraBackgroundView()
+                    // Let the system own the background: on the macOS desktop it
+                    // provides the wallpaper-aware frosted material (native look)
+                    // and removes/replaces this in vibrant/accented modes. Drawing
+                    // our own gradient here fought the system and looked muddy in
+                    // fullColor.
+                    Color.clear
                 }
         }
         .configurationDisplayName("Token King Large Detail")
@@ -119,70 +144,17 @@ struct TokenKingWidgetSearchEngines: Widget {
         StaticConfiguration(kind: kind, provider: SearchEnginesProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    AuroraBackgroundView()
+                    // Let the system own the background: on the macOS desktop it
+                    // provides the wallpaper-aware frosted material (native look)
+                    // and removes/replaces this in vibrant/accented modes. Drawing
+                    // our own gradient here fought the system and looked muddy in
+                    // fullColor.
+                    Color.clear
                 }
         }
         .configurationDisplayName("Token King Search Engines")
         .description("Brave + Tavily search usage.")
         .supportedFamilies([.systemLarge])
-    }
-}
-
-// MARK: - Aurora background (P2 V1)
-
-/// Decorative aurora gradient + ultraThinMaterial glass overlay.
-///
-/// Colour values are defined in `WidgetDesignToken.Aurora` (copied from the
-/// approved prototype). SwiftUI can't reproduce the CSS `radial-gradient(Npx
-/// at X% Y%)` exactly, so we approximate with two offset `RadialGradient`s
-/// plus a base `LinearGradient`. Goal: the same "warm peach → pink → lavender"
-/// mood in light, "deep teal → indigo → near-black" in dark, with a glass
-/// veil on top so the content stays readable.
-struct AuroraBackgroundView: View {
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        ZStack {
-            baseLinear
-            ForEach(Array(radialStops.enumerated()), id: \.offset) { idx, color in
-                RadialGradient(
-                    colors: [color.opacity(0.6), color.opacity(0)],
-                    center: radialCenters[idx % radialCenters.count],
-                    startRadius: 8,
-                    endRadius: 220
-                )
-                .blendMode(.plusLighter)
-            }
-        }
-    }
-
-    private var linearStops: [Color] {
-        colorScheme == .dark
-            ? WidgetDesignToken.Aurora.darkLinear
-            : WidgetDesignToken.Aurora.lightLinear
-    }
-
-    private var radialStops: [Color] {
-        colorScheme == .dark
-            ? WidgetDesignToken.Aurora.darkRadial
-            : WidgetDesignToken.Aurora.lightRadial
-    }
-
-    /// Radial focal anchors approximating the prototype's
-    /// `radial-gradient(... at 6% 0% / 100% 100% / 55% 50%)` positions.
-    private let radialCenters: [UnitPoint] = [
-        UnitPoint(x: 0.06, y: 0.0),
-        UnitPoint(x: 1.0, y: 1.0),
-        .center
-    ]
-
-    /// Base linear wash (150deg peach→pink→lavender / teal→indigo→black).
-    private var baseLinear: some View {
-        LinearGradient(
-            colors: linearStops,
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
     }
 }
 

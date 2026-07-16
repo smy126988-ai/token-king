@@ -8,7 +8,7 @@ import Foundation
 // Change the visual there first, then update these values. No stray hex.
 //   Layer 1: Color(hex:) / Color(light:dark:)   — value primitives
 //   Layer 2: WidgetDesignToken enum              — named tokens
-//   Layer 3: AuroraBackground / GlassCard        — composite views (see below)
+//   (Layer 3 composite views removed: the system owns the widget background)
 // ============================================================================
 
 // MARK: - Layer 1: Color primitives
@@ -140,49 +140,11 @@ enum WidgetDesignToken {
         static let kimi = Color(hex: "#1783ff")
     }
 
-    // MARK: Aurora background (DESIGN.md aurora) — decorative gradient.
-    enum Aurora {
-        static let lightRadial: [Color] = ["#ffb98f", "#e9a9e0", "#b9a8f0"].map(Color.init(hex:))
-        static let lightLinear: [Color] = ["#ffcaa0", "#eebbe0", "#c7d0f2"].map(Color.init(hex:))
-        static let darkRadial: [Color] = ["#1a3a44", "#281c44"].map(Color.init(hex:))
-        static let darkLinear: [Color] = ["#0d1316", "#13101f", "#0c1417"].map(Color.init(hex:))
-    }
-
-    // MARK: Glass card (DESIGN.md glass)
-    enum Glass {
-        static func fill(_ s: ColorScheme) -> Color { .themed(light: Color(hex: "#ffffff"), dark: Color(hex: "#1c1e24"), scheme: s) }
-        static func opacity(_ s: ColorScheme) -> Double { s == .dark ? 0.30 : 0.24 }
-    }
 }
 
-// MARK: - Layer 3: GlassCard modifier
-
-/// Frosted glass card matching the prototype's `.widget` container:
-/// rounded rect + hairline stroke + ultraThinMaterial veil tinted per scheme.
-/// WidgetKit's Material blurs only the widget's own content (not the desktop
-/// wallpaper) — this is the platform ceiling, DESIGN.md §1.2.
-struct GlassCard: ViewModifier {
-    @Environment(\.colorScheme) private var scheme
-
-    func body(content: Content) -> some View {
-        content.background(
-            RoundedRectangle(cornerRadius: WidgetDesignToken.cardCornerRadius, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: WidgetDesignToken.cardCornerRadius, style: .continuous)
-                        .fill(WidgetDesignToken.Glass.fill(scheme).opacity(WidgetDesignToken.Glass.opacity(scheme)))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: WidgetDesignToken.cardCornerRadius, style: .continuous)
-                        .strokeBorder(.tertiary.opacity(WidgetDesignToken.hairlineOpacity), lineWidth: WidgetDesignToken.hairline)
-                )
-        )
-    }
-}
-
-extension View {
-    func glassCard() -> some View { modifier(GlassCard()) }
-}
+// Layer 3 removed: the system owns the widget background on the macOS
+// desktop (wallpaper-aware frosted material via containerBackground).
+// Branding comes from content tokens (Severity/Ink/Brand), not a background.
 
 // MARK: - Helpers (unchanged behaviour)
 
