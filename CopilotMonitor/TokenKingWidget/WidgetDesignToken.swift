@@ -44,6 +44,51 @@ enum WidgetDesignToken {
     static let portSize: CGFloat = 10
     static let slashLimitSize: CGFloat = 14
     static let footerSize: CGFloat = 10
+
+    // MARK: Percent-hero typography (quota-float exact)
+    static let percentHeroSize: CGFloat = 64
+    static let percentHeroMediumSize: CGFloat = 48
+    static let percentHeroWeight: Font.Weight = .medium
+    static let percentHeroTracking: CGFloat = -4
+    static let percentHeroSmallTracking: CGFloat = -2
+    static let percentSuffixSize: CGFloat = 21
+    static let percentSuffixWeight: Font.Weight = .bold
+    static let percentSuffixTracking: CGFloat = -1
+    static let eyebrowSize: CGFloat = 14
+    static let eyebrowWeight: Font.Weight = .semibold
+    static let eyebrowTracking: CGFloat = 2.5
+    static let updatedSize: CGFloat = 14
+    static let updatedWeight: Font.Weight = .medium
+    static let updatedTracking: CGFloat = 1.1
+    static let updatedOpacity: Double = 0.9
+    static let resetTimeSize: CGFloat = 12
+    static let resetTimeOpacity: Double = 0.52
+    static let orbSize: CGFloat = 27
+    static let orbWeight: Font.Weight = .semibold
+    static let orbSuffixSize: CGFloat = 10
+    static let orbSuffixWeight: Font.Weight = .bold
+    static let orbSuffixSpacing: CGFloat = 1
+    static let orbTracking: CGFloat = -1.6
+
+    // MARK: QuotaCard adaptation (medium) + canvas-scaled orb (small) — 2026-07-16
+    // Small-widget orb scaled from quota-float QuotaOrb: 27px number in an 80px orb
+    // → 56px on the ~166pt systemSmall canvas (27 × 166/80 ≈ 56).
+    static let orbHeroSize: CGFloat = 56
+    static let orbHeroTracking: CGFloat = -3.4   // -.06em at 56px (quota-float orb-metric letter-spacing)
+    static let orbHeroSuffixSpacing: CGFloat = 2
+    // Medium hero: quota-float primary-metric is 64px; 48px (percentHeroMediumSize) is the
+    // established vertical scale for the 166pt card. -.07em at 48px ≈ -3.4.
+    static let mediumHeroTracking: CGFloat = -3.4
+    static let resetTimeTracking: CGFloat = 0.6  // .05em at 12px (quota-float .reset-time)
+    // Footer secondary metric (quota-float weekly-metric 30px → 17px at the 0.57 vertical scale).
+    static let weeklyNumberSize: CGFloat = 17
+    static let weeklyLabelTracking: CGFloat = 1  // ≈.08em at 12px, kept readable at 10px
+    static let mediumFooterIconSize: CGFloat = 20
+
+    // MARK: Progress bar effects
+    static let barGlowRadius: CGFloat = 8
+    static let barGlowOpacity: Double = 0.38
+
     // Back-compat aliases (existing views reference these).
     static let percentSize: CGFloat = 24
     static let percentLargeSize: CGFloat = 34
@@ -56,11 +101,14 @@ enum WidgetDesignToken {
     static let largeBarTopMargin: CGFloat = 7
 
     // MARK: Metrics (DESIGN.md metrics)
-    static let cardCornerRadius: CGFloat = 22
+    static let cardCornerRadius: CGFloat = 28
     static let barHeight: CGFloat = 6
+    static let largeBarHeight: CGFloat = 9
     static let barRadius: CGFloat = 6
     static let ringStroke: CGFloat = 7
     static let ringDiameter: CGFloat = 66
+    static let orbRingStroke: CGFloat = 9
+    static let orbRingDiameter: CGFloat = 78
     static let dotSize: CGFloat = 8
     static let hairline: CGFloat = 0.5
     static let iconSize: CGFloat = 14
@@ -151,6 +199,8 @@ enum WidgetDesignToken {
             let linearMid: Color
             let linearWarm: Color
             let linearEnd: Color
+            let progressStart: Color
+            let progressEnd: Color
             let opacity: Double
             let angle: Double // gradient-angle in degrees
         }
@@ -158,14 +208,17 @@ enum WidgetDesignToken {
         static let healthy = Tier(
             cool: Color(hex: "#b9d5ee"), glow: Color(hex: "#dff4e5"), warm: Color(hex: "#c7ddf2"),
             linearMid: Color(hex: "#c7c9d1"), linearWarm: Color(hex: "#c7ddf2"), linearEnd: Color(hex: "#eef4fb"),
+            progressStart: Color(hex: "#397ae0"), progressEnd: Color(hex: "#91baf0"),
             opacity: 0.42, angle: 145)
         static let caution = Tier(
             cool: Color(hex: "#b7d0ec"), glow: Color(hex: "#fff0ba"), warm: Color(hex: "#f4c979"),
             linearMid: Color(hex: "#c7c9d1"), linearWarm: Color(hex: "#e4e7ed"), linearEnd: Color(hex: "#f1f5f8"),
+            progressStart: Color(hex: "#4d88d8"), progressEnd: Color(hex: "#9fc2ee"),
             opacity: 0.50, angle: 213)
         static let critical = Tier(
             cool: Color(hex: "#c4cee0"), glow: Color(hex: "#ffd8a8"), warm: Color(hex: "#f07260"),
             linearMid: Color(hex: "#c7c9d1"), linearWarm: Color(hex: "#e3e4e9"), linearEnd: Color(hex: "#f3f5f8"),
+            progressStart: Color(hex: "#ff7848"), progressEnd: Color(hex: "#ffd064"),
             opacity: 0.56, angle: 213)
 
         /// Pick a tier from used-percent, matching Severity thresholds (amber 60, red 85).
@@ -173,6 +226,12 @@ enum WidgetDesignToken {
             if p >= WidgetDesignToken.Severity.redAt { return critical }
             if p >= WidgetDesignToken.Severity.amberAt { return caution }
             return healthy
+        }
+
+        /// Gradient fill colours for the glowing progress bar.
+        static func progressGradient(forUsedPercent p: Double) -> (start: Color, end: Color) {
+            let tier = tier(forUsedPercent: p)
+            return (start: tier.progressStart, end: tier.progressEnd)
         }
     }
 

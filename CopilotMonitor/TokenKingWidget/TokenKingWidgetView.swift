@@ -8,8 +8,8 @@ struct TokenKingWidgetView: View {
 
     var body: some View {
         // The aurora background is a light gradient in both appearances, so pin
-        // content to the light colour scheme — Ink.primary/secondary then resolve
-        // to the dark ink that reads on the gradient (matches quota-float's
+        // content to the light colour scheme — AuroraInk.primary/secondary/faint
+        // are the dark inks that read on the gradient (matches quota-float's
         // light-card / dark-text pairing). The system still handles vibrant.
         innerContent
             .environment(\.colorScheme, .light)
@@ -62,7 +62,6 @@ struct TokenKingWidgetView: View {
 // MARK: - Empty state + stale badge
 
 struct EmptyStateView: View {
-    @Environment(\.colorScheme) private var scheme
     let message: String
     var detail: String? = nil
 
@@ -70,15 +69,15 @@ struct EmptyStateView: View {
         VStack(spacing: WidgetDesignToken.smallGap) {
             Image(systemName: "questionmark.circle")
                 .font(.title2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
             Text(message)
                 .font(.system(size: WidgetDesignToken.bodySize))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
                 .multilineTextAlignment(.center)
             if let detail = detail {
                 Text(detail)
                     .font(.system(size: WidgetDesignToken.captionSize, design: .monospaced))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(WidgetDesignToken.AuroraInk.faint)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -86,7 +85,6 @@ struct EmptyStateView: View {
 }
 
 struct StaleBadge: View {
-    @Environment(\.colorScheme) private var scheme
     let ageSeconds: Double
 
     var body: some View {
@@ -96,60 +94,54 @@ struct StaleBadge: View {
             Text("Stale \(Int(ageSeconds / 60))m")
                 .font(.system(size: WidgetDesignToken.captionSize, design: .monospaced))
         }
-        .foregroundStyle(WidgetDesignToken.warningColor)
+        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
     }
 }
 
 // MARK: - Small widget
 
 struct SmallWidgetView: View {
-    @Environment(\.colorScheme) private var scheme
     let snapshot: WidgetSnapshot
     let selectedProviderId: String?
 
-    var body: some View {
-        let provider = selectedProvider(snapshot: snapshot, selectedProviderId: selectedProviderId)
+    private var provider: ProviderSnapshot? {
+        selectedProvider(snapshot: snapshot, selectedProviderId: selectedProviderId)
             ?? topProvider(snapshot: snapshot)
+    }
 
+    var body: some View {
         if let provider = provider {
-            VStack(spacing: WidgetDesignToken.rowGap) {
-                if provider.kind == .usage, let spend = provider.spendUSD {
-                    // Usage-based provider: brand icon + big spend + name
-                    ProviderIconView(providerId: provider.id, size: WidgetDesignToken.ringIconSize)
-                        .widgetAccentable()
-                    Text(USDFormatter.string(from: spend))
-                        .font(.system(size: WidgetDesignToken.percentBigSize, weight: .bold, design: .monospaced))
-                        .foregroundStyle(WidgetDesignToken.Ink.primary(scheme))
-                    Text("spent")
-                        .font(.system(size: WidgetDesignToken.captionSize))
-                        .foregroundStyle(WidgetDesignToken.Ink.secondary(scheme))
-                } else if let window = primaryWindow(of: provider) {
-                    RingGauge(
-                        percent: window.usedPercent,
-                        content: {
-                            ProviderIconView(providerId: provider.id, size: WidgetDesignToken.ringIconSize)
-                        }
-                    )
-                    .widgetAccentable()
+            VStack(spacing: WidgetDesignToken.zeroSpacing) {
+                Spacer(minLength: WidgetDesignToken.zeroLength)
 
-                    VStack(spacing: WidgetDesignToken.zeroSpacing) {
-                        Text("\(Int(window.usedPercent.rounded()))%")
-                            .font(.system(size: WidgetDesignToken.percentRingSize, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(WidgetDesignToken.Ink.primary(scheme))
+                // quota-float QuotaOrb 1:1, canvas-scaled: 27px in an 80px orb →
+                // 56px (orbHeroSize) on the ~166pt systemSmall canvas. Only the
+                // remaining % of the primary window. No ring, no name.
+                if provider.kind == .usage, let spend = provider.spendUSD {
+                    Text(USDFormatter.string(from: spend))
+                        .font(.system(size: WidgetDesignToken.orbHeroSize, weight: WidgetDesignToken.orbWeight, design: .monospaced))
+                        .monospacedDigit()
+                        .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                } else if let window = primaryWindow(of: provider) {
+                    let remaining = max(WidgetDesignToken.zeroDouble,
+                                        min(WidgetDesignToken.percentMax,
+                                            WidgetDesignToken.percentMax - window.usedPercent))
+                    HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.orbHeroSuffixSpacing) {
+                        Text("\(Int(remaining.rounded()))")
+                            .font(.system(size: WidgetDesignToken.orbHeroSize, weight: WidgetDesignToken.orbWeight))
+                            .monospacedDigit()
+                            .tracking(WidgetDesignToken.orbHeroTracking)
+                            .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                        Text("%")
+                            .font(.system(size: WidgetDesignToken.percentSuffixSize, weight: WidgetDesignToken.percentSuffixWeight))
+                            .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                     }
                 } else {
                     ProviderIconView(providerId: provider.id, size: WidgetDesignToken.ringIconSize)
                         .widgetAccentable()
-                    Text(provider.displayName)
-                        .font(.system(size: WidgetDesignToken.captionSize))
-                        .foregroundStyle(WidgetDesignToken.Ink.faint(scheme))
-                        .lineLimit(WidgetDesignToken.singleLine)
                 }
 
-                Text(provider.displayName)
-                    .font(.system(size: WidgetDesignToken.captionSize))
-                    .foregroundStyle(WidgetDesignToken.Ink.faint(scheme))
-                    .lineLimit(WidgetDesignToken.singleLine)
+                Spacer(minLength: WidgetDesignToken.zeroLength)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
@@ -173,14 +165,14 @@ struct RingGauge<Content: View>: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(WidgetDesignToken.Ink.faint(scheme).opacity(WidgetDesignToken.trackOpacity), lineWidth: WidgetDesignToken.ringStroke)
+                .stroke(WidgetDesignToken.AuroraInk.faint.opacity(WidgetDesignToken.trackOpacity), lineWidth: WidgetDesignToken.orbRingStroke)
             Circle()
                 .trim(from: WidgetDesignToken.ringStart, to: min(percent, WidgetDesignToken.percentMax) / WidgetDesignToken.percentMax)
-                .stroke(percent.severityColor(scheme), style: StrokeStyle(lineWidth: WidgetDesignToken.ringStroke, lineCap: .round))
+                .stroke(percent.severityColor(scheme), style: StrokeStyle(lineWidth: WidgetDesignToken.orbRingStroke, lineCap: .round))
                 .rotationEffect(.degrees(WidgetDesignToken.ringRotation))
             content()
         }
-        .frame(width: WidgetDesignToken.ringDiameter, height: WidgetDesignToken.ringDiameter)
+        .frame(width: WidgetDesignToken.orbRingDiameter, height: WidgetDesignToken.orbRingDiameter)
     }
 }
 
@@ -243,117 +235,134 @@ struct MediumProviderCard: View {
         )
     }
 
+    /// First window other than the primary — the QuotaCard footer secondary metric.
+    private var secondaryWindow: UsageWindow? {
+        guard let primary = primaryWindow(of: provider) else { return nil }
+        return provider.windows.first { $0.id != primary.id }
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: WidgetDesignToken.rowGap) {
-            // Header: icon + name + badge
+        // quota-float QuotaCard, compact: header → hero remaining % → tier bar →
+        // reset-time → footer pinned bottom. Sized to fit the systemMedium canvas.
+        VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
+            // Header: dot + icon + eyebrow name + primary window descriptor
             HStack(spacing: WidgetDesignToken.smallGap) {
                 StatusDot(color: statusColor)
                 ProviderIconView(providerId: provider.id, size: WidgetDesignToken.mediumIconSize)
                     .widgetAccentable()
-                Text(provider.displayName)
-                    .font(.system(size: WidgetDesignToken.wNameSize, weight: .semibold))
-                    .foregroundStyle(WidgetDesignToken.Ink.primary(scheme))
+                Text(provider.displayName.uppercased())
+                    .font(.system(size: WidgetDesignToken.eyebrowSize, weight: WidgetDesignToken.eyebrowWeight))
+                    .tracking(WidgetDesignToken.eyebrowTracking)
+                    .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                     .lineLimit(WidgetDesignToken.singleLine)
                 Spacer(minLength: WidgetDesignToken.zeroLength)
-                ProviderBadge(text: provider.kind == .usage ? "Usage" : "Quota")
+                if let window = primaryWindow(of: provider) {
+                    Text(window.label.uppercased())
+                        .font(.system(size: WidgetDesignToken.portSize, design: .monospaced))
+                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
+                }
             }
+
+            Spacer(minLength: WidgetDesignToken.zeroLength)
 
             // Body
             if provider.kind == .usage, let spend = provider.spendUSD {
-                HStack(spacing: WidgetDesignToken.smallGap) {
+                HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.smallGap) {
                     Text(USDFormatter.string(from: spend))
-                        .font(.system(size: WidgetDesignToken.percentBigSize, weight: .bold, design: .monospaced))
-                        .foregroundStyle(WidgetDesignToken.Ink.primary(scheme))
+                        .font(.system(size: WidgetDesignToken.percentHeroMediumSize, weight: WidgetDesignToken.percentHeroWeight, design: .monospaced))
+                        .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                     Text("spent")
                         .font(.system(size: WidgetDesignToken.captionSize))
-                        .foregroundStyle(WidgetDesignToken.Ink.secondary(scheme))
-                    Spacer(minLength: WidgetDesignToken.zeroLength)
+                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
                 }
             } else if let window = primaryWindow(of: provider) {
-                if provider.windows.count == WidgetDesignToken.singleWindowCount,
-                   let used = window.used, let limit = window.limit {
-                    // Single-window quota: metric label + big number + progress bar
-                    VStack(alignment: .leading, spacing: WidgetDesignToken.tinyGap) {
-                        HStack(spacing: WidgetDesignToken.smallGap) {
-                            Text(window.label)
-                                .font(.system(size: WidgetDesignToken.mLabelSize, design: .monospaced))
-                                .foregroundStyle(WidgetDesignToken.Ink.faint(scheme))
-                                .textCase(.uppercase)
-                            Spacer(minLength: WidgetDesignToken.zeroLength)
-                        }
-                        HStack(spacing: WidgetDesignToken.smallGap) {
-                            Text(IntegerFormatter.string(from: used))
-                                .font(.system(size: WidgetDesignToken.percentBigSize, weight: .bold, design: .monospaced))
-                                .foregroundStyle(WidgetDesignToken.Ink.primary(scheme))
-                            Text("/")
-                                .font(.system(size: WidgetDesignToken.slashLimitSize, design: .monospaced))
-                                .foregroundStyle(WidgetDesignToken.Ink.faint(scheme))
-                            Text(IntegerFormatter.string(from: limit))
-                                .font(.system(size: WidgetDesignToken.slashLimitSize, design: .monospaced))
-                                .foregroundStyle(WidgetDesignToken.Ink.secondary(scheme))
-                            Spacer(minLength: WidgetDesignToken.zeroLength)
-                            Text("\(Int(window.usedPercent.rounded()))%")
-                                .font(.system(size: WidgetDesignToken.captionSize, design: .monospaced))
-                                .foregroundStyle(WidgetDesignToken.Ink.secondary(scheme))
-                        }
-                        CapsuleProgressBar(value: window.usedPercent)
+                let remaining = max(WidgetDesignToken.zeroDouble,
+                                    min(WidgetDesignToken.percentMax,
+                                        WidgetDesignToken.percentMax - window.usedPercent))
+                VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
+                    HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.orbSuffixSpacing) {
+                        Text("\(Int(remaining.rounded()))")
+                            .font(.system(size: WidgetDesignToken.percentHeroMediumSize, weight: WidgetDesignToken.percentHeroWeight))
+                            .monospacedDigit()
+                            .tracking(WidgetDesignToken.mediumHeroTracking)
+                            .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                        Text("%")
+                            .font(.system(size: WidgetDesignToken.percentSuffixSize, weight: WidgetDesignToken.percentSuffixWeight))
+                            .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                     }
-                } else {
-                    // Multi-window: rows per window. Zero-usage windows are
-                    // collapsed — rows of "0%" bars carry no information.
-                    // When every window is idle, show all so the card never
-                    // renders empty.
-                    let activeWindows = provider.windows.filter { $0.usedPercent > WidgetDesignToken.zeroDouble }
-                    let visibleWindows = activeWindows.isEmpty ? provider.windows : activeWindows
-                    VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
-                        ForEach(visibleWindows, id: \.id) { window in
-                            VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
-                                HStack(spacing: WidgetDesignToken.smallGap) {
-                                    windowLabelText(for: window)
-                                        .font(.system(size: WidgetDesignToken.captionSize))
-                                        .foregroundStyle(WidgetDesignToken.Ink.secondary(scheme))
-                                    Spacer(minLength: WidgetDesignToken.zeroLength)
-                                    if let resets = window.resetsAt {
-                                        Text(RelativeResetFormatter.string(from: resets))
-                                            .font(.system(size: WidgetDesignToken.captionSize, design: .monospaced))
-                                            .foregroundStyle(WidgetDesignToken.Ink.faint(scheme))
-                                    }
-                                }
-                                CapsuleProgressBar(value: window.usedPercent)
-                            }
-                        }
-                    }
+                    // Width encodes REMAINING; tier gradient colours encode USED —
+                    // critical stays orange-red even on a short bar (quota-float semantics).
+                    CapsuleProgressBar(value: remaining, colorValue: window.usedPercent, height: WidgetDesignToken.largeBarHeight, glow: true)
+                    // quota-float renders "reset time unknown" when resetsAt is
+                    // null — the line always renders so the hero↔footer rhythm never collapses.
+                    Text(window.resetsAt == nil ? "Reset unknown" : RelativeResetFormatter.string(from: window.resetsAt))
+                        .font(.system(size: WidgetDesignToken.resetTimeSize))
+                        .tracking(WidgetDesignToken.resetTimeTracking)
+                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary.opacity(WidgetDesignToken.resetTimeOpacity))
+                }
+            } else {
+                HStack(spacing: WidgetDesignToken.zeroSpacing) {
+                    Spacer(minLength: WidgetDesignToken.zeroLength)
+                    ProviderIconView(providerId: provider.id, size: WidgetDesignToken.ringIconSize)
+                        .widgetAccentable()
+                    Spacer(minLength: WidgetDesignToken.zeroLength)
                 }
             }
 
-            // Footer
-            HStack(spacing: WidgetDesignToken.smallGap) {
-                Text("Updated \(fetchedAtString)")
-                    .font(.system(size: WidgetDesignToken.footerSize, design: .monospaced))
-                    .foregroundStyle(WidgetDesignToken.Ink.faint(scheme))
-                Spacer(minLength: WidgetDesignToken.zeroLength)
-                Text("Every 15 min")
-                    .font(.system(size: WidgetDesignToken.footerSize, design: .monospaced))
-                    .foregroundStyle(WidgetDesignToken.Ink.faint(scheme))
+            Spacer(minLength: WidgetDesignToken.zeroLength)
+
+            // Footer: weekly secondary metric when the provider has two windows,
+            // else the update-cadence line.
+            if let secondary = secondaryWindow {
+                let secondaryRemaining = max(WidgetDesignToken.zeroDouble,
+                                             min(WidgetDesignToken.percentMax,
+                                                 WidgetDesignToken.percentMax - secondary.usedPercent))
+                HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.smallGap) {
+                    Text("\(secondary.label) LEFT".uppercased())
+                        .font(.system(size: WidgetDesignToken.footerSize, design: .monospaced))
+                        .tracking(WidgetDesignToken.weeklyLabelTracking)
+                        .foregroundStyle(WidgetDesignToken.AuroraInk.faint)
+                    Text("\(Int(secondaryRemaining.rounded()))")
+                        .font(.system(size: WidgetDesignToken.weeklyNumberSize, design: .monospaced))
+                        .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                    Text("%")
+                        .font(.system(size: WidgetDesignToken.orbSuffixSize, weight: WidgetDesignToken.orbSuffixWeight))
+                        .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                    Spacer(minLength: WidgetDesignToken.zeroLength)
+                    ProviderIconView(providerId: provider.id, size: WidgetDesignToken.mediumFooterIconSize)
+                }
+            } else {
+                // (medium widget height is tight, so use caption size instead of the
+                // full 14px updated token that quota-float uses on its taller cards).
+                HStack(spacing: WidgetDesignToken.smallGap) {
+                    Text("Updated \(fetchedAtString)")
+                        .font(.system(size: WidgetDesignToken.captionSize, weight: WidgetDesignToken.updatedWeight, design: .monospaced))
+                        .tracking(WidgetDesignToken.updatedTracking)
+                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary.opacity(WidgetDesignToken.updatedOpacity))
+                    Spacer(minLength: WidgetDesignToken.zeroLength)
+                    Text("Every 15 min")
+                        .font(.system(size: WidgetDesignToken.captionSize, weight: WidgetDesignToken.updatedWeight, design: .monospaced))
+                        .tracking(WidgetDesignToken.updatedTracking)
+                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary.opacity(WidgetDesignToken.updatedOpacity))
+                }
             }
         }
     }
 }
 
 struct ProviderBadge: View {
-    @Environment(\.colorScheme) private var scheme
     let text: String
 
     var body: some View {
         Text(text)
             .font(.system(size: WidgetDesignToken.portSize))
-            .foregroundStyle(WidgetDesignToken.Ink.secondary(scheme))
+            .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
             .padding(.horizontal, WidgetDesignToken.badgeHPadding)
             .padding(.vertical, WidgetDesignToken.badgeVPadding)
-            .background(WidgetDesignToken.Ink.faint(scheme).opacity(WidgetDesignToken.badgeBackgroundOpacity))
+            .background(WidgetDesignToken.AuroraInk.faint.opacity(WidgetDesignToken.badgeBackgroundOpacity))
             .overlay(
                 RoundedRectangle(cornerRadius: WidgetDesignToken.badgeRadius)
-                    .stroke(WidgetDesignToken.Ink.faint(scheme).opacity(WidgetDesignToken.badgeStrokeOpacity), lineWidth: WidgetDesignToken.hairline)
+                    .stroke(WidgetDesignToken.AuroraInk.faint.opacity(WidgetDesignToken.badgeStrokeOpacity), lineWidth: WidgetDesignToken.hairline)
             )
             .clipShape(RoundedRectangle(cornerRadius: WidgetDesignToken.badgeRadius, style: .continuous))
     }
@@ -362,45 +371,52 @@ struct ProviderBadge: View {
 // MARK: - Large overview widget
 
 struct LargeOverviewView: View {
-    @Environment(\.colorScheme) private var scheme
     let snapshot: WidgetSnapshot
 
     var body: some View {
         let visible = topN(snapshot: snapshot, n: WidgetDesignToken.largeVisibleCount)
         let hidden = max(WidgetDesignToken.zeroInt, snapshot.providers.count - visible.count)
 
-        VStack(alignment: .leading, spacing: WidgetDesignToken.sectionGap) {
+        VStack(alignment: .leading, spacing: WidgetDesignToken.zeroLength) {
             // Header
             HStack(spacing: WidgetDesignToken.smallGap) {
                 Text("Token King")
                     .font(.system(size: WidgetDesignToken.wNameSize, weight: .semibold))
-                    .foregroundStyle(WidgetDesignToken.Ink.primary(scheme))
+                    .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                 Spacer(minLength: WidgetDesignToken.zeroLength)
             }
 
-            // Rows
-            ForEach(visible, id: \.id) { provider in
-                LargeProviderRow(provider: provider)
+            Spacer(minLength: WidgetDesignToken.zeroLength)
+
+            // Rows distributed evenly across the middle
+            VStack(alignment: .leading, spacing: WidgetDesignToken.sectionGap) {
+                ForEach(visible, id: \.id) { provider in
+                    LargeProviderRow(provider: provider)
+                }
             }
 
-            if hidden > WidgetDesignToken.zeroInt {
-                Text("+\(hidden) more")
-                    .font(.system(size: WidgetDesignToken.captionSize))
-                    .foregroundStyle(WidgetDesignToken.Ink.faint(scheme))
-            }
+            Spacer(minLength: WidgetDesignToken.zeroLength)
 
-            if let cost = snapshot.monthlyCost {
-                MonthlyCostFooter(cost: cost)
+            // Footer pinned to bottom
+            VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
+                if hidden > WidgetDesignToken.zeroInt {
+                    Text("+\(hidden) more")
+                        .font(.system(size: WidgetDesignToken.captionSize))
+                        .foregroundStyle(WidgetDesignToken.AuroraInk.faint)
+                }
+
+                if let cost = snapshot.monthlyCost {
+                    MonthlyCostFooter(cost: cost)
+                }
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
 // MARK: - Large detail widget
 
 struct LargeDetailView: View {
-    @Environment(\.colorScheme) private var scheme
     let snapshot: WidgetSnapshot
     let selectedProviderId: String?
 
@@ -424,11 +440,11 @@ struct LargeDetailView: View {
                                 HStack(spacing: WidgetDesignToken.smallGap) {
                                     windowLabelText(for: window)
                                         .font(.system(size: WidgetDesignToken.captionSize))
-                                        .foregroundStyle(WidgetDesignToken.Ink.secondary(scheme))
+                                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
                                     Spacer(minLength: WidgetDesignToken.zeroLength)
                                     Text("\(Int(window.usedPercent.rounded()))%")
                                         .font(.system(size: WidgetDesignToken.captionSize, design: .monospaced))
-                                        .foregroundStyle(WidgetDesignToken.Ink.secondary(scheme))
+                                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
                                 }
                                 CapsuleProgressBar(value: window.usedPercent)
                             }
@@ -447,7 +463,6 @@ struct LargeDetailView: View {
 // MARK: - Search engines widget
 
 struct SearchEnginesView: View {
-    @Environment(\.colorScheme) private var scheme
     let snapshot: WidgetSnapshot
 
     private var searchProviders: [ProviderSnapshot] {
@@ -458,23 +473,31 @@ struct SearchEnginesView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: WidgetDesignToken.sectionGap) {
+        VStack(alignment: .leading, spacing: WidgetDesignToken.zeroLength) {
+            // Header
             HStack(spacing: WidgetDesignToken.smallGap) {
                 Text("Search Engines")
                     .font(.system(size: WidgetDesignToken.wNameSize, weight: .semibold))
-                    .foregroundStyle(WidgetDesignToken.Ink.primary(scheme))
+                    .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                 Spacer(minLength: WidgetDesignToken.zeroLength)
             }
 
-            ForEach(searchProviders, id: \.id) { provider in
-                LargeProviderRow(provider: provider)
+            Spacer(minLength: WidgetDesignToken.zeroLength)
+
+            // Rows distributed evenly across the middle
+            VStack(alignment: .leading, spacing: WidgetDesignToken.sectionGap) {
+                ForEach(searchProviders, id: \.id) { provider in
+                    LargeProviderRow(provider: provider)
+                }
             }
+
+            Spacer(minLength: WidgetDesignToken.zeroLength)
 
             if searchProviders.isEmpty {
                 EmptyStateView(message: "No search engine data")
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -490,14 +513,14 @@ struct LargeProviderRow: View {
                     .widgetAccentable()
                 Text(provider.displayName)
                     .font(.system(size: WidgetDesignToken.bodySize, weight: .semibold))
-                    .foregroundStyle(WidgetDesignToken.Ink.primary(scheme))
+                    .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                     .lineLimit(WidgetDesignToken.singleLine)
                 Spacer(minLength: WidgetDesignToken.zeroLength)
                 Text(valueString)
                     .font(.system(size: WidgetDesignToken.captionSize, design: .monospaced))
-                    .foregroundStyle(WidgetDesignToken.Ink.secondary(scheme))
+                    .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
             }
-            CapsuleProgressBar(value: progressValue)
+            CapsuleProgressBar(value: progressValue, height: WidgetDesignToken.largeBarHeight, glow: true)
                 .widgetAccentable()
         }
     }
@@ -546,22 +569,21 @@ struct LargeProviderRow: View {
 }
 
 struct MonthlyCostFooter: View {
-    @Environment(\.colorScheme) private var scheme
     let cost: MonthlyCost
 
     var body: some View {
         HStack {
             Text("Monthly")
                 .font(.system(size: WidgetDesignToken.captionSize))
-                .foregroundStyle(WidgetDesignToken.Ink.secondary(scheme))
+                .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
             Spacer(minLength: WidgetDesignToken.zeroLength)
             Text(USDFormatter.string(from: cost.usd))
                 .font(.system(size: WidgetDesignToken.captionSize, design: .monospaced))
-                .foregroundStyle(WidgetDesignToken.Ink.secondary(scheme))
+                .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
             if let rmb = cost.rmb {
                 Text("/ ¥\(String(format: "%.2f", rmb))")
                     .font(.system(size: WidgetDesignToken.captionSize, design: .monospaced))
-                    .foregroundStyle(WidgetDesignToken.Ink.faint(scheme))
+                    .foregroundStyle(WidgetDesignToken.AuroraInk.faint)
             }
         }
     }
@@ -576,29 +598,49 @@ struct StatusDot: View {
         Circle()
             .fill(color)
             .frame(width: WidgetDesignToken.dotSize, height: WidgetDesignToken.dotSize)
+            .shadow(color: color.opacity(WidgetDesignToken.barGlowOpacity),
+                    radius: WidgetDesignToken.barGlowRadius, x: 0, y: 0)
     }
 }
 
 struct CapsuleProgressBar: View {
     @Environment(\.colorScheme) private var scheme
     let value: Double
+    var colorValue: Double? = nil
+    var height: CGFloat = WidgetDesignToken.barHeight
+    var glow: Bool = false
 
     private var fraction: CGFloat {
         CGFloat(min(max(value, WidgetDesignToken.zeroDouble), WidgetDesignToken.percentMax) / WidgetDesignToken.percentMax)
     }
 
+    private var gradientColors: (start: Color, end: Color) {
+        WidgetDesignToken.Aurora.progressGradient(forUsedPercent: colorValue ?? value)
+    }
+
     var body: some View {
         GeometryReader { geometry in
+            let progressWidth = geometry.size.width * fraction
+            let (startColor, endColor) = gradientColors
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: WidgetDesignToken.barRadius, style: .continuous)
-                    .fill(WidgetDesignToken.Ink.faint(scheme).opacity(WidgetDesignToken.trackOpacity))
-                RoundedRectangle(cornerRadius: WidgetDesignToken.barRadius, style: .continuous)
-                    .fill(value.severityColor(scheme))
-                    .frame(width: geometry.size.width * fraction, height: WidgetDesignToken.barHeight)
+                    .fill(WidgetDesignToken.AuroraInk.faint.opacity(WidgetDesignToken.trackOpacity))
+                if glow {
+                    RoundedRectangle(cornerRadius: WidgetDesignToken.barRadius, style: .continuous)
+                        .fill(LinearGradient(colors: [startColor, endColor],
+                                             startPoint: .leading, endPoint: .trailing))
+                        .shadow(color: startColor.opacity(WidgetDesignToken.barGlowOpacity),
+                                radius: WidgetDesignToken.barGlowRadius, x: 0, y: 0)
+                        .frame(width: progressWidth, height: height)
+                } else {
+                    RoundedRectangle(cornerRadius: WidgetDesignToken.barRadius, style: .continuous)
+                        .fill(value.severityColor(scheme))
+                        .frame(width: progressWidth, height: height)
+                }
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(height: WidgetDesignToken.barHeight)
+        .frame(height: height)
     }
 }
 

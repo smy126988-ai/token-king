@@ -177,6 +177,7 @@ struct AuroraBackgroundView: View {
             RadialGradient(colors: [tier.warm.opacity(0.64), .clear],
                            center: UnitPoint(x: 0.82, y: 0.82), startRadius: 0, endRadius: 150)
         }
+        .opacity(tier.opacity)
     }
 
     // Map CSS gradient-angle (deg, 0 = up) to SwiftUI start/end unit points.
