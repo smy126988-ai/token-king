@@ -85,6 +85,21 @@ enum WidgetDesignToken {
     static let weeklyLabelTracking: CGFloat = 1  // ≈.08em at 12px, kept readable at 10px
     static let mediumFooterIconSize: CGFloat = 20
 
+    // MARK: QuotaOrb card (small) — 2026-07-16 round 3
+    // quota-float QuotaOrb is an 80px light frosted card, NOT bare content on the
+    // aurora: bg #edf3f8 @ .82, 1px white border .42, inset top highlight .48,
+    // soft shadow 0 4px 14px rgba(72,88,112,.08), radius 28, aurora drawn inside.
+    static let orbCardBackground = Color(hex: "#edf3f8")
+    static let orbCardBackgroundOpacity: Double = 0.82
+    static let orbCardRadius: CGFloat = 28
+    static let orbCardBorderOpacity: Double = 0.42
+    static let orbCardBorderWidth: CGFloat = 1
+    static let orbCardHighlightOpacity: Double = 0.48
+    static let orbCardShadowColor = Color(red: 0.282, green: 0.345, blue: 0.44).opacity(0.08)
+    static let orbCardShadowRadius: CGFloat = 14
+    static let orbCardShadowY: CGFloat = 4
+    static let orbHeroCardTracking: CGFloat = -2.9  // -.06em at 48px (orb-metric letter-spacing)
+
     // MARK: Progress bar effects
     static let barGlowRadius: CGFloat = 8
     static let barGlowOpacity: Double = 0.38

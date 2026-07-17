@@ -101,6 +101,7 @@ struct StaleBadge: View {
 // MARK: - Small widget
 
 struct SmallWidgetView: View {
+    @Environment(\.widgetRenderingMode) private var renderingMode
     let snapshot: WidgetSnapshot
     let selectedProviderId: String?
 
@@ -111,26 +112,43 @@ struct SmallWidgetView: View {
 
     var body: some View {
         if let provider = provider {
-            VStack(spacing: WidgetDesignToken.zeroSpacing) {
-                Spacer(minLength: WidgetDesignToken.zeroLength)
+            ZStack {
+                // quota-float QuotaOrb card: 80px light frosted card
+                // (orbCardBackground @ .82) with the tier aurora drawn INSIDE, a 1px
+                // white border (.42) that is brighter at the top (inset
+                // highlight .48), and a soft drop shadow. Full-colour only:
+                // in vibrant/accented the system replaces the background and
+                // remaps ink to monochrome — a self-drawn light card would go
+                // white-on-white with the number, so it drops out entirely.
+                if renderingMode == .fullColor {
+                    RoundedRectangle(cornerRadius: WidgetDesignToken.orbCardRadius, style: .continuous)
+                        .fill(WidgetDesignToken.orbCardBackground.opacity(WidgetDesignToken.orbCardBackgroundOpacity))
+                    AuroraBackgroundView(snapshot: orbTierSnapshot(for: provider))
+                        .clipShape(RoundedRectangle(cornerRadius: WidgetDesignToken.orbCardRadius, style: .continuous))
+                    RoundedRectangle(cornerRadius: WidgetDesignToken.orbCardRadius, style: .continuous)
+                        .stroke(LinearGradient(colors: [Color.white.opacity(WidgetDesignToken.orbCardHighlightOpacity),
+                                                        Color.white.opacity(WidgetDesignToken.orbCardBorderOpacity)],
+                                               startPoint: .top, endPoint: .bottom),
+                                lineWidth: WidgetDesignToken.orbCardBorderWidth)
+                }
 
-                // quota-float QuotaOrb 1:1, canvas-scaled: 27px in an 80px orb →
-                // 56px (orbHeroSize) on the ~166pt systemSmall canvas. Only the
-                // remaining % of the primary window. No ring, no name.
+                // QuotaOrb content: ONLY the short window's remaining % — no
+                // ring, no provider name. 27px/560 tabular-nums + 10px "%" on
+                // the 80px orb → 48px + 21px on the systemSmall canvas.
                 if provider.kind == .usage, let spend = provider.spendUSD {
                     Text(USDFormatter.string(from: spend))
-                        .font(.system(size: WidgetDesignToken.orbHeroSize, weight: WidgetDesignToken.orbWeight, design: .monospaced))
+                        .font(.system(size: WidgetDesignToken.percentHeroMediumSize, weight: WidgetDesignToken.orbWeight, design: .monospaced))
                         .monospacedDigit()
                         .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
-                } else if let window = primaryWindow(of: provider) {
+                } else if let window = shortWindow(of: provider) {
                     let remaining = max(WidgetDesignToken.zeroDouble,
                                         min(WidgetDesignToken.percentMax,
                                             WidgetDesignToken.percentMax - window.usedPercent))
                     HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.orbHeroSuffixSpacing) {
                         Text("\(Int(remaining.rounded()))")
-                            .font(.system(size: WidgetDesignToken.orbHeroSize, weight: WidgetDesignToken.orbWeight))
+                            .font(.system(size: WidgetDesignToken.percentHeroMediumSize, weight: WidgetDesignToken.orbWeight))
                             .monospacedDigit()
-                            .tracking(WidgetDesignToken.orbHeroTracking)
+                            .tracking(WidgetDesignToken.orbHeroCardTracking)
                             .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                         Text("%")
                             .font(.system(size: WidgetDesignToken.percentSuffixSize, weight: WidgetDesignToken.percentSuffixWeight))
@@ -140,13 +158,30 @@ struct SmallWidgetView: View {
                     ProviderIconView(providerId: provider.id, size: WidgetDesignToken.ringIconSize)
                         .widgetAccentable()
                 }
-
-                Spacer(minLength: WidgetDesignToken.zeroLength)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .shadow(color: renderingMode == .fullColor ? WidgetDesignToken.orbCardShadowColor : .clear,
+                    radius: WidgetDesignToken.orbCardShadowRadius,
+                    x: WidgetDesignToken.zeroLength, y: WidgetDesignToken.orbCardShadowY)
         } else {
             EmptyStateView(message: "No providers")
         }
+    }
+
+    /// Single-window snapshot so the shared aurora tier follows the orb's own
+    /// metric — quota-float tints the orb by quotaTier(shortWindow.remaining).
+    private func orbTierSnapshot(for provider: ProviderSnapshot) -> WidgetSnapshot {
+        let windows = shortWindow(of: provider).map { [$0] } ?? []
+        return WidgetSnapshot(version: WidgetDesignToken.snapshotVersion,
+                              snapshotAt: provider.fetchedAt ?? Date(),
+                              providers: [ProviderSnapshot(id: provider.id,
+                                                           displayName: provider.displayName,
+                                                           kind: provider.kind,
+                                                           primaryWindowId: nil,
+                                                           windows: windows,
+                                                           spendUSD: nil,
+                                                           fetchedAt: provider.fetchedAt)],
+                              monthlyCost: nil)
     }
 }
 
@@ -220,7 +255,7 @@ struct MediumProviderCard: View {
     let fetchedAt: Date
 
     private var statusColor: Color {
-        if let window = primaryWindow(of: provider) {
+        if let window = shortWindow(of: provider) {
             return window.usedPercent.severityColor(scheme)
         }
         return WidgetDesignToken.healthyColor
@@ -235,17 +270,18 @@ struct MediumProviderCard: View {
         )
     }
 
-    /// First window other than the primary — the QuotaCard footer secondary metric.
+    /// quota-float's weeklyWindow — the QuotaCard footer secondary metric.
     private var secondaryWindow: UsageWindow? {
-        guard let primary = primaryWindow(of: provider) else { return nil }
-        return provider.windows.first { $0.id != primary.id }
+        weeklyWindow(of: provider)
     }
 
     var body: some View {
         // quota-float QuotaCard, compact: header → hero remaining % → tier bar →
         // reset-time → footer pinned bottom. Sized to fit the systemMedium canvas.
+        // Hero/bar/reset track the SHORT window (5h); the footer tracks the
+        // WEEKLY window (7d) — same data mapping as QuotaCard.
         VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
-            // Header: dot + icon + eyebrow name + primary window descriptor
+            // Header: dot + icon + eyebrow name + short window descriptor
             HStack(spacing: WidgetDesignToken.smallGap) {
                 StatusDot(color: statusColor)
                 ProviderIconView(providerId: provider.id, size: WidgetDesignToken.mediumIconSize)
@@ -256,7 +292,7 @@ struct MediumProviderCard: View {
                     .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                     .lineLimit(WidgetDesignToken.singleLine)
                 Spacer(minLength: WidgetDesignToken.zeroLength)
-                if let window = primaryWindow(of: provider) {
+                if let window = shortWindow(of: provider) {
                     Text(window.label.uppercased())
                         .font(.system(size: WidgetDesignToken.portSize, design: .monospaced))
                         .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
@@ -275,7 +311,7 @@ struct MediumProviderCard: View {
                         .font(.system(size: WidgetDesignToken.captionSize))
                         .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
                 }
-            } else if let window = primaryWindow(of: provider) {
+            } else if let window = shortWindow(of: provider) {
                 let remaining = max(WidgetDesignToken.zeroDouble,
                                     min(WidgetDesignToken.percentMax,
                                         WidgetDesignToken.percentMax - window.usedPercent))
@@ -311,8 +347,8 @@ struct MediumProviderCard: View {
 
             Spacer(minLength: WidgetDesignToken.zeroLength)
 
-            // Footer: weekly secondary metric when the provider has two windows,
-            // else the update-cadence line.
+            // Footer: weekly-window metric when the provider reports a 7d
+            // window, else the update-cadence line.
             if let secondary = secondaryWindow {
                 let secondaryRemaining = max(WidgetDesignToken.zeroDouble,
                                              min(WidgetDesignToken.percentMax,
@@ -688,6 +724,22 @@ func primaryWindow(of provider: ProviderSnapshot) -> UsageWindow? {
         return w
     }
     return provider.windows.first
+}
+
+/// quota-float's "short window" — the 5-hour session quota window that drives
+/// the QuotaOrb number and the QuotaCard hero. Falls back to the primary
+/// window for providers that don't report a 5h window.
+func shortWindow(of provider: ProviderSnapshot) -> UsageWindow? {
+    if let w = provider.windows.first(where: { $0.id == "5h" }) {
+        return w
+    }
+    return primaryWindow(of: provider)
+}
+
+/// quota-float's "weekly window" — the 7-day quota window shown as the
+/// QuotaCard footer secondary metric. Nil when the provider has none.
+func weeklyWindow(of provider: ProviderSnapshot) -> UsageWindow? {
+    provider.windows.first { $0.id == "7d" || $0.id == "weekly" }
 }
 
 /// Label for a multi-window row. Shows "Label · used/limit" only when both
