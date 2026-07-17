@@ -100,6 +100,37 @@ enum WidgetDesignToken {
     static let orbCardShadowY: CGFloat = 4
     static let orbHeroCardTracking: CGFloat = -2.9  // -.06em at 48px (orb-metric letter-spacing)
 
+    // MARK: QuotaOrb exact copy (small) — 2026-07-16 round 6
+    // Everything below is quota-float source-exact, scaled ×1.675 from the 80px
+    // orb to the ~134pt card area inside systemSmall (80px × 1.675 = 134pt).
+    static let orbCopyScale: CGFloat = 1.675
+    static let orbCopyNumberSize: CGFloat = 45       // 27px × 1.675
+    static let orbCopySuffixSize: CGFloat = 17       // 10px × 1.675
+    static let orbCopyTracking: CGFloat = -2.7       // -.06em at 45px (orb-metric)
+    static let orbCopySuffixSpacing: CGFloat = 1.7   // % margin-left 1px × 1.675
+    static let orbCopySuffixLift: CGFloat = 5        // % margin-bottom 3px × 1.675
+    static let orbCopyRadius: CGFloat = 47           // card radius 28px × 1.675
+    // Aurora layer: quota-float draws it at inset -55% (⇒ 2.1× card size), so
+    // cloud centres sit mostly OFF the card and only their fades bleed in.
+    static let orbAuroraScale: CGFloat = 2.1         // 1 + 2×0.55
+    // Cloud radii: CSS fade stop (glow 43% / warm 34% / cool 52%) × the ray to
+    // the layer's farthest corner (278/326/282pt), expressed in unscaled view
+    // space (÷2.1). healthy-tier fades; per-tier fade deltas are <8%, invisible.
+    static let orbAuroraGlowRadius: CGFloat = 57
+    static let orbAuroraWarmRadius: CGFloat = 53
+    static let orbAuroraCoolRadius: CGFloat = 70
+
+    // MARK: Mini QuotaCard (small) — 2026-07-16 round 7
+    // quota-float's expanded card (min 320px) compressed into systemSmall.
+    // Reference screenshot (docs/images/quota-states.png in the quota-float
+    // repo): eyebrow 14px + descriptor 14px on a 320px card ⇒ 7.3px at 0.52
+    // scale — below the readability floor, so labels pin at 8-9px.
+    static let miniEyebrowSize: CGFloat = 9
+    static let miniEyebrowTracking: CGFloat = 1.7   // .18em at 9px (quota-float eyebrow)
+    static let miniDescriptorSize: CGFloat = 8      // "5-hour remaining" line
+    static let miniResetSize: CGFloat = 8           // reset-time line
+    static let miniBarTopMargin: CGFloat = 9        // progress margin-top 18px × 0.52
+
     // MARK: Progress bar effects
     static let barGlowRadius: CGFloat = 8
     static let barGlowOpacity: Double = 0.38
@@ -218,23 +249,25 @@ enum WidgetDesignToken {
             let progressEnd: Color
             let opacity: Double
             let angle: Double // gradient-angle in degrees
+            let warmX: Double // warm cloud centre, unit-x (quota-float --warm-position)
+            let warmY: Double // warm cloud centre, unit-y
         }
 
         static let healthy = Tier(
             cool: Color(hex: "#b9d5ee"), glow: Color(hex: "#dff4e5"), warm: Color(hex: "#c7ddf2"),
             linearMid: Color(hex: "#c7c9d1"), linearWarm: Color(hex: "#c7ddf2"), linearEnd: Color(hex: "#eef4fb"),
             progressStart: Color(hex: "#397ae0"), progressEnd: Color(hex: "#91baf0"),
-            opacity: 0.42, angle: 145)
+            opacity: 0.42, angle: 145, warmX: 0.82, warmY: 0.82)
         static let caution = Tier(
             cool: Color(hex: "#b7d0ec"), glow: Color(hex: "#fff0ba"), warm: Color(hex: "#f4c979"),
             linearMid: Color(hex: "#c7c9d1"), linearWarm: Color(hex: "#e4e7ed"), linearEnd: Color(hex: "#f1f5f8"),
             progressStart: Color(hex: "#4d88d8"), progressEnd: Color(hex: "#9fc2ee"),
-            opacity: 0.50, angle: 213)
+            opacity: 0.50, angle: 213, warmX: 0.12, warmY: 0.96)
         static let critical = Tier(
             cool: Color(hex: "#c4cee0"), glow: Color(hex: "#ffd8a8"), warm: Color(hex: "#f07260"),
             linearMid: Color(hex: "#c7c9d1"), linearWarm: Color(hex: "#e3e4e9"), linearEnd: Color(hex: "#f3f5f8"),
             progressStart: Color(hex: "#ff7848"), progressEnd: Color(hex: "#ffd064"),
-            opacity: 0.56, angle: 213)
+            opacity: 0.56, angle: 213, warmX: 0.11, warmY: 0.98)
 
         /// Pick a tier from used-percent, matching Severity thresholds (amber 60, red 85).
         static func tier(forUsedPercent p: Double) -> Tier {

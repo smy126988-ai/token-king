@@ -39,10 +39,27 @@ struct TokenKingWidgetSmall: Widget {
         AppIntentConfiguration(kind: kind, intent: ProviderSelectionIntent.self, provider: SmallProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    // Single-layer tier gradient (quota-float palette). Pure
-                    // SwiftUI gradient, no material/scrim — renders full-colour
-                    // on the desktop; the system replaces it in vibrant/accented.
-                    AuroraBackgroundView(snapshot: entry.snapshot)
+                    // quota-float QuotaCard container, mini: solid light card
+                    // (orbCardBackground) with the tier aurora inside — the
+                    // tier follows the SAME short window the content displays —
+                    // plus the 1px white border (.34) and top inset highlight
+                    // (.42). Pure gradient, no material; the system replaces it
+                    // in vibrant/accented.
+                    let provider = entry.snapshot.flatMap {
+                        selectedProvider(snapshot: $0, selectedProviderId: entry.selectedProviderId)
+                            ?? topProvider(snapshot: $0)
+                    }
+                    let used = provider.flatMap { shortWindow(of: $0) }?.usedPercent
+                        ?? WidgetDesignToken.zeroDouble
+                    ZStack {
+                        WidgetDesignToken.orbCardBackground
+                        AuroraBackgroundView(tier: WidgetDesignToken.Aurora.tier(forUsedPercent: used))
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .stroke(LinearGradient(colors: [Color.white.opacity(0.42),
+                                                            Color.white.opacity(0.34)],
+                                                   startPoint: .top, endPoint: .bottom),
+                                    lineWidth: 1)
+                    }
                 }
         }
         .configurationDisplayName("Token King Small")
@@ -162,6 +179,12 @@ struct AuroraBackgroundView: View {
             .map { $0.usedPercent }
             .max() ?? WidgetDesignToken.zeroDouble
         self.tier = WidgetDesignToken.Aurora.tier(forUsedPercent: peak)
+    }
+
+    /// Direct-tier init: paints the field with the same tier the content shows
+    /// (e.g. the small orb's short window), so field and card never clash.
+    init(tier: WidgetDesignToken.Aurora.Tier) {
+        self.tier = tier
     }
 
     var body: some View {

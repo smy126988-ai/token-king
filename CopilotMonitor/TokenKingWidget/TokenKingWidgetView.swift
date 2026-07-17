@@ -101,7 +101,7 @@ struct StaleBadge: View {
 // MARK: - Small widget
 
 struct SmallWidgetView: View {
-    @Environment(\.widgetRenderingMode) private var renderingMode
+    @Environment(\.colorScheme) private var scheme
     let snapshot: WidgetSnapshot
     let selectedProviderId: String?
 
@@ -112,76 +112,88 @@ struct SmallWidgetView: View {
 
     var body: some View {
         if let provider = provider {
-            ZStack {
-                // quota-float QuotaOrb card: 80px light frosted card
-                // (orbCardBackground @ .82) with the tier aurora drawn INSIDE, a 1px
-                // white border (.42) that is brighter at the top (inset
-                // highlight .48), and a soft drop shadow. Full-colour only:
-                // in vibrant/accented the system replaces the background and
-                // remaps ink to monochrome — a self-drawn light card would go
-                // white-on-white with the number, so it drops out entirely.
-                if renderingMode == .fullColor {
-                    RoundedRectangle(cornerRadius: WidgetDesignToken.orbCardRadius, style: .continuous)
-                        .fill(WidgetDesignToken.orbCardBackground.opacity(WidgetDesignToken.orbCardBackgroundOpacity))
-                    AuroraBackgroundView(snapshot: orbTierSnapshot(for: provider))
-                        .clipShape(RoundedRectangle(cornerRadius: WidgetDesignToken.orbCardRadius, style: .continuous))
-                    RoundedRectangle(cornerRadius: WidgetDesignToken.orbCardRadius, style: .continuous)
-                        .stroke(LinearGradient(colors: [Color.white.opacity(WidgetDesignToken.orbCardHighlightOpacity),
-                                                        Color.white.opacity(WidgetDesignToken.orbCardBorderOpacity)],
-                                               startPoint: .top, endPoint: .bottom),
-                                lineWidth: WidgetDesignToken.orbCardBorderWidth)
+            // quota-float QuotaCard, mini (reference: quota-states.png):
+            // eyebrow + status dot → "5-hour remaining" descriptor → big
+            // remaining-% number → glowing tier progress bar → reset-time.
+            // The milky card + aurora + border live in containerBackground, so
+            // vibrant/accented stays system-rendered with no gating needed here.
+            VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
+                // Eyebrow row: NAME (wide-tracked) + glowing status dot, top-right
+                HStack(spacing: WidgetDesignToken.smallGap) {
+                    Text(provider.displayName.uppercased())
+                        .font(.system(size: WidgetDesignToken.miniEyebrowSize, weight: WidgetDesignToken.eyebrowWeight))
+                        .tracking(WidgetDesignToken.miniEyebrowTracking)
+                        .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                        .lineLimit(WidgetDesignToken.singleLine)
+                    Spacer(minLength: WidgetDesignToken.zeroLength)
+                    StatusDot(color: statusColor(for: provider))
                 }
 
-                // QuotaOrb content: ONLY the short window's remaining % — no
-                // ring, no provider name. 27px/560 tabular-nums + 10px "%" on
-                // the 80px orb → 48px + 21px on the systemSmall canvas.
                 if provider.kind == .usage, let spend = provider.spendUSD {
-                    Text(USDFormatter.string(from: spend))
-                        .font(.system(size: WidgetDesignToken.percentHeroMediumSize, weight: WidgetDesignToken.orbWeight, design: .monospaced))
-                        .monospacedDigit()
-                        .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                    Spacer(minLength: WidgetDesignToken.zeroLength)
+                    HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.orbCopySuffixSpacing) {
+                        Text(USDFormatter.string(from: spend))
+                            .font(.system(size: WidgetDesignToken.orbCopyNumberSize, weight: WidgetDesignToken.orbWeight, design: .monospaced))
+                            .monospacedDigit()
+                            .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                        Text("spent")
+                            .font(.system(size: WidgetDesignToken.miniDescriptorSize))
+                            .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
+                    }
+                    Spacer(minLength: WidgetDesignToken.zeroLength)
                 } else if let window = shortWindow(of: provider) {
+                    // quota-float's updated line describes the short window
+                    Text(window.id == "5h" ? "5-hour remaining" : "\(window.label) remaining")
+                        .font(.system(size: WidgetDesignToken.miniDescriptorSize))
+                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
+
+                    Spacer(minLength: WidgetDesignToken.zeroLength)
+
                     let remaining = max(WidgetDesignToken.zeroDouble,
                                         min(WidgetDesignToken.percentMax,
                                             WidgetDesignToken.percentMax - window.usedPercent))
-                    HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.orbHeroSuffixSpacing) {
+                    // 64px/500 hero on the 320px card → 45px on systemSmall
+                    HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.orbCopySuffixSpacing) {
                         Text("\(Int(remaining.rounded()))")
-                            .font(.system(size: WidgetDesignToken.percentHeroMediumSize, weight: WidgetDesignToken.orbWeight))
+                            .font(.system(size: WidgetDesignToken.orbCopyNumberSize, weight: WidgetDesignToken.percentHeroWeight))
                             .monospacedDigit()
-                            .tracking(WidgetDesignToken.orbHeroCardTracking)
+                            .tracking(WidgetDesignToken.orbCopyTracking)
                             .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                         Text("%")
-                            .font(.system(size: WidgetDesignToken.percentSuffixSize, weight: WidgetDesignToken.percentSuffixWeight))
+                            .font(.system(size: WidgetDesignToken.orbCopySuffixSize, weight: WidgetDesignToken.orbSuffixWeight))
+                            .baselineOffset(WidgetDesignToken.orbCopySuffixLift)
                             .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                     }
+                    .padding(.bottom, WidgetDesignToken.miniBarTopMargin)
+                    // Width = remaining, tier gradient colours = used (critical
+                    // stays orange-red even on a short bar) + outer glow.
+                    CapsuleProgressBar(value: remaining, colorValue: window.usedPercent,
+                                       height: WidgetDesignToken.barHeight, glow: true)
+                    Text(window.resetsAt == nil ? "Reset unknown" : RelativeResetFormatter.string(from: window.resetsAt))
+                        .font(.system(size: WidgetDesignToken.miniResetSize))
+                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary.opacity(WidgetDesignToken.resetTimeOpacity))
                 } else {
-                    ProviderIconView(providerId: provider.id, size: WidgetDesignToken.ringIconSize)
-                        .widgetAccentable()
+                    Spacer(minLength: WidgetDesignToken.zeroLength)
+                    HStack(spacing: WidgetDesignToken.zeroSpacing) {
+                        Spacer(minLength: WidgetDesignToken.zeroLength)
+                        ProviderIconView(providerId: provider.id, size: WidgetDesignToken.ringIconSize)
+                            .widgetAccentable()
+                        Spacer(minLength: WidgetDesignToken.zeroLength)
+                    }
+                    Spacer(minLength: WidgetDesignToken.zeroLength)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .shadow(color: renderingMode == .fullColor ? WidgetDesignToken.orbCardShadowColor : .clear,
-                    radius: WidgetDesignToken.orbCardShadowRadius,
-                    x: WidgetDesignToken.zeroLength, y: WidgetDesignToken.orbCardShadowY)
         } else {
             EmptyStateView(message: "No providers")
         }
     }
 
-    /// Single-window snapshot so the shared aurora tier follows the orb's own
-    /// metric — quota-float tints the orb by quotaTier(shortWindow.remaining).
-    private func orbTierSnapshot(for provider: ProviderSnapshot) -> WidgetSnapshot {
-        let windows = shortWindow(of: provider).map { [$0] } ?? []
-        return WidgetSnapshot(version: WidgetDesignToken.snapshotVersion,
-                              snapshotAt: provider.fetchedAt ?? Date(),
-                              providers: [ProviderSnapshot(id: provider.id,
-                                                           displayName: provider.displayName,
-                                                           kind: provider.kind,
-                                                           primaryWindowId: nil,
-                                                           windows: windows,
-                                                           spendUSD: nil,
-                                                           fetchedAt: provider.fetchedAt)],
-                              monthlyCost: nil)
+    private func statusColor(for provider: ProviderSnapshot) -> Color {
+        if let window = shortWindow(of: provider) {
+            return window.usedPercent.severityColor(scheme)
+        }
+        return WidgetDesignToken.healthyColor
     }
 }
 
