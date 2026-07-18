@@ -9,6 +9,11 @@ on:
       - '**.swift'
       - '**.xcodeproj/**'
       - '.github/workflows/test.yml'
+      - 'Makefile'
+      - 'scripts/check-test-target-membership.sh'
+      - 'scripts/tests/check-test-target-membership-tests.sh'
+      - 'scripts/check-offline-test-boundaries.sh'
+      - 'scripts/tests/check-offline-test-boundaries-tests.sh'
   pull_request:
     branches:
       - main
@@ -17,6 +22,11 @@ on:
       - '**.swift'
       - '**.xcodeproj/**'
       - '.github/workflows/test.yml'
+      - 'Makefile'
+      - 'scripts/check-test-target-membership.sh'
+      - 'scripts/tests/check-test-target-membership-tests.sh'
+      - 'scripts/check-offline-test-boundaries.sh'
+      - 'scripts/tests/check-offline-test-boundaries-tests.sh'
   workflow_dispatch:
 
 jobs:
@@ -35,6 +45,12 @@ jobs:
       
       - name: Show Xcode Version
         run: xcodebuild -version
+
+      - name: Verify Test Target Membership
+        run: make test-membership
+
+      - name: Verify Offline Test Boundaries
+        run: make test-boundaries
 
       - name: Install xcbeautify
         run: brew install xcbeautify
@@ -64,9 +80,10 @@ jobs:
         run: |
           cd CopilotMonitor
           set -o pipefail
-          xcodebuild test \
+          env -u RUN_LIVE_PROVIDER_TESTS xcodebuild test \
             -project CopilotMonitor.xcodeproj \
             -scheme CopilotMonitor \
+            -testPlan OfflineTests \
             -configuration Debug \
             -destination 'platform=macOS' \
             CODE_SIGN_IDENTITY="-" \

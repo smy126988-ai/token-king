@@ -2,44 +2,20 @@ import XCTest
 @testable import OpenCode_Bar
 
 final class NanoGptProviderTests: XCTestCase {
-    private final class MockURLProtocol: URLProtocol {
-        static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
-
-        override static func canInit(with request: URLRequest) -> Bool {
-            true
-        }
-
-        override static func canonicalRequest(for request: URLRequest) -> URLRequest {
-            request
-        }
-
-        override func startLoading() {
-            guard let handler = MockURLProtocol.requestHandler else {
-                client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
-                return
-            }
-
-            do {
-                let (response, data) = try handler(request)
-                client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-                client?.urlProtocol(self, didLoad: data)
-                client?.urlProtocolDidFinishLoading(self)
-            } catch {
-                client?.urlProtocol(self, didFailWithError: error)
-            }
-        }
-
-        override func stopLoading() {}
-    }
-
     private func makeSession() -> URLSession {
         let configuration = URLSessionConfiguration.ephemeral
-        configuration.protocolClasses = [MockURLProtocol.self]
+        configuration.protocolClasses = [TestURLProtocol.self]
         return URLSession(configuration: configuration)
     }
 
+    private func makeCredentials() -> FakeProviderCredentialStore {
+        let credentials = FakeProviderCredentialStore()
+        credentials.nanoGptAPIKey = "test-nanogpt-key"
+        return credentials
+    }
+
     override func tearDown() {
-        MockURLProtocol.requestHandler = nil
+        TestURLProtocol.reset()
         super.tearDown()
     }
 
@@ -53,13 +29,33 @@ final class NanoGptProviderTests: XCTestCase {
         XCTAssertEqual(provider.type, .quotaBased)
     }
 
-    func testFetchSuccessCreatesProviderResult() async throws {
-        guard TokenManager.shared.getNanoGptAPIKey() != nil else {
-            throw XCTSkip("Nano-GPT API key not available; skipping fetch test.")
+    func testFetchUsesInjectedKeyWithoutTokenManager() async throws {
+        let credentials = FakeProviderCredentialStore()
+        credentials.nanoGptAPIKey = "injected-nanogpt-key"
+        let session = makeSession()
+
+        TestURLProtocol.handler = { request in
+            XCTAssertEqual(request.value(forHTTPHeaderField: "x-api-key"), "injected-nanogpt-key")
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            if request.url?.path == "/api/check-balance" {
+                return (response, Data(#"{"nanoBalance":"1","usdBalance":"2"}"#.utf8))
+            }
+            let json = #"{"limits":{"weeklyInputTokens":1000},"weeklyInputTokens":{"used":250,"remaining":750,"percentUsed":25}}"#
+            return (response, Data(json.utf8))
         }
 
+        let provider = NanoGptProvider(tokenManager: credentials, session: session)
+        _ = try await provider.fetch()
+    }
+
+    func testFetchSuccessCreatesProviderResult() async throws {
         let session = makeSession()
-        let provider = NanoGptProvider(tokenManager: .shared, session: session)
+        let provider = NanoGptProvider(tokenManager: makeCredentials(), session: session)
 
         let usageJSON = """
         {
@@ -79,7 +75,7 @@ final class NanoGptProviderTests: XCTestCase {
         }
         """
 
-        MockURLProtocol.requestHandler = { request in
+        TestURLProtocol.handler = { request in
             guard let url = request.url else {
                 throw URLError(.badURL)
             }
@@ -122,14 +118,10 @@ final class NanoGptProviderTests: XCTestCase {
     }
 
     func testFetchReturnsAuthenticationErrorOn401() async throws {
-        guard TokenManager.shared.getNanoGptAPIKey() != nil else {
-            throw XCTSkip("Nano-GPT API key not available; skipping fetch test.")
-        }
-
         let session = makeSession()
-        let provider = NanoGptProvider(tokenManager: .shared, session: session)
+        let provider = NanoGptProvider(tokenManager: makeCredentials(), session: session)
 
-        MockURLProtocol.requestHandler = { request in
+        TestURLProtocol.handler = { request in
             let url = request.url ?? URL(string: "https://nano-gpt.com")!
             let response = HTTPURLResponse(url: url, statusCode: 401, httpVersion: nil, headerFields: nil)!
             return (response, Data("{}".utf8))
@@ -151,12 +143,8 @@ final class NanoGptProviderTests: XCTestCase {
     }
 
     func testFetchSucceedsWhenBalanceEndpointFails() async throws {
-        guard TokenManager.shared.getNanoGptAPIKey() != nil else {
-            throw XCTSkip("Nano-GPT API key not available; skipping fetch test.")
-        }
-
         let session = makeSession()
-        let provider = NanoGptProvider(tokenManager: .shared, session: session)
+        let provider = NanoGptProvider(tokenManager: makeCredentials(), session: session)
 
         let usageJSON = """
         {
@@ -167,7 +155,7 @@ final class NanoGptProviderTests: XCTestCase {
         }
         """
 
-        MockURLProtocol.requestHandler = { request in
+        TestURLProtocol.handler = { request in
             guard let url = request.url else {
                 throw URLError(.badURL)
             }
@@ -194,12 +182,8 @@ final class NanoGptProviderTests: XCTestCase {
     }
 
     func testFetchParsesWeeklyInputTokensFromSnakeCaseVariants() async throws {
-        guard TokenManager.shared.getNanoGptAPIKey() != nil else {
-            throw XCTSkip("Nano-GPT API key not available; skipping fetch test.")
-        }
-
         let session = makeSession()
-        let provider = NanoGptProvider(tokenManager: .shared, session: session)
+        let provider = NanoGptProvider(tokenManager: makeCredentials(), session: session)
 
         let usageJSON = """
         {
@@ -218,7 +202,7 @@ final class NanoGptProviderTests: XCTestCase {
         }
         """
 
-        MockURLProtocol.requestHandler = { request in
+        TestURLProtocol.handler = { request in
             guard let url = request.url else {
                 throw URLError(.badURL)
             }
@@ -241,12 +225,8 @@ final class NanoGptProviderTests: XCTestCase {
     }
 
     func testFetchFallsBackToWeeklyWhenMonthlyQuotaMissing() async throws {
-        guard TokenManager.shared.getNanoGptAPIKey() != nil else {
-            throw XCTSkip("Nano-GPT API key not available; skipping fetch test.")
-        }
-
         let session = makeSession()
-        let provider = NanoGptProvider(tokenManager: .shared, session: session)
+        let provider = NanoGptProvider(tokenManager: makeCredentials(), session: session)
 
         let usageJSON = """
         {
@@ -270,7 +250,7 @@ final class NanoGptProviderTests: XCTestCase {
         }
         """
 
-        MockURLProtocol.requestHandler = { request in
+        TestURLProtocol.handler = { request in
             guard let url = request.url else {
                 throw URLError(.badURL)
             }
@@ -311,12 +291,8 @@ final class NanoGptProviderTests: XCTestCase {
     }
 
     func testFetchReturnsDecodingErrorWhenWeeklyQuotaMissing() async throws {
-        guard TokenManager.shared.getNanoGptAPIKey() != nil else {
-            throw XCTSkip("Nano-GPT API key not available; skipping fetch test.")
-        }
-
         let session = makeSession()
-        let provider = NanoGptProvider(tokenManager: .shared, session: session)
+        let provider = NanoGptProvider(tokenManager: makeCredentials(), session: session)
 
         let usageJSON = """
         {
@@ -326,7 +302,7 @@ final class NanoGptProviderTests: XCTestCase {
         }
         """
 
-        MockURLProtocol.requestHandler = { request in
+        TestURLProtocol.handler = { request in
             guard let url = request.url else {
                 throw URLError(.badURL)
             }
@@ -356,12 +332,8 @@ final class NanoGptProviderTests: XCTestCase {
     }
 
     func testFetchInterpretsAmbiguousNumericPercentUsingUsageFallback() async throws {
-        guard TokenManager.shared.getNanoGptAPIKey() != nil else {
-            throw XCTSkip("Nano-GPT API key not available; skipping fetch test.")
-        }
-
         let session = makeSession()
-        let provider = NanoGptProvider(tokenManager: .shared, session: session)
+        let provider = NanoGptProvider(tokenManager: makeCredentials(), session: session)
 
         let usageJSON = """
         {
@@ -383,7 +355,7 @@ final class NanoGptProviderTests: XCTestCase {
         }
         """
 
-        MockURLProtocol.requestHandler = { request in
+        TestURLProtocol.handler = { request in
             guard let url = request.url else {
                 throw URLError(.badURL)
             }

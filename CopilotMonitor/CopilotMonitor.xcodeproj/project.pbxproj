@@ -32,7 +32,7 @@
 		283349012F313176004DADE1 /* ChutesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283349002F313176004DADE1 /* ChutesProvider.swift */; };
 		283349022F313176004DADE1 /* ChutesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283349002F313176004DADE1 /* ChutesProvider.swift */; };
 		3598A5E3900D37EA08DEA6F4 /* KeySourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94055A7CFB59D90DA90B27A0 /* KeySourceTests.swift */; };
-		36DF35D8A8344F6BAE3A1E24 /* BuildFile in Sources */ = {isa = PBXBuildFile; };
+		36DF35D8A8344F6BAE3A1E24 /* ZaiCodingPlanProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ZAICODINGPLANTESTFR0001 /* ZaiCodingPlanProviderTests.swift */; };
 		381E0D675B344773894DEAEA /* StatusBarMenuBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF11C5E6594E4F5286956E7A /* StatusBarMenuBuilder.swift */; };
 		390C3E920A03C8890AAA1CEE /* AntigravityProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1DA8E47F4CFEFC3571708AD /* AntigravityProvider.swift */; };
 		3A5F4CE914494278AFDA260E /* CLIFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A7819F28A1A46218574EC86 /* CLIFormatterTests.swift */; };
@@ -65,6 +65,8 @@
 		A1B2C3D4E5F60718293A4B64 /* ExchangeRateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B65 /* ExchangeRateStore.swift */; };
 		A1BED4A5CA1FEC2DADC461C2 /* MenuDesignTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8493409A9188CFF5B73D5B3 /* MenuDesignTokenTests.swift */; };
 		A33333333333333333333333 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A44444444444444444444444 /* AppDelegate.swift */; };
+		APPLAUNCHMODEAPPBF111111 /* AppLaunchMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = APPLAUNCHMODEAPPFR111111 /* AppLaunchMode.swift */; };
+		APPLAUNCHMODETESTBF11111 /* AppLaunchModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = APPLAUNCHMODETESTFR11111 /* AppLaunchModeTests.swift */; };
 		A454D8C22F30544900E355E3 /* MenuBarExtraAccess in Frameworks */ = {isa = PBXBuildFile; productRef = MBA2222222222222222222222 /* MenuBarExtraAccess */; };
 		A454D8C42F30548900E355E3 /* ZaiCodingPlanProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A454D8C32F30548900E355E3 /* ZaiCodingPlanProvider.swift */; };
 		A55555555555555555555555 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A66666666666666666666666 /* Assets.xcassets */; };
@@ -82,7 +84,16 @@
 		BA1D5B2614A9475EB4AF48282FFE4FFE /* TimeZoneUTCTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 447C5D12B4E04EC9A89ECAD71741968A /* TimeZoneUTCTests.swift */; };
 		BCDE4599B74AF7A799CE1D /* StatusBarIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0CA52627AF05BD67B56E /* StatusBarIconView.swift */; };
 		BRAVEAPP1111111111111111 /* BraveSearchProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BRAVEFILE22222222222222 /* BraveSearchProvider.swift */; };
-		C1471F6E1B6A6336057AF4D6 /* TavilyLiveIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A255270920EBB45B5176EFA /* TavilyLiveIntegrationTests.swift */; };
+		D20200000000000000000002 /* OfflineNetworkGuardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20100000000000000000002 /* OfflineNetworkGuardTests.swift */; };
+		D20200000000000000000004 /* TestURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20100000000000000000005 /* TestURLProtocol.swift */; };
+		D20200000000000000000005 /* FakeProviderCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20100000000000000000006 /* FakeProviderCredentialStore.swift */; };
+		D30200000000000000000001 /* LiveProviderTestGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30100000000000000000001 /* LiveProviderTestGate.swift */; };
+		D30200000000000000000002 /* LiveProviderTestGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30100000000000000000002 /* LiveProviderTestGateTests.swift */; };
+		D30200000000000000000003 /* TavilyLiveIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30100000000000000000003 /* TavilyLiveIntegrationTests.swift */; };
+		D30200000000000000000004 /* MiniMaxLiveIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30100000000000000000004 /* MiniMaxLiveIntegrationTests.swift */; };
+		D30200000000000000000005 /* VolcanoArkLiveIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30100000000000000000005 /* VolcanoArkLiveIntegrationTests.swift */; };
+		PROVCREDAPP111111111111 /* ProviderCredentialProviding.swift in Sources */ = {isa = PBXBuildFile; fileRef = PROVCREDFILE22222222222 /* ProviderCredentialProviding.swift */; };
+		PROVCREDCLI111111111111 /* ProviderCredentialProviding.swift in Sources */ = {isa = PBXBuildFile; fileRef = PROVCREDFILE22222222222 /* ProviderCredentialProviding.swift */; };
 		C49ECE19640D4C6DAE17E752 /* TokenManagerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A974BD938254650B40E5681 /* TokenManagerModels.swift */; };
 		C770099D14F30416045F8AFA /* ai_infra_keys.yaml in Resources */ = {isa = PBXBuildFile; fileRef = CF23F2A5CF0366FB78011DCA /* ai_infra_keys.yaml */; };
 		CB3FA9AE43F3466269FA56F4 /* ProviderProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE39D5663A7ABADC7E54B91D /* ProviderProtocol.swift */; };
@@ -350,7 +361,15 @@
 		663FF89331A3356BCC4004EC /* Network.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Network.framework; path = System/Library/Frameworks/Network.framework; sourceTree = SDKROOT; };
 		71E2AAD25CDE294DF4845E9B /* WidgetSnapshotReaderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotReaderTests.swift; sourceTree = "<group>"; };
 		76783C44AA2329AE3FA7E981 /* CodexProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CodexProvider.swift; sourceTree = "<group>"; };
-		7A255270920EBB45B5176EFA /* TavilyLiveIntegrationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TavilyLiveIntegrationTests.swift; sourceTree = "<group>"; };
+		D20100000000000000000002 /* OfflineNetworkGuardTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OfflineNetworkGuardTests.swift; sourceTree = "<group>"; };
+		D20100000000000000000005 /* TestURLProtocol.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TestURLProtocol.swift; sourceTree = "<group>"; };
+		D20100000000000000000006 /* FakeProviderCredentialStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FakeProviderCredentialStore.swift; sourceTree = "<group>"; };
+		D30100000000000000000001 /* LiveProviderTestGate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveProviderTestGate.swift; sourceTree = "<group>"; };
+		D30100000000000000000002 /* LiveProviderTestGateTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveProviderTestGateTests.swift; sourceTree = "<group>"; };
+		D30100000000000000000003 /* TavilyLiveIntegrationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TavilyLiveIntegrationTests.swift; sourceTree = "<group>"; };
+		D30100000000000000000004 /* MiniMaxLiveIntegrationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MiniMaxLiveIntegrationTests.swift; sourceTree = "<group>"; };
+		D30100000000000000000005 /* VolcanoArkLiveIntegrationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VolcanoArkLiveIntegrationTests.swift; sourceTree = "<group>"; };
+		PROVCREDFILE22222222222 /* ProviderCredentialProviding.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProviderCredentialProviding.swift; sourceTree = "<group>"; };
 		809C5F4DE9614EA7AFA97ABE /* AntigravityProviderVarintTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AntigravityProviderVarintTests.swift; sourceTree = "<group>"; };
 		81B242CA1C4AD559D71D0C7C /* LocalHTTPServer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LocalHTTPServer.swift; sourceTree = "<group>"; };
 		8A1F577E5DDC41A19316CDBC /* PricingTableTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PricingTableTests.swift; sourceTree = "<group>"; };
@@ -359,6 +378,7 @@
 		94055A7CFB59D90DA90B27A0 /* KeySourceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeySourceTests.swift; sourceTree = "<group>"; };
 		9A6F09D053C04780AAEB8EE7 /* PricingTable.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PricingTable.swift; sourceTree = "<group>"; };
 		9A7819F28A1A46218574EC86 /* CLIFormatterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CLIFormatterTests.swift; sourceTree = "<group>"; };
+		ZAICODINGPLANTESTFR0001 /* ZaiCodingPlanProviderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ZaiCodingPlanProviderTests.swift; sourceTree = "<group>"; };
 		9B1085A77EF4A58E5B5EC71B /* CopilotHistoryService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CopilotHistoryService.swift; sourceTree = "<group>"; };
 		9F2E141A81879AD0D9434ED6 /* KeySource.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeySource.swift; sourceTree = "<group>"; };
 		A0A0A0A0A0A0A0A0A0A00A4 /* VersionInjectionTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VersionInjectionTests.swift; sourceTree = "<group>"; };
@@ -367,6 +387,8 @@
 		A1B2C3D4E5F60718293A4B63 /* exchange_rate_error.json */ = {isa = PBXFileReference; includeInIndex = 1; path = exchange_rate_error.json; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718293A4B65 /* ExchangeRateStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExchangeRateStore.swift; sourceTree = "<group>"; };
 		A44444444444444444444444 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		APPLAUNCHMODEAPPFR111111 /* AppLaunchMode.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppLaunchMode.swift; sourceTree = "<group>"; };
+		APPLAUNCHMODETESTFR11111 /* AppLaunchModeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppLaunchModeTests.swift; sourceTree = "<group>"; };
 		A454D8C32F30548900E355E3 /* ZaiCodingPlanProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZaiCodingPlanProvider.swift; sourceTree = "<group>"; };
 		A66666666666666666666666 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A77777777777777777777777 /* Token King.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Token King.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -411,7 +433,7 @@
 		DLG000000000000000000002 /* DiagnosticsLogger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DiagnosticsLogger.swift; sourceTree = "<group>"; };
 		DLT000000000000000000002 /* DiagnosticsLoggerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DiagnosticsLoggerTests.swift; sourceTree = "<group>"; };
 		DSN000000000000000000002 /* DiagnosticsSanitizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DiagnosticsSanitizer.swift; sourceTree = "<group>"; };
-		E02C577A4DFC40E05AA764DF /* LiveTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LiveTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E02C577A4DFC40E05AA764DF /* CopilotMonitorLiveTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CopilotMonitorLiveTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E10F736FBCBA4B3DB7D95AE6 /* BrowserCookieServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BrowserCookieServiceTests.swift; sourceTree = "<group>"; };
 		E22222222222222222222222 /* CopilotUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopilotUsage.swift; sourceTree = "<group>"; };
 		E44444444444444444444444 /* UsageHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageHistory.swift; sourceTree = "<group>"; };
@@ -639,12 +661,16 @@
 			path = Helpers;
 			sourceTree = "<group>";
 		};
-		4BA9AB5CDC25089EE476B03B /* LiveTests */ = {
+		4BA9AB5CDC25089EE476B03B /* CopilotMonitorLiveTests */ = {
 			isa = PBXGroup;
 			children = (
+				D30100000000000000000001 /* LiveProviderTestGate.swift */,
+				D30100000000000000000002 /* LiveProviderTestGateTests.swift */,
+				D30100000000000000000003 /* TavilyLiveIntegrationTests.swift */,
+				D30100000000000000000004 /* MiniMaxLiveIntegrationTests.swift */,
+				D30100000000000000000005 /* VolcanoArkLiveIntegrationTests.swift */,
 			);
-			name = LiveTests;
-			path = LiveTests;
+			path = CopilotMonitorLiveTests;
 			sourceTree = "<group>";
 		};
 		4D0546BDF4C7CD74746285DF /* Providers */ = {
@@ -695,7 +721,7 @@
 				ADDDDDDDDDDDDDDDDDDDDDDD /* Products */,
 				SP3333333333333333333333 /* Frameworks */,
 				30A898103B3BB6062DE8FCC9 /* CopilotMonitorUITests */,
-				4BA9AB5CDC25089EE476B03B /* LiveTests */,
+				4BA9AB5CDC25089EE476B03B /* CopilotMonitorLiveTests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -725,7 +751,7 @@
 				CLI5555555555555555555555 /* opencodebar-cli */,
 				TDDDDDDDDDDDDDDDDDDDDDD /* CopilotMonitorTests.xctest */,
 				EEEFD150835A56764D01E0A6 /* CopilotMonitorUITests.xctest */,
-				E02C577A4DFC40E05AA764DF /* LiveTests.xctest */,
+				E02C577A4DFC40E05AA764DF /* CopilotMonitorLiveTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -734,6 +760,7 @@
 			isa = PBXGroup;
 			children = (
 				A44444444444444444444444 /* AppDelegate.swift */,
+				APPLAUNCHMODEAPPFR111111 /* AppLaunchMode.swift */,
 				APPMAIN22222222222222222222 /* EntryDocumentation.swift */,
 				AM2222222222222222222222 /* AppMigrationHelper.swift */,
 				D22222222222222222222222 /* StatusBarController.swift */,
@@ -756,6 +783,7 @@
 		C77777777777777777777777 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				PROVCREDFILE22222222222 /* ProviderCredentialProviding.swift */,
 				DBF0C48368166F3AD0C79F92 /* TokenManager.swift */,
 				DBF0C48368166F3AD0C79F93 /* TokenManagerOpenCodeCodexAuth.swift */,
 				586AED36BD3C4BF0AF6BB7E1 /* TokenManagerProviderAuth.swift */,
@@ -889,6 +917,9 @@
 		TFFFFFFFFFFFFFFFFFFFFFFFF /* CopilotMonitorTests */ = {
 			isa = PBXGroup;
 			children = (
+				APPLAUNCHMODETESTFR11111 /* AppLaunchModeTests.swift */,
+				D20100000000000000000002 /* OfflineNetworkGuardTests.swift */,
+				D20100000000000000000003 /* Support */,
 				T22222222222222222222222 /* ProviderUsageTests.swift */,
 				TOOOOOOOOOOOOOOOOOOOOOOO /* Fixtures */,
 				WIDGETSHAREDTSTGP0000001 /* Shared */,
@@ -938,14 +969,23 @@
 				36C2B344956C6CBB5D2AA5E3 /* TavilySearchProviderTests.swift */,
 				3757ACF7CDCF402D9A9280465146654E /* BraveSearchProviderTests.swift */,
 				8F0ECB3B429456A48F1A4E69 /* SearchEngineTitleTests.swift */,
-				7A255270920EBB45B5176EFA /* TavilyLiveIntegrationTests.swift */,
 				4776646D4D1A4A658AEFC521 /* Helpers */,
 				809C5F4DE9614EA7AFA97ABE /* AntigravityProviderVarintTests.swift */,
 				9A7819F28A1A46218574EC86 /* CLIFormatterTests.swift */,
 				D2988F859C63495EA525AEA2 /* ClaudeProviderTests.swift */,
 				4122A310609449CAAE08CA5C /* SubscriptionSettingsManagerTests.swift */,
+				ZAICODINGPLANTESTFR0001 /* ZaiCodingPlanProviderTests.swift */,
 			);
 			path = CopilotMonitorTests;
+			sourceTree = "<group>";
+		};
+		D20100000000000000000003 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				D20100000000000000000006 /* FakeProviderCredentialStore.swift */,
+				D20100000000000000000005 /* TestURLProtocol.swift */,
+			);
+			path = Support;
 			sourceTree = "<group>";
 		};
 		TOOOOOOOOOOOOOOOOOOOOOOO /* Fixtures */ = {
@@ -1012,9 +1052,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		2C9849782E0A3FFF02640BD8 /* LiveTests */ = {
+		2C9849782E0A3FFF02640BD8 /* CopilotMonitorLiveTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 75F359CD05BA650800E22529 /* Build configuration list for PBXNativeTarget "LiveTests" */;
+			buildConfigurationList = 75F359CD05BA650800E22529 /* Build configuration list for PBXNativeTarget "CopilotMonitorLiveTests" */;
 			buildPhases = (
 				7D8397A7FF1B21F34067FA07 /* Sources */,
 				3DF0F93F5C046ED2FDF55D85 /* Frameworks */,
@@ -1025,9 +1065,9 @@
 			dependencies = (
 				67A04FED8839061C2AC246FA /* PBXTargetDependency */,
 			);
-			name = LiveTests;
-			productName = LiveTests;
-			productReference = E02C577A4DFC40E05AA764DF /* LiveTests.xctest */;
+			name = CopilotMonitorLiveTests;
+			productName = CopilotMonitorLiveTests;
+			productReference = E02C577A4DFC40E05AA764DF /* CopilotMonitorLiveTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		84A5F1174B993DADEB530F85 /* CopilotMonitorUITests */ = {
@@ -1167,7 +1207,7 @@
 				CLI8888888888888888888888 /* opencodebar-cli */,
 				TGGGGGGGGGGGGGGGGGGGGGGG /* CopilotMonitorTests */,
 				84A5F1174B993DADEB530F85 /* CopilotMonitorUITests */,
-				2C9849782E0A3FFF02640BD8 /* LiveTests */,
+				2C9849782E0A3FFF02640BD8 /* CopilotMonitorLiveTests */,
 			);
 		};
 /* End PBXProject section */
@@ -1260,7 +1300,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C1471F6E1B6A6336057AF4D6 /* TavilyLiveIntegrationTests.swift in Sources */,
+				D30200000000000000000001 /* LiveProviderTestGate.swift in Sources */,
+				D30200000000000000000002 /* LiveProviderTestGateTests.swift in Sources */,
+				D30200000000000000000003 /* TavilyLiveIntegrationTests.swift in Sources */,
+				D30200000000000000000004 /* MiniMaxLiveIntegrationTests.swift in Sources */,
+				D30200000000000000000005 /* VolcanoArkLiveIntegrationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1268,6 +1312,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				APPLAUNCHMODEAPPBF111111 /* AppLaunchMode.swift in Sources */,
+				PROVCREDAPP111111111111 /* ProviderCredentialProviding.swift in Sources */,
 				283348F92F313096004DADE1 /* ProviderResult.swift in Sources */,
 				WIDGETMAPBF00000000000001 /* WidgetSnapshotMapper.swift in Sources */,
 				WIDGETWRITERBF000000000001 /* WidgetSnapshotWriter.swift in Sources */,
@@ -1366,6 +1412,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				PROVCREDCLI111111111111 /* ProviderCredentialProviding.swift in Sources */,
 				CLI1111111111111111111111 /* main.swift in Sources */,
 				CB3FA9AE43F3466269FA56F4 /* ProviderProtocol.swift in Sources */,
 				B248782F500D3B09E0CE5AC8 /* ProviderUsage.swift in Sources */,
@@ -1419,6 +1466,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				APPLAUNCHMODETESTBF11111 /* AppLaunchModeTests.swift in Sources */,
+				D20200000000000000000002 /* OfflineNetworkGuardTests.swift in Sources */,
+				D20200000000000000000004 /* TestURLProtocol.swift in Sources */,
+				D20200000000000000000005 /* FakeProviderCredentialStore.swift in Sources */,
 				T11111111111111111111111 /* ProviderUsageTests.swift in Sources */,
 				23AA5FD37F2062EACCA79F50 /* GeminiCLIProviderTests.swift in Sources */,
 				632E52F6050FAD5CAF928E36 /* CopilotProviderTests.swift in Sources */,
@@ -1493,7 +1544,7 @@
 				3A5F4CE914494278AFDA260E /* CLIFormatterTests.swift in Sources */,
 				01F3CEDD4DF8427C9D85D492 /* ClaudeProviderTests.swift in Sources */,
 				6E7602C0A30D407C805EEB62 /* SubscriptionSettingsManagerTests.swift in Sources */,
-				36DF35D8A8344F6BAE3A1E24 /* BuildFile in Sources */,
+				36DF35D8A8344F6BAE3A1E24 /* ZaiCodingPlanProviderTests.swift in Sources */,
 				WIDGETMAPTSTBF00000000001 /* WidgetSnapshotMapperTests.swift in Sources */,
 				WIDGETWRITERTBF0000000000 /* WidgetSnapshotWriterTests.swift in Sources */,
 				B2E1A0D737779A8704AD8A22 /* WidgetSnapshotReaderTests.swift in Sources */,
@@ -1940,7 +1991,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		75F359CD05BA650800E22529 /* Build configuration list for PBXNativeTarget "LiveTests" */ = {
+		75F359CD05BA650800E22529 /* Build configuration list for PBXNativeTarget "CopilotMonitorLiveTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				3C759E4DC16964213C2B5C14 /* Release */,

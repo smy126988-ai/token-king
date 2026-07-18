@@ -17,10 +17,10 @@ final class SyntheticProvider: ProviderProtocol {
     let identifier: ProviderIdentifier = .synthetic
     let type: ProviderType = .quotaBased
 
-    private let tokenManager: TokenManager
+    private let tokenManager: SyntheticCredentialProviding
     private let session: URLSession
 
-    init(tokenManager: TokenManager = .shared, session: URLSession = .shared) {
+    init(tokenManager: SyntheticCredentialProviding = TokenManager.shared, session: URLSession = .shared) {
         self.tokenManager = tokenManager
         self.session = session
     }

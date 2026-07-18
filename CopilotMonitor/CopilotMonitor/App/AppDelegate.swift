@@ -15,6 +15,27 @@ private let logger = Logger(subsystem: "com.opencodeproviders", category: "AppDe
 class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
     var statusBarController: StatusBarController!
     private(set) var updaterController: SPUStandardUpdaterController!
+    private let launchMode: AppLaunchMode
+    private let offlineTestSandboxActivator: () throws -> OfflineTestSandbox
+    private(set) var runtimeInitializationCount = 0
+    private(set) var offlineTestSandbox: OfflineTestSandbox?
+
+    override init() {
+        launchMode = AppLaunchMode.resolve()
+        offlineTestSandboxActivator = { try OfflineTestSandbox.activate() }
+        super.init()
+    }
+
+    init(
+        launchMode: AppLaunchMode,
+        offlineTestSandboxActivator: @escaping () throws -> OfflineTestSandbox = {
+            try OfflineTestSandbox.activate()
+        }
+    ) {
+        self.launchMode = launchMode
+        self.offlineTestSandboxActivator = offlineTestSandboxActivator
+        super.init()
+    }
 
     // F2b: drives the 30s tick (extract → store → recompute month aggregates).
     // Started from `applicationDidFinishLaunching` after the controller is up
@@ -218,6 +239,24 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
 
     @MainActor
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if launchMode.shouldActivateOfflineSandbox {
+            do {
+                let sandbox = try offlineTestSandboxActivator()
+                offlineTestSandbox = sandbox
+                logger.info(
+                    "Offline test sandbox activated at \(sandbox.rootURL.path, privacy: .public); production runtime services are disabled"
+                )
+            } catch {
+                fatalError("Failed to create offline test sandbox: \(error)")
+            }
+            return
+        }
+        guard launchMode.shouldInitializeRuntimeServices else {
+            logger.info("Live test host started with production runtime services disabled")
+            return
+        }
+        runtimeInitializationCount += 1
+
         if AppMigrationHelper.shared.checkAndMigrateIfNeeded() {
             return
         }
@@ -288,8 +327,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         startRefreshActor()
     }
 
+    @MainActor
     func applicationWillTerminate(_ notification: Notification) {
         localHTTPServer?.stop()
+        guard launchMode.shouldActivateOfflineSandbox, let sandbox = offlineTestSandbox else { return }
+        do {
+            try sandbox.cleanup()
+            offlineTestSandbox = nil
+            logger.info("Offline test sandbox cleaned up at \(sandbox.rootURL.path, privacy: .public)")
+        } catch {
+            logger.error(
+                "Failed to clean offline test sandbox at \(sandbox.rootURL.path, privacy: .public): \(String(describing: error), privacy: .public)"
+            )
+        }
     }
 
     /// F2b: construct and start the RefreshActor, share it with the controller,

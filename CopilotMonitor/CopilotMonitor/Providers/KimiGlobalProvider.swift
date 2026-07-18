@@ -7,10 +7,10 @@ final class KimiGlobalProvider: ProviderProtocol {
     let identifier: ProviderIdentifier = .kimi
     let type: ProviderType = .quotaBased
 
-    private let tokenManager: TokenManager
+    private let tokenManager: KimiCredentialProviding
     private let session: URLSession
 
-    init(tokenManager: TokenManager = .shared, session: URLSession = .shared) {
+    init(tokenManager: KimiCredentialProviding = TokenManager.shared, session: URLSession = .shared) {
         self.tokenManager = tokenManager
         self.session = session
     }

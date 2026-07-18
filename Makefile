@@ -2,7 +2,7 @@
 # Token King - Development Makefile
 # =============================================================================
 
-.PHONY: setup lint lint-swift lint-actions release run help version version-check version-show
+.PHONY: setup lint lint-swift lint-actions test-membership test-boundaries release run help version version-check version-show
 
 # Default target
 help:
@@ -13,6 +13,8 @@ help:
 	@echo "  make lint           - Run all linters"
 	@echo "  make lint-swift     - Run SwiftLint only"
 	@echo "  make lint-actions   - Run action-validator only"
+	@echo "  make test-membership - Verify every test file belongs to the test target"
+	@echo "  make test-boundaries - Verify offline and live tests remain isolated"
 	@echo "  make version        - Inject git-describe version into source Info.plist"
 	@echo "  make version-check  - Build and verify the built Info.plist matches git"
 	@echo "  make version-show   - Print current git-derived version"
@@ -77,3 +79,11 @@ lint-actions:
 		echo "Validating $$f..."; \
 		npx --yes @action-validator/cli "$$f"; \
 	done
+
+test-membership:
+	@bash scripts/tests/check-test-target-membership-tests.sh
+	@bash scripts/check-test-target-membership.sh
+
+test-boundaries:
+	@bash scripts/tests/check-offline-test-boundaries-tests.sh
+	@bash scripts/check-offline-test-boundaries.sh

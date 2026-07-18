@@ -2,54 +2,24 @@ import XCTest
 @testable import OpenCode_Bar
 
 final class KimiProviderTests: XCTestCase {
-    private final class MockURLProtocol: URLProtocol {
-        static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
-
-        override static func canInit(with request: URLRequest) -> Bool {
-            true
-        }
-
-        override static func canonicalRequest(for request: URLRequest) -> URLRequest {
-            request
-        }
-
-        override func startLoading() {
-            guard let handler = MockURLProtocol.requestHandler else {
-                client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
-                return
-            }
-
-            do {
-                let (response, data) = try handler(request)
-                client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-                client?.urlProtocol(self, didLoad: data)
-                client?.urlProtocolDidFinishLoading(self)
-            } catch {
-                client?.urlProtocol(self, didFailWithError: error)
-            }
-        }
-
-        override func stopLoading() {}
-    }
-
     private func makeSession() -> URLSession {
         let configuration = URLSessionConfiguration.ephemeral
-        configuration.protocolClasses = [MockURLProtocol.self]
+        configuration.protocolClasses = [TestURLProtocol.self]
         return URLSession(configuration: configuration)
     }
 
-    private func makeStubTokenManager() -> TokenManager {
-        TokenManager.shared
+    private func makeCredentials(
+        cnKey: String? = "cn-kimi-key",
+        globalKey: String? = "global-kimi-key"
+    ) -> FakeProviderCredentialStore {
+        let credentials = FakeProviderCredentialStore()
+        credentials.kimiCNAPIKey = cnKey
+        credentials.kimiAPIKey = globalKey
+        return credentials
     }
 
     override func tearDown() {
-        MockURLProtocol.requestHandler = nil
-        // B15: tests that swap XDG_DATA_HOME and call
-        // `TokenManager.shared.resetCachedAuthForTesting()` leave the shared
-        // cache pointing at the temp auth.json. Wipe it again so the next
-        // test that reads TokenManager.shared sees the developer's real auth,
-        // not the test temp file.
-        TokenManager.shared.resetCachedAuthForTesting()
+        TestURLProtocol.reset()
         super.tearDown()
     }
 
@@ -63,16 +33,44 @@ final class KimiProviderTests: XCTestCase {
         }
         """.data(using: .utf8)!
 
-        MockURLProtocol.requestHandler = { request in
+        TestURLProtocol.handler = { request in
             let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
             return (response, json)
         }
 
-        let provider = KimiCNProvider(tokenManager: makeStubTokenManager(), session: makeSession())
+        let provider = KimiCNProvider(tokenManager: makeCredentials(), session: makeSession())
         let result = try await provider.fetch()
 
         XCTAssertEqual(result.details?.sevenDayUsage ?? -1, 25.0, accuracy: 0.01)
         XCTAssertEqual(result.details?.fiveHourUsage ?? -1, 0.0, accuracy: 0.01)
+    }
+
+    func testFetchUsesInjectedCNKeyWithoutTokenManager() async throws {
+        let credentials = FakeProviderCredentialStore()
+        credentials.kimiCNAPIKey = "injected-kimi-cn-key"
+        let json = """
+        {
+          "usage": {"limit": "100", "used": "25", "remaining": "75"},
+          "limits": []
+        }
+        """.data(using: .utf8)!
+
+        TestURLProtocol.handler = { request in
+            XCTAssertEqual(
+                request.value(forHTTPHeaderField: "Authorization"),
+                "Bearer injected-kimi-cn-key"
+            )
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (response, json)
+        }
+
+        let provider = KimiCNProvider(tokenManager: credentials, session: makeSession())
+        _ = try await provider.fetch()
     }
 
     func testWeeklyUsedFallsBackToLimitMinusRemainingWhenUsedMissing() async throws {
@@ -85,43 +83,18 @@ final class KimiProviderTests: XCTestCase {
         }
         """.data(using: .utf8)!
 
-        MockURLProtocol.requestHandler = { request in
+        TestURLProtocol.handler = { request in
             let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
             return (response, json)
         }
 
-        let provider = KimiCNProvider(tokenManager: makeStubTokenManager(), session: makeSession())
+        let provider = KimiCNProvider(tokenManager: makeCredentials(), session: makeSession())
         let result = try await provider.fetch()
 
         XCTAssertEqual(result.details?.sevenDayUsage ?? -1, 60.0, accuracy: 0.01)
     }
 
     func testIntermediateLevelMapsToModeratoInProviderResult() async throws {
-        let tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(
-            at: tempDir.appendingPathComponent("opencode"),
-            withIntermediateDirectories: true
-        )
-        let authURL = tempDir.appendingPathComponent("opencode/auth.json")
-        let authJSON = """
-        { "kimi-for-coding-cn": {"type": "apiKey", "key": "cn-kimi-key"} }
-        """
-        try authJSON.write(to: authURL, atomically: true, encoding: .utf8)
-
-        let originalXDG = getenv("XDG_DATA_HOME").flatMap { String(cString: $0) }
-        setenv("XDG_DATA_HOME", tempDir.path, 1)
-        defer {
-            if let originalXDG {
-                setenv("XDG_DATA_HOME", originalXDG, 1)
-            } else {
-                unsetenv("XDG_DATA_HOME")
-            }
-            try? FileManager.default.removeItem(at: tempDir)
-        }
-
-        TokenManager.shared.resetCachedAuthForTesting()
-
         let json = """
         {
           "user": {"userId": "u1", "region": "REGION_CN", "membership": {"level": "LEVEL_INTERMEDIATE"}},
@@ -131,7 +104,7 @@ final class KimiProviderTests: XCTestCase {
         }
         """
 
-        MockURLProtocol.requestHandler = { request in
+        TestURLProtocol.handler = { request in
             let response = HTTPURLResponse(
                 url: request.url!,
                 statusCode: 200,
@@ -141,7 +114,7 @@ final class KimiProviderTests: XCTestCase {
             return (response, Data(json.utf8))
         }
 
-        let provider = KimiCNProvider(tokenManager: .shared, session: makeSession())
+        let provider = KimiCNProvider(tokenManager: makeCredentials(), session: makeSession())
         let result = try await provider.fetch()
 
         XCTAssertEqual(result.details?.planType, "Moderato")
@@ -160,35 +133,6 @@ final class KimiProviderTests: XCTestCase {
     }
 
     func testKimiProvidersUseSameEndpointAndDifferentKeys() async throws {
-        let tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(
-            at: tempDir.appendingPathComponent("opencode"),
-            withIntermediateDirectories: true
-        )
-        let authURL = tempDir.appendingPathComponent("opencode/auth.json")
-        let authJSON = """
-        {
-          "kimi-for-coding": {"type": "apiKey", "key": "global-kimi-key"},
-          "kimi-for-coding-cn": {"type": "apiKey", "key": "cn-kimi-key"}
-        }
-        """
-        try authJSON.write(to: authURL, atomically: true, encoding: .utf8)
-
-        let originalXDG = getenv("XDG_DATA_HOME").flatMap { String(cString: $0) }
-        setenv("XDG_DATA_HOME", tempDir.path, 1)
-        defer {
-            if let originalXDG {
-                setenv("XDG_DATA_HOME", originalXDG, 1)
-            } else {
-                unsetenv("XDG_DATA_HOME")
-            }
-            try? FileManager.default.removeItem(at: tempDir)
-        }
-
-        // Reset TokenManager cache so the new XDG_DATA_HOME is read.
-        TokenManager.shared.resetCachedAuthForTesting()
-
         let responseJSON = """
         {
           "user": {"userId": "u1", "membership": {"level": "LEVEL_VIVACE"}},
@@ -198,9 +142,7 @@ final class KimiProviderTests: XCTestCase {
         }
         """
 
-        var capturedRequests: [URLRequest] = []
-        MockURLProtocol.requestHandler = { request in
-            capturedRequests.append(request)
+        TestURLProtocol.handler = { request in
             let response = HTTPURLResponse(
                 url: request.url!,
                 statusCode: 200,
@@ -212,12 +154,13 @@ final class KimiProviderTests: XCTestCase {
 
         let session = makeSession()
 
-        let cnProvider = KimiCNProvider(tokenManager: .shared, session: session)
-        let globalProvider = KimiGlobalProvider(tokenManager: .shared, session: session)
+        let cnProvider = KimiCNProvider(tokenManager: makeCredentials(), session: session)
+        let globalProvider = KimiGlobalProvider(tokenManager: makeCredentials(), session: session)
 
         _ = try await cnProvider.fetch()
         _ = try await globalProvider.fetch()
 
+        let capturedRequests = TestURLProtocol.recordedRequests
         XCTAssertEqual(capturedRequests.count, 2)
         for request in capturedRequests {
             XCTAssertEqual(request.url?.absoluteString, "https://api.kimi.com/coding/v1/usages")

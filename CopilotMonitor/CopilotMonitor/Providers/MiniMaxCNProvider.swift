@@ -7,11 +7,11 @@ final class MiniMaxCNProvider: ProviderProtocol {
     let identifier: ProviderIdentifier = .minimaxCodingPlanCN
     let type: ProviderType = .quotaBased
 
-    private let tokenManager: TokenManager
+    private let tokenManager: MiniMaxCredentialProviding
     private let session: URLSession
     private let baseURL = "https://api.minimaxi.com/v1/api/openplatform/coding_plan/remains"
 
-    init(tokenManager: TokenManager = .shared, session: URLSession = .shared) {
+    init(tokenManager: MiniMaxCredentialProviding = TokenManager.shared, session: URLSession = .shared) {
         self.tokenManager = tokenManager
         self.session = session
     }

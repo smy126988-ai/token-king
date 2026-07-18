@@ -18,20 +18,13 @@
       selectedDebugger="Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncher="Xcode.LauncherFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv="YES"
-      shouldAutocreateTestPlan="YES">
-      <Testables>
-         <TestableReference
-            skipped="NO"
-            parallelizable="NO">
-            <BuildableReference
-               BuildableIdentifier="primary"
-               BlueprintIdentifier="TGGGGGGGGGGGGGGGGGGGGGGG"
-               BuildableName="CopilotMonitorTests.xctest"
-               BlueprintName="CopilotMonitorTests"
-               ReferencedContainer="container:CopilotMonitor.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-      </Testables>
+      shouldAutocreateTestPlan="NO">
+      <TestPlans>
+         <TestPlanReference
+            reference="container:CopilotMonitor.xcodeproj/xcshareddata/xctestplans/OfflineTests.xctestplan"
+            default="YES">
+         </TestPlanReference>
+      </TestPlans>
    </TestAction>
    <LaunchAction
       buildConfiguration="Debug"

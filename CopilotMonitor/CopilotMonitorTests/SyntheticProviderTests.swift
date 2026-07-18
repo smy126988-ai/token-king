@@ -2,40 +2,19 @@ import XCTest
 @testable import OpenCode_Bar
 
 final class SyntheticProviderTests: XCTestCase {
-    private final class MockURLProtocol: URLProtocol {
-        static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
-
-        override static func canInit(with request: URLRequest) -> Bool {
-            return true
-        }
-
-        override static func canonicalRequest(for request: URLRequest) -> URLRequest {
-            return request
-        }
-
-        override func startLoading() {
-            guard let handler = MockURLProtocol.requestHandler else {
-                client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
-                return
-            }
-
-            do {
-                let (response, data) = try handler(request)
-                client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-                client?.urlProtocol(self, didLoad: data)
-                client?.urlProtocolDidFinishLoading(self)
-            } catch {
-                client?.urlProtocol(self, didFailWithError: error)
-            }
-        }
-
-        override func stopLoading() {}
-    }
-
     private func makeSession() -> URLSession {
         let configuration = URLSessionConfiguration.ephemeral
-        configuration.protocolClasses = [MockURLProtocol.self]
+        configuration.protocolClasses = [TestURLProtocol.self]
         return URLSession(configuration: configuration)
+    }
+
+    private func makeCredentials(
+        authPath: URL? = URL(fileURLWithPath: "/tmp/test-opencode-auth.json")
+    ) -> FakeProviderCredentialStore {
+        let credentials = FakeProviderCredentialStore()
+        credentials.syntheticAPIKey = "test-synthetic-key"
+        credentials.lastFoundAuthPath = authPath
+        return credentials
     }
 
     private func makeHTTPResponse(statusCode: Int) -> HTTPURLResponse {
@@ -44,7 +23,7 @@ final class SyntheticProviderTests: XCTestCase {
     }
 
     override func tearDown() {
-        MockURLProtocol.requestHandler = nil
+        TestURLProtocol.reset()
         super.tearDown()
     }
 
@@ -58,13 +37,34 @@ final class SyntheticProviderTests: XCTestCase {
         XCTAssertEqual(provider.type, .quotaBased)
     }
 
-    func testFetchSuccessCreatesProviderResult() async throws {
-        guard TokenManager.shared.getSyntheticAPIKey() != nil else {
-            throw XCTSkip("Synthetic API key not available; skipping fetch test.")
+    func testFetchUsesInjectedKeyWithoutTokenManager() async throws {
+        let credentials = FakeProviderCredentialStore()
+        credentials.syntheticAPIKey = "injected-synthetic-key"
+
+        TestURLProtocol.handler = { request in
+            XCTAssertEqual(
+                request.value(forHTTPHeaderField: "Authorization"),
+                "Bearer injected-synthetic-key"
+            )
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            let json = #"{"subscription":{"limit":100,"requests":25,"renewsAt":null}}"#
+            return (response, Data(json.utf8))
         }
-        let expectedAuthPath = TokenManager.shared.lastFoundAuthPath?.path
+
+        let provider = SyntheticProvider(tokenManager: credentials, session: makeSession())
+        _ = try await provider.fetch()
+    }
+
+    func testFetchSuccessCreatesProviderResult() async throws {
+        let credentials = makeCredentials()
+        let expectedAuthPath = credentials.lastFoundAuthPath?.path
         let session = makeSession()
-        let provider = SyntheticProvider(tokenManager: .shared, session: session)
+        let provider = SyntheticProvider(tokenManager: credentials, session: session)
 
         let json = """
         {
@@ -76,7 +76,7 @@ final class SyntheticProviderTests: XCTestCase {
         }
         """
         let data = json.data(using: .utf8)!
-        MockURLProtocol.requestHandler = { _ in
+        TestURLProtocol.handler = { _ in
             (self.makeHTTPResponse(statusCode: 200), data)
         }
 
@@ -103,14 +103,11 @@ final class SyntheticProviderTests: XCTestCase {
     }
 
     func testFetchReturnsAuthenticationErrorOn401() async throws {
-        guard TokenManager.shared.getSyntheticAPIKey() != nil else {
-            throw XCTSkip("Synthetic API key not available; skipping fetch test.")
-        }
         let session = makeSession()
-        let provider = SyntheticProvider(tokenManager: .shared, session: session)
+        let provider = SyntheticProvider(tokenManager: makeCredentials(), session: session)
 
         let data = Data("{}".utf8)
-        MockURLProtocol.requestHandler = { _ in
+        TestURLProtocol.handler = { _ in
             (self.makeHTTPResponse(statusCode: 401), data)
         }
 
@@ -130,14 +127,11 @@ final class SyntheticProviderTests: XCTestCase {
     }
 
     func testFetchReturnsNetworkErrorOnNon200() async throws {
-        guard TokenManager.shared.getSyntheticAPIKey() != nil else {
-            throw XCTSkip("Synthetic API key not available; skipping fetch test.")
-        }
         let session = makeSession()
-        let provider = SyntheticProvider(tokenManager: .shared, session: session)
+        let provider = SyntheticProvider(tokenManager: makeCredentials(), session: session)
 
         let data = Data("{}".utf8)
-        MockURLProtocol.requestHandler = { _ in
+        TestURLProtocol.handler = { _ in
             (self.makeHTTPResponse(statusCode: 500), data)
         }
 
@@ -157,14 +151,11 @@ final class SyntheticProviderTests: XCTestCase {
     }
 
     func testFetchReturnsAuthenticationErrorOnMalformedJSON() async throws {
-        guard TokenManager.shared.getSyntheticAPIKey() != nil else {
-            throw XCTSkip("Synthetic API key not available; skipping fetch test.")
-        }
         let session = makeSession()
-        let provider = SyntheticProvider(tokenManager: .shared, session: session)
+        let provider = SyntheticProvider(tokenManager: makeCredentials(), session: session)
 
         let data = Data("{".utf8)
-        MockURLProtocol.requestHandler = { _ in
+        TestURLProtocol.handler = { _ in
             (self.makeHTTPResponse(statusCode: 200), data)
         }
 
@@ -184,11 +175,8 @@ final class SyntheticProviderTests: XCTestCase {
     }
 
     func testFetchParsesDateWithoutFractionalSeconds() async throws {
-        guard TokenManager.shared.getSyntheticAPIKey() != nil else {
-            throw XCTSkip("Synthetic API key not available; skipping fetch test.")
-        }
         let session = makeSession()
-        let provider = SyntheticProvider(tokenManager: .shared, session: session)
+        let provider = SyntheticProvider(tokenManager: makeCredentials(), session: session)
 
         let json = """
         {
@@ -200,7 +188,7 @@ final class SyntheticProviderTests: XCTestCase {
         }
         """
         let data = json.data(using: .utf8)!
-        MockURLProtocol.requestHandler = { _ in
+        TestURLProtocol.handler = { _ in
             (self.makeHTTPResponse(statusCode: 200), data)
         }
 

@@ -1,0 +1,36 @@
+{
+  "configurations" : [
+    {
+      "id" : "D30E0000-0000-0000-0000-000000000001",
+      "name" : "Live Providers",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "environmentVariableEntries" : [
+      {
+        "enabled" : true,
+        "key" : "TOKEN_KING_TEST_MODE",
+        "value" : "live"
+      }
+    ],
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:CopilotMonitor.xcodeproj",
+      "identifier" : "AFFFFFFFFFFFFFFFFFFFFF",
+      "name" : "CopilotMonitor"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:CopilotMonitor.xcodeproj",
+        "identifier" : "2C9849782E0A3FFF02640BD8",
+        "name" : "CopilotMonitorLiveTests"
+      }
+    }
+  ],
+  "version" : 1
+}
