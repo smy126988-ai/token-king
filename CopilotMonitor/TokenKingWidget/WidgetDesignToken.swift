@@ -130,6 +130,35 @@ enum WidgetDesignToken {
     static let miniDescriptorSize: CGFloat = 8      // "5-hour remaining" line
     static let miniResetSize: CGFloat = 8           // reset-time line
     static let miniBarTopMargin: CGFloat = 9        // progress margin-top 18px × 0.52
+    static let descriptorTopMargin: CGFloat = 5     // quota-float .updated margin-top
+    // quota-float primary-metric line-height:.82 — the hero's box hugs the
+    // glyphs. SwiftUI's default ~1.2 line height adds invisible slack that
+    // made every gap below the hero read too loose.
+    static let quotaHeroBoxFactor: CGFloat = 0.82
+    static let eyebrowMinimumScale: CGFloat = 0.75  // long provider names shrink, never truncate
+    // Uniform content inset for ALL sizes, calibrated on the approved small
+    // widget: quota-float card padding 30px on the 320px card (9.375%) →
+    // 30/320 × 166pt ≈ 15.6 → 16pt. Applied explicitly in TokenKingWidgetView
+    // because the system's default content margins differ per widget family.
+    static let cardContentPadding: CGFloat = 16
+
+    // MARK: Full QuotaCard (medium/large) — 2026-07-16 round 8
+    // quota-float expanded card (320px) — systemLarge ≈ card scale, so these
+    // are source-exact values, not scaled. Source: QuotaCard.tsx + styles.css.
+    static let quotaHeroTopMargin: CGFloat = 18     // primary-metric margin 6 + padding 12
+    static let quotaBarTopMargin: CGFloat = 18      // progress margin-top
+    static let quotaResetTopMargin: CGFloat = 7     // reset-time margin-top
+    // Weekly footer metric: 30px/400 number + 15px % (quota-float weekly-metric).
+    static let weeklyHeroSize: CGFloat = 30
+    static let weeklyHeroSuffixSize: CGFloat = 15
+    static let weeklyLabelWeight: Font.Weight = .light  // 300
+    // Status indicator: 8px dot inside a 25px frosted circle (usage-indicator:
+    // border white .32, bg white .12).
+    static let indicatorRingSize: CGFloat = 25
+    static let indicatorRingBorderOpacity: Double = 0.32
+    static let indicatorRingBackgroundOpacity: Double = 0.12
+    // Provider mark bottom-right (43px on the 320px card).
+    static let providerMarkSize: CGFloat = 43
 
     // MARK: Progress bar effects
     static let barGlowRadius: CGFloat = 8

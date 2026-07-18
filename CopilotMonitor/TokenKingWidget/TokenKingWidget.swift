@@ -39,29 +39,13 @@ struct TokenKingWidgetSmall: Widget {
         AppIntentConfiguration(kind: kind, intent: ProviderSelectionIntent.self, provider: SmallProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    // quota-float QuotaCard container, mini: solid light card
-                    // (orbCardBackground) with the tier aurora inside — the
-                    // tier follows the SAME short window the content displays —
-                    // plus the 1px white border (.34) and top inset highlight
-                    // (.42). Pure gradient, no material; the system replaces it
-                    // in vibrant/accented.
-                    let provider = entry.snapshot.flatMap {
-                        selectedProvider(snapshot: $0, selectedProviderId: entry.selectedProviderId)
-                            ?? topProvider(snapshot: $0)
-                    }
-                    let used = provider.flatMap { shortWindow(of: $0) }?.usedPercent
-                        ?? WidgetDesignToken.zeroDouble
-                    ZStack {
-                        WidgetDesignToken.orbCardBackground
-                        AuroraBackgroundView(tier: WidgetDesignToken.Aurora.tier(forUsedPercent: used))
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .stroke(LinearGradient(colors: [Color.white.opacity(0.42),
-                                                            Color.white.opacity(0.34)],
-                                                   startPoint: .top, endPoint: .bottom),
-                                    lineWidth: 1)
-                    }
+                    // quota-float QuotaCard container; tier follows the SAME
+                    // short window the content displays.
+                    QuotaCardBackground(tier: providerTier(snapshot: entry.snapshot,
+                                                           selectedProviderId: entry.selectedProviderId))
                 }
         }
+        .contentMarginsDisabled()
         .configurationDisplayName("Token King Small")
         .description("Single provider usage at a glance.")
         .supportedFamilies([.systemSmall])
@@ -75,12 +59,11 @@ struct TokenKingWidgetMediumOverview: Widget {
         StaticConfiguration(kind: kind, provider: MediumOverviewProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    // Single-layer tier gradient (quota-float palette). Pure
-                    // SwiftUI gradient, no material/scrim — renders full-colour
-                    // on the desktop; the system replaces it in vibrant/accented.
-                    AuroraBackgroundView(snapshot: entry.snapshot)
+                    QuotaCardBackground(tier: providerTier(snapshot: entry.snapshot,
+                                                           selectedProviderId: entry.selectedProviderId))
                 }
         }
+        .contentMarginsDisabled()
         .configurationDisplayName("Token King Medium Overview")
         .description("Multi-provider usage overview.")
         .supportedFamilies([.systemMedium])
@@ -94,12 +77,11 @@ struct TokenKingWidgetMediumDetail: Widget {
         AppIntentConfiguration(kind: kind, intent: ProviderSelectionIntent.self, provider: MediumDetailProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    // Single-layer tier gradient (quota-float palette). Pure
-                    // SwiftUI gradient, no material/scrim — renders full-colour
-                    // on the desktop; the system replaces it in vibrant/accented.
-                    AuroraBackgroundView(snapshot: entry.snapshot)
+                    QuotaCardBackground(tier: providerTier(snapshot: entry.snapshot,
+                                                           selectedProviderId: entry.selectedProviderId))
                 }
         }
+        .contentMarginsDisabled()
         .configurationDisplayName("Token King Medium Detail")
         .description("Detailed view for a single provider.")
         .supportedFamilies([.systemMedium])
@@ -113,12 +95,10 @@ struct TokenKingWidgetLargeOverview: Widget {
         StaticConfiguration(kind: kind, provider: LargeOverviewProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    // Single-layer tier gradient (quota-float palette). Pure
-                    // SwiftUI gradient, no material/scrim — renders full-colour
-                    // on the desktop; the system replaces it in vibrant/accented.
-                    AuroraBackgroundView(snapshot: entry.snapshot)
+                    QuotaCardBackground(tier: overviewTier(snapshot: entry.snapshot))
                 }
         }
+        .contentMarginsDisabled()
         .configurationDisplayName("Token King Large Overview")
         .description("Multi-provider overview with monthly cost.")
         .supportedFamilies([.systemLarge])
@@ -132,12 +112,11 @@ struct TokenKingWidgetLargeDetail: Widget {
         AppIntentConfiguration(kind: kind, intent: ProviderSelectionIntent.self, provider: LargeDetailProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    // Single-layer tier gradient (quota-float palette). Pure
-                    // SwiftUI gradient, no material/scrim — renders full-colour
-                    // on the desktop; the system replaces it in vibrant/accented.
-                    AuroraBackgroundView(snapshot: entry.snapshot)
+                    QuotaCardBackground(tier: providerTier(snapshot: entry.snapshot,
+                                                           selectedProviderId: entry.selectedProviderId))
                 }
         }
+        .contentMarginsDisabled()
         .configurationDisplayName("Token King Large Detail")
         .description("Detailed view for a single provider.")
         .supportedFamilies([.systemLarge])
@@ -151,12 +130,10 @@ struct TokenKingWidgetSearchEngines: Widget {
         StaticConfiguration(kind: kind, provider: SearchEnginesProvider()) { entry in
             TokenKingWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
-                    // Single-layer tier gradient (quota-float palette). Pure
-                    // SwiftUI gradient, no material/scrim — renders full-colour
-                    // on the desktop; the system replaces it in vibrant/accented.
-                    AuroraBackgroundView(snapshot: entry.snapshot)
+                    QuotaCardBackground(tier: overviewTier(snapshot: entry.snapshot))
                 }
         }
+        .contentMarginsDisabled()
         .configurationDisplayName("Token King Search Engines")
         .description("Brave + Tavily search usage.")
         .supportedFamilies([.systemLarge])
@@ -210,6 +187,46 @@ struct AuroraBackgroundView: View {
     private var angleEnd: UnitPoint {
         tier.angle < 180 ? .bottomTrailing : .topTrailing
     }
+}
+
+// MARK: - QuotaCard container background
+
+/// quota-float QuotaCard container shared by all six widgets: solid light
+/// card (orbCardBackground) + tier aurora inside + 1px white border with a
+/// brighter top edge (inset highlight). Pure gradient, no material; the
+/// system replaces it in vibrant/accented.
+struct QuotaCardBackground: View {
+    let tier: WidgetDesignToken.Aurora.Tier
+
+    var body: some View {
+        ZStack {
+            WidgetDesignToken.orbCardBackground
+            AuroraBackgroundView(tier: tier)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(LinearGradient(colors: [Color.white.opacity(0.42),
+                                                Color.white.opacity(0.34)],
+                                       startPoint: .top, endPoint: .bottom),
+                        lineWidth: 1)
+        }
+    }
+}
+
+/// Tier for a single-provider widget: the displayed provider's short window.
+func providerTier(snapshot: WidgetSnapshot?, selectedProviderId: String?) -> WidgetDesignToken.Aurora.Tier {
+    let provider = snapshot.flatMap {
+        selectedProvider(snapshot: $0, selectedProviderId: selectedProviderId) ?? topProvider(snapshot: $0)
+    }
+    let used = provider.flatMap { shortWindow(of: $0) }?.usedPercent ?? WidgetDesignToken.zeroDouble
+    return WidgetDesignToken.Aurora.tier(forUsedPercent: used)
+}
+
+/// Tier for a multi-provider widget: worst short-window usage across providers.
+func overviewTier(snapshot: WidgetSnapshot?) -> WidgetDesignToken.Aurora.Tier {
+    let peak = snapshot?.providers
+        .compactMap { shortWindow(of: $0) }
+        .map { $0.usedPercent }
+        .max() ?? WidgetDesignToken.zeroDouble
+    return WidgetDesignToken.Aurora.tier(forUsedPercent: peak)
 }
 
 // MARK: - TimelineEntry

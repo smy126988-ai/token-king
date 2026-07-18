@@ -11,7 +11,12 @@ struct TokenKingWidgetView: View {
         // content to the light colour scheme — AuroraInk.primary/secondary/faint
         // are the dark inks that read on the gradient (matches quota-float's
         // light-card / dark-text pairing). The system still handles vibrant.
+        // Padding is explicit + uniform across families: system default content
+        // margins differ per widget family, which made medium/large insets
+        // inconsistent with the calibrated small widget. Configurations opt
+        // out via .contentMarginsDisabled().
         innerContent
+            .padding(WidgetDesignToken.cardContentPadding)
             .environment(\.colorScheme, .light)
     }
 
@@ -125,6 +130,7 @@ struct SmallWidgetView: View {
                         .tracking(WidgetDesignToken.miniEyebrowTracking)
                         .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                         .lineLimit(WidgetDesignToken.singleLine)
+                        .minimumScaleFactor(WidgetDesignToken.eyebrowMinimumScale)
                     Spacer(minLength: WidgetDesignToken.zeroLength)
                     StatusDot(color: statusColor(for: provider))
                 }
@@ -288,32 +294,34 @@ struct MediumProviderCard: View {
     }
 
     var body: some View {
-        // quota-float QuotaCard, compact: header → hero remaining % → tier bar →
-        // reset-time → footer pinned bottom. Sized to fit the systemMedium canvas.
+        // quota-float QuotaCard (quota-states.png), compact for systemMedium:
+        // eyebrow + "5-hour remaining" stacked left, glowing dot top-right →
+        // hero remaining % → glowing tier bar → reset-time → weekly footer.
         // Hero/bar/reset track the SHORT window (5h); the footer tracks the
         // WEEKLY window (7d) — same data mapping as QuotaCard.
         VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
-            // Header: dot + icon + eyebrow name + short window descriptor
-            HStack(spacing: WidgetDesignToken.smallGap) {
-                StatusDot(color: statusColor)
-                ProviderIconView(providerId: provider.id, size: WidgetDesignToken.mediumIconSize)
-                    .widgetAccentable()
-                Text(provider.displayName.uppercased())
-                    .font(.system(size: WidgetDesignToken.eyebrowSize, weight: WidgetDesignToken.eyebrowWeight))
-                    .tracking(WidgetDesignToken.eyebrowTracking)
-                    .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
-                    .lineLimit(WidgetDesignToken.singleLine)
-                Spacer(minLength: WidgetDesignToken.zeroLength)
-                if let window = shortWindow(of: provider) {
-                    Text(window.label.uppercased())
-                        .font(.system(size: WidgetDesignToken.portSize, design: .monospaced))
-                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
+            // Header: eyebrow + descriptor stacked (quota-float card-header),
+            // status dot pinned top-right.
+            HStack(alignment: .top, spacing: WidgetDesignToken.smallGap) {
+                VStack(alignment: .leading, spacing: WidgetDesignToken.descriptorTopMargin) {
+                    Text(provider.displayName.uppercased())
+                        .font(.system(size: WidgetDesignToken.eyebrowSize, weight: WidgetDesignToken.eyebrowWeight))
+                        .tracking(WidgetDesignToken.eyebrowTracking)
+                        .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                        .lineLimit(WidgetDesignToken.singleLine)
+                        .minimumScaleFactor(WidgetDesignToken.eyebrowMinimumScale)
+                    if let window = shortWindow(of: provider) {
+                        Text(window.id == "5h" ? "5-hour remaining" : "\(window.label) remaining")
+                            .font(.system(size: WidgetDesignToken.miniDescriptorSize))
+                            .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
+                    }
                 }
+                Spacer(minLength: WidgetDesignToken.zeroLength)
+                StatusDot(color: statusColor)
             }
 
-            Spacer(minLength: WidgetDesignToken.zeroLength)
-
-            // Body
+            // Body — flows straight down from the header like the reference
+            // card; the only flexible gap sits before the footer.
             if provider.kind == .usage, let spend = provider.spendUSD {
                 HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.smallGap) {
                     Text(USDFormatter.string(from: spend))
@@ -330,7 +338,7 @@ struct MediumProviderCard: View {
                 VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
                     HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.orbSuffixSpacing) {
                         Text("\(Int(remaining.rounded()))")
-                            .font(.system(size: WidgetDesignToken.percentHeroMediumSize, weight: WidgetDesignToken.percentHeroWeight))
+                            .font(.system(size: WidgetDesignToken.orbCopyNumberSize, weight: WidgetDesignToken.percentHeroWeight))
                             .monospacedDigit()
                             .tracking(WidgetDesignToken.mediumHeroTracking)
                             .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
@@ -338,9 +346,10 @@ struct MediumProviderCard: View {
                             .font(.system(size: WidgetDesignToken.percentSuffixSize, weight: WidgetDesignToken.percentSuffixWeight))
                             .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                     }
+                    .frame(height: WidgetDesignToken.orbCopyNumberSize * WidgetDesignToken.quotaHeroBoxFactor)
                     // Width encodes REMAINING; tier gradient colours encode USED —
                     // critical stays orange-red even on a short bar (quota-float semantics).
-                    CapsuleProgressBar(value: remaining, colorValue: window.usedPercent, height: WidgetDesignToken.largeBarHeight, glow: true)
+                    CapsuleProgressBar(value: remaining, colorValue: window.usedPercent, height: WidgetDesignToken.barHeight, glow: true)
                     // quota-float renders "reset time unknown" when resetsAt is
                     // null — the line always renders so the hero↔footer rhythm never collapses.
                     Text(window.resetsAt == nil ? "Reset unknown" : RelativeResetFormatter.string(from: window.resetsAt))
@@ -428,8 +437,9 @@ struct LargeOverviewView: View {
         VStack(alignment: .leading, spacing: WidgetDesignToken.zeroLength) {
             // Header
             HStack(spacing: WidgetDesignToken.smallGap) {
-                Text("Token King")
-                    .font(.system(size: WidgetDesignToken.wNameSize, weight: .semibold))
+                Text("TOKEN KING")
+                    .font(.system(size: WidgetDesignToken.eyebrowSize, weight: WidgetDesignToken.eyebrowWeight))
+                    .tracking(WidgetDesignToken.eyebrowTracking)
                     .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                 Spacer(minLength: WidgetDesignToken.zeroLength)
             }
@@ -465,6 +475,7 @@ struct LargeOverviewView: View {
 // MARK: - Large detail widget
 
 struct LargeDetailView: View {
+    @Environment(\.colorScheme) private var scheme
     let snapshot: WidgetSnapshot
     let selectedProviderId: String?
 
@@ -473,38 +484,138 @@ struct LargeDetailView: View {
             ?? topProvider(snapshot: snapshot)
 
         if let provider = provider {
-            // Vertically centred: the large canvas left a dead empty band at
-            // the bottom when content was pinned to the top.
-            VStack(spacing: WidgetDesignToken.zeroLength) {
-                Spacer(minLength: WidgetDesignToken.zeroLength)
-                VStack(alignment: .leading, spacing: WidgetDesignToken.sectionGap) {
-                    LargeProviderRow(provider: provider)
-                    // Same zero-collapse rule as the medium card.
-                    let activeWindows = provider.windows.filter { $0.usedPercent > WidgetDesignToken.zeroDouble }
-                    let visibleWindows = activeWindows.isEmpty ? provider.windows : activeWindows
-                    if visibleWindows.count > WidgetDesignToken.singleWindowCount {
-                        VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
-                            ForEach(visibleWindows, id: \.id) { window in
-                                HStack(spacing: WidgetDesignToken.smallGap) {
-                                    windowLabelText(for: window)
-                                        .font(.system(size: WidgetDesignToken.captionSize))
-                                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
-                                    Spacer(minLength: WidgetDesignToken.zeroLength)
-                                    Text("\(Int(window.usedPercent.rounded()))%")
-                                        .font(.system(size: WidgetDesignToken.captionSize, design: .monospaced))
-                                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
-                                }
-                                CapsuleProgressBar(value: window.usedPercent)
-                            }
+            // quota-float QuotaCard at near 1:1 scale (systemLarge ≈ the 320px
+            // card): eyebrow + "5-hour remaining" + frosted status indicator →
+            // 64px remaining-% hero → glowing tier bar → reset-time → weekly
+            // footer (30px metric + provider mark).
+            VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
+                // card-header
+                HStack(alignment: .top, spacing: WidgetDesignToken.smallGap) {
+                    VStack(alignment: .leading, spacing: WidgetDesignToken.descriptorTopMargin) {
+                        Text(provider.displayName.uppercased())
+                            .font(.system(size: WidgetDesignToken.eyebrowSize, weight: WidgetDesignToken.eyebrowWeight))
+                            .tracking(WidgetDesignToken.eyebrowTracking)
+                            .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                            .lineLimit(WidgetDesignToken.singleLine)
+                            .minimumScaleFactor(WidgetDesignToken.eyebrowMinimumScale)
+                        if let window = shortWindow(of: provider) {
+                            Text(window.id == "5h" ? "5-hour remaining" : "\(window.label) remaining")
+                                .font(.system(size: WidgetDesignToken.updatedSize, weight: WidgetDesignToken.updatedWeight))
+                                .tracking(WidgetDesignToken.updatedTracking)
+                                .foregroundStyle(WidgetDesignToken.AuroraInk.primary.opacity(WidgetDesignToken.updatedOpacity))
                         }
                     }
+                    Spacer(minLength: WidgetDesignToken.zeroLength)
+                    // usage-indicator: 8px dot inside a 25px frosted ring
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(WidgetDesignToken.indicatorRingBackgroundOpacity))
+                        Circle()
+                            .strokeBorder(Color.white.opacity(WidgetDesignToken.indicatorRingBorderOpacity),
+                                          lineWidth: WidgetDesignToken.orbCardBorderWidth)
+                        StatusDot(color: statusColor(for: provider))
+                    }
+                    .frame(width: WidgetDesignToken.indicatorRingSize, height: WidgetDesignToken.indicatorRingSize)
                 }
-                Spacer(minLength: WidgetDesignToken.zeroLength)
+
+                if provider.kind == .usage, let spend = provider.spendUSD {
+                    Spacer(minLength: WidgetDesignToken.zeroLength)
+                    HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.orbSuffixSpacing) {
+                        Text(USDFormatter.string(from: spend))
+                            .font(.system(size: WidgetDesignToken.percentHeroSize, weight: WidgetDesignToken.percentHeroWeight, design: .monospaced))
+                            .tracking(WidgetDesignToken.percentHeroTracking)
+                            .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                        Text("spent")
+                            .font(.system(size: WidgetDesignToken.captionSize))
+                            .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
+                    }
+                    Spacer(minLength: WidgetDesignToken.zeroLength)
+                } else if let window = shortWindow(of: provider) {
+                    let remaining = max(WidgetDesignToken.zeroDouble,
+                                        min(WidgetDesignToken.percentMax,
+                                            WidgetDesignToken.percentMax - window.usedPercent))
+                    // primary-metric: 64px/500, -.07em, % 21px/700 baseline,
+                    // box at line-height .82 so the glyph frame stays tight
+                    HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.orbSuffixSpacing) {
+                        Text("\(Int(remaining.rounded()))")
+                            .font(.system(size: WidgetDesignToken.percentHeroSize, weight: WidgetDesignToken.percentHeroWeight))
+                            .monospacedDigit()
+                            .tracking(WidgetDesignToken.percentHeroTracking)
+                            .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                        Text("%")
+                            .font(.system(size: WidgetDesignToken.percentSuffixSize, weight: WidgetDesignToken.percentSuffixWeight))
+                            .tracking(WidgetDesignToken.percentSuffixTracking)
+                            .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                    }
+                    .frame(height: WidgetDesignToken.percentHeroSize * WidgetDesignToken.quotaHeroBoxFactor)
+                    .padding(.top, WidgetDesignToken.quotaHeroTopMargin)
+                    // Width = remaining; tier gradient colours = used (critical
+                    // stays orange-red even on a short bar) + outer glow.
+                    CapsuleProgressBar(value: remaining, colorValue: window.usedPercent,
+                                       height: WidgetDesignToken.barHeight, glow: true)
+                        .padding(.top, WidgetDesignToken.quotaBarTopMargin)
+                    Text(window.resetsAt == nil ? "Reset unknown" : RelativeResetFormatter.string(from: window.resetsAt))
+                        .font(.system(size: WidgetDesignToken.resetTimeSize))
+                        .tracking(WidgetDesignToken.resetTimeTracking)
+                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary.opacity(WidgetDesignToken.resetTimeOpacity))
+                        .padding(.top, WidgetDesignToken.quotaResetTopMargin)
+
+                    Spacer(minLength: WidgetDesignToken.zeroLength)
+
+                    // card-footer: weekly metric + provider mark
+                    if let weekly = weeklyWindow(of: provider) {
+                        let weeklyRemaining = max(WidgetDesignToken.zeroDouble,
+                                                  min(WidgetDesignToken.percentMax,
+                                                      WidgetDesignToken.percentMax - weekly.usedPercent))
+                        HStack(alignment: .bottom, spacing: WidgetDesignToken.zeroLength) {
+                            VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
+                                Text(weeklyLabel(for: weekly))
+                                    .font(.system(size: WidgetDesignToken.resetTimeSize, weight: WidgetDesignToken.weeklyLabelWeight))
+                                    .tracking(WidgetDesignToken.weeklyLabelTracking)
+                                    .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                                HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.orbSuffixSpacing) {
+                                    Text("\(Int(weeklyRemaining.rounded()))")
+                                        .font(.system(size: WidgetDesignToken.weeklyHeroSize))
+                                        .tracking(WidgetDesignToken.percentSuffixTracking)
+                                        .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                                    Text("%")
+                                        .font(.system(size: WidgetDesignToken.weeklyHeroSuffixSize))
+                                        .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                                }
+                            }
+                            Spacer(minLength: WidgetDesignToken.zeroLength)
+                            ProviderIconView(providerId: provider.id, size: WidgetDesignToken.providerMarkSize)
+                        }
+                    }
+                } else {
+                    Spacer(minLength: WidgetDesignToken.zeroLength)
+                    HStack(spacing: WidgetDesignToken.zeroSpacing) {
+                        Spacer(minLength: WidgetDesignToken.zeroLength)
+                        ProviderIconView(providerId: provider.id, size: WidgetDesignToken.ringIconSize)
+                            .widgetAccentable()
+                        Spacer(minLength: WidgetDesignToken.zeroLength)
+                    }
+                    Spacer(minLength: WidgetDesignToken.zeroLength)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             EmptyStateView(message: "No providers")
         }
+    }
+
+    private func statusColor(for provider: ProviderSnapshot) -> Color {
+        if let window = shortWindow(of: provider) {
+            return window.usedPercent.severityColor(scheme)
+        }
+        return WidgetDesignToken.healthyColor
+    }
+
+    /// quota-float weeklyUntil: "Weekly remaining · until 7/12".
+    private func weeklyLabel(for window: UsageWindow) -> String {
+        guard let resetsAt = window.resetsAt else { return "Weekly remaining" }
+        let md = resetsAt.formatted(.dateTime.month(.defaultDigits).day(.defaultDigits))
+        return "Weekly remaining · until \(md)"
     }
 }
 
@@ -524,8 +635,9 @@ struct SearchEnginesView: View {
         VStack(alignment: .leading, spacing: WidgetDesignToken.zeroLength) {
             // Header
             HStack(spacing: WidgetDesignToken.smallGap) {
-                Text("Search Engines")
-                    .font(.system(size: WidgetDesignToken.wNameSize, weight: .semibold))
+                Text("SEARCH ENGINES")
+                    .font(.system(size: WidgetDesignToken.eyebrowSize, weight: WidgetDesignToken.eyebrowWeight))
+                    .tracking(WidgetDesignToken.eyebrowTracking)
                     .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                 Spacer(minLength: WidgetDesignToken.zeroLength)
             }
@@ -568,51 +680,43 @@ struct LargeProviderRow: View {
                     .font(.system(size: WidgetDesignToken.captionSize, design: .monospaced))
                     .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
             }
-            CapsuleProgressBar(value: progressValue, height: WidgetDesignToken.largeBarHeight, glow: true)
+            // quota-float semantics: bar width = short window REMAINING, tier
+            // gradient colours = USED (critical stays orange-red on a short bar).
+            CapsuleProgressBar(value: progressValue, colorValue: colourValue,
+                               height: WidgetDesignToken.largeBarHeight, glow: true)
                 .widgetAccentable()
         }
     }
 
     private var statusColor: Color {
-        if let window = primaryWindow(of: provider) {
+        if let window = shortWindow(of: provider) {
             return window.usedPercent.severityColor(scheme)
         }
         return WidgetDesignToken.healthyColor
     }
 
     private var progressValue: Double {
-        if provider.kind == .usage {
-            return WidgetDesignToken.zeroDouble
-        }
-        if provider.windows.count > WidgetDesignToken.singleWindowCount {
-            return provider.windows.map(\.usedPercent).max() ?? WidgetDesignToken.zeroDouble
-        }
-        return primaryWindow(of: provider)?.usedPercent ?? WidgetDesignToken.zeroDouble
+        guard provider.kind != .usage else { return WidgetDesignToken.zeroDouble }
+        let used = shortWindow(of: provider)?.usedPercent ?? WidgetDesignToken.percentMax
+        return max(WidgetDesignToken.zeroDouble,
+                   min(WidgetDesignToken.percentMax, WidgetDesignToken.percentMax - used))
+    }
+
+    private var colourValue: Double {
+        shortWindow(of: provider)?.usedPercent ?? WidgetDesignToken.zeroDouble
     }
 
     private var valueString: String {
         if provider.kind == .usage, let spend = provider.spendUSD {
             return "\(USDFormatter.string(from: spend)) spent"
         }
-        guard let window = primaryWindow(of: provider) else {
+        guard let window = shortWindow(of: provider) else {
             return ""
         }
-        // Multi-window providers show only the primary window here; the full
-        // "5h 25% · 7d 59%" chain was the main cause of name truncation.
-        if provider.windows.count > WidgetDesignToken.singleWindowCount {
-            return "\(window.label) \(Int(window.usedPercent.rounded()))%"
-        }
-        if let used = window.used, let limit = window.limit {
-            return "\(IntegerFormatter.string(from: used))/\(abbreviatedLimit(limit)) · \(Int(window.usedPercent.rounded()))%"
-        }
-        return "\(Int(window.usedPercent.rounded()))%"
-    }
-
-    private func abbreviatedLimit(_ limit: Int) -> String {
-        if limit >= 1000 {
-            return "\(limit / 1000)k"
-        }
-        return IntegerFormatter.string(from: limit)
+        let remaining = max(WidgetDesignToken.zeroDouble,
+                            min(WidgetDesignToken.percentMax,
+                                WidgetDesignToken.percentMax - window.usedPercent))
+        return "\(window.label) \(Int(remaining.rounded()))%"
     }
 }
 
@@ -752,15 +856,6 @@ func shortWindow(of provider: ProviderSnapshot) -> UsageWindow? {
 /// QuotaCard footer secondary metric. Nil when the provider has none.
 func weeklyWindow(of provider: ProviderSnapshot) -> UsageWindow? {
     provider.windows.first { $0.id == "7d" || $0.id == "weekly" }
-}
-
-/// Label for a multi-window row. Shows "Label · used/limit" only when both
-/// absolute values are available; otherwise just the label + percent.
-func windowLabelText(for window: UsageWindow) -> Text {
-    if let used = window.used, let limit = window.limit {
-        return Text("\(window.label) · \(IntegerFormatter.string(from: used))/\(IntegerFormatter.string(from: limit))")
-    }
-    return Text("\(window.label) \(Int(window.usedPercent.rounded()))%")
 }
 
 func providerIconSystemName(_ providerId: String) -> String {
