@@ -1,116 +1,76 @@
-# Release Workflow Guide
+# Token King Release Workflow
 
-This document describes the process for building, signing, notarizing, and releasing **OpenCode Bar** for macOS.
+Token King has two intentionally different distribution paths. Do not confuse
+an ad-hoc local install with a public, notarized release.
 
-## Prerequisites
+## 1. Local development install
 
-- **Xcode Command Line Tools**
-- **Apple Developer Account** (Enrolled in Apple Developer Program)
-- **Developer ID Application Certificate** installed in Keychain
-- **GitHub CLI (`gh`)** installed and authenticated
-- **App-Specific Password** generated from [appleid.apple.com](https://appleid.apple.com)
-
-## 1. Version Bump
-
-Update the marketing version and build number.
+Use this only to test the app and desktop widget on the current Mac:
 
 ```bash
-cd CopilotMonitor
-agvtool new-marketing-version <NEW_VERSION>  # e.g. 1.2
-agvtool next-version -all                    # Increments build number
+make release
+make run
 ```
 
-Commit the version bump:
+`make release` builds a Release app, installs it at `/Applications/Token King.app`,
+ad-hoc signs the host and widget extension, and refreshes PlugInKit registration.
+It is not suitable for distribution: Gatekeeper may require a one-time
+right-click → Open after every rebuild.
+
+## 2. Release readiness
+
+Before creating a version tag, confirm the intended files only:
 
 ```bash
-git add .
-git commit -m "chore: bump version to <NEW_VERSION>"
-git push origin main
+git status --short
+make lint
+make test-membership
+make test-boundaries
+xcodebuild test -project CopilotMonitor/CopilotMonitor.xcodeproj \
+  -scheme CopilotMonitor -destination 'platform=macOS'
 ```
 
-## 2. Build Release Archive
+For widget-affecting releases, also run the real-desktop checklist in
+`AGENTS.md` with `scripts/r18-manual-test.sh`.
 
-Build the app in Release configuration.
+Update the version through the release workflow input or a version tag; the
+built app derives its version from git. Stage deliberately — never use a broad
+`git add .` command — then commit the release notes and tag.
+
+## 3. Signed and notarized GitHub release
+
+The repository workflows are the source of truth for public artifacts:
+
+- `.github/workflows/build-release.yml` builds every push and pull request;
+  tags beginning with `v` and an explicit workflow version run the signed path.
+- `.github/workflows/manual-release.yml` is the controlled manual release path.
+
+The signed path imports the Developer ID certificate from GitHub Actions
+secrets, creates a universal (`arm64` + `x86_64`) archive, notarizes the app
+and DMG, staples both, generates the appcast, and uploads
+`Token-King-<version>.dmg` to GitHub Releases.
+
+Required repository secrets are managed only in GitHub Actions:
+
+- Developer ID certificate and password
+- keychain password and Apple team ID
+- notarization credentials
+- Sparkle signing material, when appcast publication is enabled
+
+Never put these values in source files, shell history, release notes, or this
+document.
+
+## 4. Artifact acceptance
+
+Download the published DMG on a clean macOS account and confirm:
 
 ```bash
-# Clean build
-xcodebuild -scheme CopilotMonitor -configuration Release clean build
+spctl --assess --type open --context context:primary-signature "Token King.app"
+codesign --verify --deep --strict --verbose=2 "Token King.app"
+xcrun stapler validate "Token King.app"
+xcrun stapler validate "Token-King-<version>.dmg"
 ```
 
-## 3. Code Signing (Manual)
-
-Sign the app bundle with your **Developer ID Application** certificate.
-
-> **Note**: Replace `<TEAM_ID>` with your Team ID (e.g., `6YQH3QFFK8`).
-
-```bash
-# Define paths
-APP_PATH="$HOME/Library/Developer/Xcode/DerivedData/CopilotMonitor-*/Build/Products/Release/OpenCode Bar.app"
-CERT_ID="Developer ID Application: SANG RAK CHOI (<TEAM_ID>)"
-
-# Sign the app
-codesign --force --verify --verbose --sign "$CERT_ID" --options runtime "$APP_PATH"
-```
-
-## 4. Package as DMG
-
-Create a DMG disk image for distribution.
-
-```bash
-mkdir -p dist
-cp -r "$APP_PATH" dist/
-hdiutil create -volname "OpenCode Bar" -srcfolder dist -ov -format UDZO OpenCode-Bar.dmg
-```
-
-Sign the DMG file itself:
-
-```bash
-codesign --force --sign "$CERT_ID" OpenCode-Bar.dmg
-```
-
-## 5. Notarization (Crucial for Gatekeeper)
-
-Submit the DMG to Apple's notarization service.
-
-> **Requirement**: Create an App-Specific Password at [appleid.apple.com](https://appleid.apple.com).
-
-```bash
-# Submit for notarization
-xcrun notarytool submit OpenCode-Bar.dmg \
-  --apple-id "<YOUR_APPLE_ID>" \
-  --password "<APP_SPECIFIC_PASSWORD>" \
-  --team-id "<TEAM_ID>" \
-  --wait
-```
-
-If successful (`Accepted`), staple the ticket to the DMG:
-
-```bash
-xcrun stapler staple OpenCode-Bar.dmg
-```
-
-## 6. GitHub Release
-
-Create a release and upload the notarized DMG.
-
-```bash
-# Create tag and release
-gh release create v<NEW_VERSION> --title "v<NEW_VERSION>: Release Title" --notes "Release notes here..."
-
-# Upload the signed & notarized DMG
-gh release upload v<NEW_VERSION> OpenCode-Bar.dmg --clobber
-```
-
-## Troubleshooting
-
-### "App is damaged" Error
-If notarization was skipped or failed, users can bypass Gatekeeper:
-```bash
-xattr -cr "/Applications/OpenCode Bar.app"
-```
-
-### Keychain Access
-If `codesign` fails with authentication errors, unlock the keychain:
-```bash
-security unlock-keychain
-```
+The release is complete only when the DMG, app signature, notarization ticket,
+universal slices, appcast entry, and widget registration all agree on the same
+version.
