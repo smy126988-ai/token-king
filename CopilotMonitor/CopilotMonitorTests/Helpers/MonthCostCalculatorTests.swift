@@ -2,9 +2,7 @@ import XCTest
 @testable import OpenCode_Bar
 
 /// F2b Task 5 — MonthCostCalculator (15 test cases).
-/// Formula: cost = (input * inputRate + output * outputRate + cacheRead * cacheReadRate) / 1e6.
-/// cacheWrite excluded (5 reference consensus: Anthropic prompt cache write free,
-/// OpenAI cache write simplified excluded).
+/// Formula includes input, output/reasoning, cache reads, and published cache-write rates.
 final class MonthCostCalculatorTests: XCTestCase {
 
     private var calc: MonthCostCalculator!
@@ -31,15 +29,17 @@ final class MonthCostCalculatorTests: XCTestCase {
         XCTAssertEqual(cost ?? -1, 1.10, accuracy: 1e-9)
     }
 
-    func testKimiCacheWriteExcluded() {
-        // 1M cacheWrite only -> cost = 0 (cacheWrite not billed).
+    func testKimiCacheWriteIsMarkedEstimatedWhenRateIsUnknown() {
+        // Kimi does not publish a cache-write line. The known-component cost
+        // stays zero but must not be presented as a fully priced total.
         let tokens = TokenBreakdown(cacheWrite: 1_000_000)
-        let cost = calc.calculate(provider: "kimi", model: "kimi-k2.6", tokens: tokens)
-        XCTAssertEqual(cost ?? -1, 0.0, accuracy: 1e-9)
+        let estimate = calc.calculateWithSource(provider: "kimi", model: "kimi-k2.6", tokens: tokens)
+        XCTAssertEqual(estimate?.costRMB ?? -1, 0.0, accuracy: 1e-9)
+        XCTAssertTrue(estimate?.usedFallback ?? false)
     }
 
     func testClaudeBasic() {
-        // claude representative (sonnet-4-5): input=20.37, output=101.85, cache=25.46 (write rate).
+        // claude representative (sonnet-4-5): input=20.37, output=101.85.
         let tokens = TokenBreakdown(input: 1_000_000, output: 100_000)
         let cost = calc.calculate(provider: "claude", model: "claude-sonnet-4-5", tokens: tokens)
         // 1 * 20.37 + 0.1 * 101.85 = 20.37 + 10.185 = 30.555
@@ -102,14 +102,11 @@ final class MonthCostCalculatorTests: XCTestCase {
                        "Opus 4.8 cache_read cost must equal USD 0.50 × FX 6.79 (not write rate 6.25)")
     }
 
-    func testClaudeCacheWriteExcludedForOpus() {
-        // Anthropic prompt-cache writes are free per round 9 consensus;
-        // MonthCostCalculator omits cacheWrite from the cost formula
-        // entirely. 1M cacheWrite on Opus 4.8 → cost = ¥0.
+    func testClaudeCacheWriteForOpus() {
+        // Anthropic publishes a distinct write rate: $6.25/M × FX 6.79.
         let tokens = TokenBreakdown(cacheWrite: 1_000_000)
         let cost = calc.calculate(provider: "claude", model: "claude-opus-4.8", tokens: tokens)
-        XCTAssertEqual(cost ?? -1, 0.0, accuracy: 1e-9,
-                       "cache_write is not billed for Claude models (round 9 consensus)")
+        XCTAssertEqual(cost ?? -1, 6.25 * 6.79, accuracy: 1e-9)
     }
 
     func testCalculateWithSourceClaudeOpus48NotFallback() {
@@ -560,12 +557,12 @@ final class MonthCostCalculatorTests: XCTestCase {
     /// Pre-t1.2: `providerStringToIdentifier("minimaxCN")` returned nil,
     /// causing `month_aggregates` rows with provider="minimaxCN" to drop
     /// to nil cost. Post-t1.2: routed to .minimaxCN representative rate
-    /// (¥4.20 / ¥16.80 / ¥0.84 from MiniMax-M3 standard tier).
-    /// 1M input * ¥4.20/M = ¥4.20.
+    /// (¥2.10 / ¥8.40 / ¥0.42 from MiniMax-M3 standard tier).
+    /// 1M input * ¥2.10/M = ¥2.10.
     func testMinimaxCNBasic() {
         let tokens = TokenBreakdown(input: 1_000_000)
         let cost = calc.calculate(provider: "minimaxCN", model: "MiniMax-M3", tokens: tokens)
-        XCTAssertEqual(cost ?? -1, 4.20, accuracy: 1e-9)
+        XCTAssertEqual(cost ?? -1, 2.10, accuracy: 1e-9)
     }
 
     /// Unknown model under .minimaxCN falls back to the provider-level
@@ -576,7 +573,7 @@ final class MonthCostCalculatorTests: XCTestCase {
         guard let est = calc.calculateWithSource(
             provider: "minimaxCN", model: "MiniMax-unknown", tokens: tokens
         ) else { return XCTFail("unknown model under minimaxCN must fall back, not nil") }
-        XCTAssertEqual(est.costRMB, 4.20, accuracy: 1e-9)
+        XCTAssertEqual(est.costRMB, 2.10, accuracy: 1e-9)
         XCTAssertTrue(est.usedFallback,
                       "Unknown model under .minimaxCN must flag as fallback (provider-level rate used)")
     }
@@ -685,7 +682,7 @@ final class MonthCostCalculatorTests: XCTestCase {
         XCTAssertEqual(totals.count, 3, "all 3 new providers should appear in totals")
         let minimax = totals.first(where: { $0.provider == "minimaxCN" })
         XCTAssertNotNil(minimax)
-        XCTAssertEqual(minimax?.totalCostRMB ?? -1, 4.20, accuracy: 1e-9)
+        XCTAssertEqual(minimax?.totalCostRMB ?? -1, 2.10, accuracy: 1e-9)
         let opencodeGo = totals.first(where: { $0.provider == "opencodeGo" })
         XCTAssertNotNil(opencodeGo)
         XCTAssertEqual(opencodeGo?.totalCostRMB ?? -1, 1.74 * 6.79, accuracy: 1e-6)
@@ -716,7 +713,7 @@ final class MonthCostCalculatorTests: XCTestCase {
     func testCostMathMatchesSnapshottedMonthAggregates202607() {
         let aggs = [
             // minimaxCN|MiniMax-M3: 95.88M in / 5.74M out / 1.96B cr
-            // ¥4.20 * 95.88 + ¥16.80 * 5.74 + ¥0.84 * 1959.63 ≈ ¥2145.21
+            // ¥2.10 * 95.88 + ¥8.40 * 5.74 + ¥0.42 * 1959.63 ≈ ¥1072.61
             MonthAggregate(provider: "minimaxCN", model: "MiniMax-M3",
                            tokens: TokenBreakdown(input: 95_880_430, output: 5_739_658, cacheRead: 1_959_627_380),
                            yearMonth: "2026-07"),
@@ -731,7 +728,7 @@ final class MonthCostCalculatorTests: XCTestCase {
                            tokens: TokenBreakdown(input: 6_398_613, output: 567_637, cacheRead: 175_037_568),
                            yearMonth: "2026-07"),
             // opencodeGo|minimax-m3: 59.1K in / 127 out / 1.9K cr
-            // MiniMax-M3 native CNY: ¥4.20 / ¥16.80 / ¥0.84 ≈ ¥0.25
+            // MiniMax-M3 native CNY: ¥2.10 / ¥8.40 / ¥0.42 ≈ ¥0.13
             MonthAggregate(provider: "opencodeGo", model: "minimax-m3",
                            tokens: TokenBreakdown(input: 59_133, output: 127, cacheRead: 1_906),
                            yearMonth: "2026-07"),
@@ -752,14 +749,14 @@ final class MonthCostCalculatorTests: XCTestCase {
         // Provider totals (¥).
         let fx = 6.79
         let minimax = totals.first(where: { $0.provider == "minimaxCN" })
-        XCTAssertEqual(minimax?.totalCostRMB ?? -1, 2145.21, accuracy: 0.1)
+        XCTAssertEqual(minimax?.totalCostRMB ?? -1, 1072.61, accuracy: 0.1)
         let opencodeGo = totals.first(where: { $0.provider == "opencodeGo" })
         // Two deepseek + one minimax-m3 sum:
         //   v4-flash-free ≈ 0.24
         //   v4-pro        ≈ 106.24
-        //   minimax-m3    ≈ 0.25
-        // total ≈ 106.73
-        XCTAssertEqual(opencodeGo?.totalCostRMB ?? -1, 106.73, accuracy: 0.1)
+        //   minimax-m3    ≈ 0.13
+        // total ≈ 106.60
+        XCTAssertEqual(opencodeGo?.totalCostRMB ?? -1, 106.60, accuracy: 0.1)
         let xiaomiTokenPlanCN = totals.first(where: { $0.provider == "xiaomiTokenPlanCN" })
         XCTAssertEqual(xiaomiTokenPlanCN?.totalCostRMB ?? -1, 74.13, accuracy: 0.1)
     }

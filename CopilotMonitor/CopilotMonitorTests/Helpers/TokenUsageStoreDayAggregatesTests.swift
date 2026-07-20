@@ -44,6 +44,19 @@ final class TokenUsageStoreDayAggregatesTests: XCTestCase {
         XCTAssertEqual(rows.count, 2)
     }
 
+    func testRefreshDayAggregatesForMonthRepairsAllHistoricalDays() async throws {
+        let day1 = Self.date(year: 2026, month: 7, day: 1)
+        let day2 = Self.date(year: 2026, month: 7, day: 18)
+        try await store.upsertEvent(await makeEvent(provider: "kimi", model: "kimi-k2.6", day: day1, input: 100))
+        try await store.upsertEvent(await makeEvent(provider: "kimi", model: "kimi-k2.6", day: day2, input: 200))
+
+        try await store.refreshDayAggregates(forYearMonth: "2026-07")
+
+        let rows = await store.fetchDayAggregates(provider: "kimi", yearMonth: "2026-07")
+        XCTAssertEqual(rows.count, 2)
+        XCTAssertEqual(rows.map { $0.tokens.input }.reduce(0, +), 300)
+    }
+
     func testRefreshDayAggregatesSeparatesProvidersAndModels() async throws {
         let today = Date()
         try await store.upsertEvent(await makeEvent(provider: "kimi", model: "kimi-k2.5", day: today, input: 100))

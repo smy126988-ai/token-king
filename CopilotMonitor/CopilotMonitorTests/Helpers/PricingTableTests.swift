@@ -402,13 +402,13 @@ final class PricingTableTests: XCTestCase {
 
     func testMinimaxCNRate() {
         // Source: https://platform.minimaxi.com/docs/guides/pricing-paygo (2026-07-13)
-        // Native CNY: input ¥4.20 / cache_read ¥0.84 / output ¥16.80.
+        // Native CNY: input ¥2.10 / cache_read ¥0.42 / output ¥8.40.
         guard let rate = PricingTable.rate(for: .minimaxCN) else {
             return XCTFail(".minimaxCN must resolve to a representative rate")
         }
-        XCTAssertEqual(rate.input, 4.20, accuracy: 1e-9)
-        XCTAssertEqual(rate.output, 16.80, accuracy: 1e-9)
-        XCTAssertEqual(rate.cache!, 0.84, accuracy: 1e-9)
+        XCTAssertEqual(rate.input, 2.10, accuracy: 1e-9)
+        XCTAssertEqual(rate.output, 8.40, accuracy: 1e-9)
+        XCTAssertEqual(rate.cache!, 0.42, accuracy: 1e-9)
     }
 
     func testOpenCodeGoRate() {

@@ -3,11 +3,12 @@ import Foundation
 /// Monthly cost-equivalent calculation (F2b Layer 4).
 ///
 /// Formula:
-///     costRMB = (input * inputRate + output * outputRate + cacheRead * cacheReadRate) / 1e6
+///     costRMB = (input * inputRate + (output + reasoning) * outputRate
+///                + cacheRead * cacheReadRate + cacheWrite * cacheWriteRate) / 1e6
 /// where `*Rate` is the F2a `PayAsYouGoRate` value in RMB per million tokens.
 ///
-/// `cacheWrite` is intentionally excluded (5 reference consensus:
-/// Anthropic prompt cache writes are free; OpenAI cache-write cost is simplified away).
+/// If a provider does not publish a cache-write rate, its known components are
+/// still shown but the result is explicitly marked estimated.
 ///
 /// Lookup is by `(provider, model)`. Only representative models (the same models
 /// PricingTable documents in its source comments) return a cost. Unknown models
@@ -81,15 +82,17 @@ struct MonthCostCalculator {
         guard let rate = rate, rate.input > 0 || rate.output > 0 else { return nil }
 
         let inputCost = Double(tokens.input) * rate.input / 1_000_000
-        let outputCost = Double(tokens.output) * rate.output / 1_000_000
+        let outputCost = Double(tokens.output + tokens.reasoning) * rate.output / 1_000_000
         let cacheReadCost = Double(tokens.cacheRead) * (rate.cache ?? 0) / 1_000_000
+        let cacheWriteCost = Double(tokens.cacheWrite) * (rate.cacheWrite ?? 0) / 1_000_000
+        let hasUnpricedCacheWrites = tokens.cacheWrite > 0 && rate.cacheWrite == nil
         let providerHasFallbackRate = PricingTable.providersWithPublicPricing.contains(providerId)
         let usedProviderFallback = providerHasFallbackRate
             && modelRate == nil
             && !isRepresentativeModel(model, for: providerId)
         return CostEstimate(
-            costRMB: inputCost + outputCost + cacheReadCost,
-            usedFallback: usedProviderFallback
+            costRMB: inputCost + outputCost + cacheReadCost + cacheWriteCost,
+            usedFallback: usedProviderFallback || hasUnpricedCacheWrites
         )
     }
 

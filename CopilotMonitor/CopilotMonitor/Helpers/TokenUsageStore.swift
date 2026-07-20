@@ -198,6 +198,27 @@ actor TokenUsageStore {
         try execute(insertSQL, parameters: [dayString, dayString])
     }
 
+    /// Rebuild every daily aggregate in one UTC month from the raw event
+    /// ledger. This is the repair path for installations that previously
+    /// refreshed only "today" and therefore showed incomplete history.
+    func refreshDayAggregates(forYearMonth yearMonth: String) throws {
+        try ensureOpen()
+        try execute("DELETE FROM day_aggregates WHERE day LIKE ?", parameters: ["\(yearMonth)-%"])
+
+        let insertSQL = """
+            INSERT INTO day_aggregates
+            (provider, model, day, input, output, cache_read, cache_write, reasoning, last_updated)
+            SELECT provider, model,
+                   strftime('%Y-%m-%d', ts_ms / 1000, 'unixepoch'),
+                   SUM(input), SUM(output), SUM(cache_read), SUM(cache_write),
+                   SUM(reasoning), strftime('%s','now')
+            FROM token_events
+            WHERE strftime('%Y-%m', ts_ms / 1000, 'unixepoch') = ?
+            GROUP BY provider, model, strftime('%Y-%m-%d', ts_ms / 1000, 'unixepoch')
+        """
+        try execute(insertSQL, parameters: [yearMonth])
+    }
+
     /// Current UTC year-month (matches the SQLite `strftime('%Y-%m', ts_ms/1000, 'unixepoch')` filter).
     func currentYearMonth(for date: Date = Date()) -> String {
         let fmt = DateFormatter()

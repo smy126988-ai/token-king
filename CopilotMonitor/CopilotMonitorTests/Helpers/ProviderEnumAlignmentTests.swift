@@ -47,7 +47,7 @@ final class ProviderEnumAlignmentTests: XCTestCase {
         // Currently F2a PricingTable has no fallback chain for these, so
         // these intentionally return nil and are marked .skip.
         (.minimax, "minimax", .skip),
-        (.minimaxCN, "minimaxCN", .mapsTo(model: "MiniMax-M3", expectedCost: 4.20)),
+        (.minimaxCN, "minimaxCN", .mapsTo(model: "MiniMax-M3", expectedCost: 2.10)),
         (.xiaomi, "xiaomi", .skip),
         (.xiaomiTokenPlanCN, "xiaomiTokenPlanCN", .mapsTo(model: "mimo-v2.5-pro", expectedCost: 3.00)),
         // F2b opencodeGo rawValue "opencodeGo" vs F2a .openCodeGo rawValue

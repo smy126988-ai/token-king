@@ -14,18 +14,27 @@ import Foundation
 /// unit (e.g. raw USD for a new panel) should add a new string and a
 /// `convertTo(_:)` method rather than mutating existing call sites.
 ///
-/// `cache == nil` when the provider either has no public cache pricing or
-/// does not differentiate cache as a separate line item.
+/// `cache` is the cache-read rate. `cacheWrite` remains `nil` unless the
+/// provider publishes a distinct write rate; callers must surface that gap
+/// instead of silently treating writes as free.
 struct PayAsYouGoRate: Equatable {
     let input: Double
     let output: Double
     let cache: Double?
+    let cacheWrite: Double?
     let currency: String
 
-    init(input: Double, output: Double, cache: Double?, currency: String = "CNY") {
+    init(
+        input: Double,
+        output: Double,
+        cache: Double?,
+        cacheWrite: Double? = nil,
+        currency: String = "CNY"
+    ) {
         self.input = input
         self.output = output
         self.cache = cache
+        self.cacheWrite = cacheWrite
         self.currency = currency
     }
 }
@@ -62,15 +71,13 @@ enum PricingTable {
             // Representative model: claude-sonnet-4-5
             // USD: $3.00 / $15.00; cache write $3.75, cache read $0.30.
             // FX: 1 USD = 6.79 CNY (2026-07-07).
-            // Cache field stores the WRITE rate (¥25.46) instead of the READ rate
-            // (¥2.04). Write is the "cache is more expensive than input" side;
-            // read is cheaper than input. Storing write makes `cache > input`
-            // for this provider, which is the conservative upper-bound
-            // assumption when comparing cache hits vs misses.
+            // Keep read and write distinct. Collapsing them overstated cache
+            // hits by 12.5x and omitted write traffic altogether.
             return PayAsYouGoRate(
                 input: 20.37,
                 output: 101.85,
-                cache: 25.46
+                cache: 2.04,
+                cacheWrite: 25.46
             )
 
         case .zaiCodingPlan:
@@ -113,14 +120,14 @@ enum PricingTable {
             // Source: https://platform.minimaxi.com/docs/guides/pricing-paygo (2026-07-13)
             // Representative model: MiniMax-M3 (standard tier ≤512K context).
             // Native CNY per 1M tokens (no FX conversion needed).
-            //   input ¥4.20 / cache_read ¥0.84 / output ¥16.80.
+            //   input ¥2.10 / cache_read ¥0.42 / output ¥8.40.
             // Added in t1.2 (audit/p0-batch-1-t1.2) so SQLite
             // `month_aggregates` rows with provider="minimaxCN" no longer
             // return nil from MonthCostCalculator.
             return PayAsYouGoRate(
-                input: 4.20,
-                output: 16.80,
-                cache: 0.84
+                input: 2.10,
+                output: 8.40,
+                cache: 0.42
             )
 
         case .openCodeGo:
@@ -257,14 +264,14 @@ enum PricingTable {
         // after a permanent 50% off promo — that's a different
         // product. Capture the China-domestic rate because the user
         // pays in CNY via their direct key.
-        //   input ¥4.20 / cache_read ¥0.84 / output ¥16.80
+        //   input ¥2.10 / cache_read ¥0.42 / output ¥8.40
         // Source: https://platform.minimaxi.com/docs/guides/pricing-paygo
         // (captured 2026-07-13).
         case "MiniMax-M3", "minimax-m3":
             return PayAsYouGoRate(
-                input: 4.20,
-                output: 16.80,
-                cache: 0.84
+                input: 2.10,
+                output: 8.40,
+                cache: 0.42
             )
 
         // GPT-5.6 family (released GA 2026-07-09). Headline routes:
@@ -378,14 +385,16 @@ enum PricingTable {
             return PayAsYouGoRate(
                 input: 5.00 * fx,
                 output: 25.00 * fx,
-                cache: 0.50 * fx
+                cache: 0.50 * fx,
+                cacheWrite: 6.25 * fx
             )
         case "claude-haiku-4.5", "claude-haiku-4":
             // USD $1.00 / $5.00; cache write $1.25, cache read $0.10.
             return PayAsYouGoRate(
                 input: 1.00 * fx,
                 output: 5.00 * fx,
-                cache: 0.10 * fx
+                cache: 0.10 * fx,
+                cacheWrite: 1.25 * fx
             )
 
         case "gpt-5.6-terra":

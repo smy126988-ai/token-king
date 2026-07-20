@@ -11,6 +11,7 @@ actor RefreshActor {
     private let extractors: [TokenExtractorProtocol]
     private var tickTask: Task<Void, Never>?
     private let intervalSeconds: UInt64
+    private var repairedDayAggregateMonth: String?
 
     /// Mirrors `store.initError` so callers (e.g. `StatusBarController`) can
     /// detect a failed store without awaiting on the actor.
@@ -104,7 +105,20 @@ actor RefreshActor {
             logger.error("refreshMonthAggregates failed: \(error.localizedDescription, privacy: .public)")
         }
 
-        // F1: refresh day_aggregates for today (single-day incremental aggregate).
+        // Repair existing history once per UTC month. Older builds only
+        // materialized the current day, so charts could undercount a month
+        // even while the monthly total was correct.
+        let currentMonth = await store.currentYearMonth()
+        if repairedDayAggregateMonth != currentMonth {
+            do {
+                try await store.refreshDayAggregates(forYearMonth: currentMonth)
+                repairedDayAggregateMonth = currentMonth
+            } catch {
+                logger.error("refresh monthly day aggregates failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+
+        // Keep the hot path cheap after the one-time monthly repair.
         do {
             try await store.refreshDayAggregates()
         } catch {

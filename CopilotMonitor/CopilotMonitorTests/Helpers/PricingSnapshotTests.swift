@@ -27,7 +27,7 @@ final class PricingSnapshotTests: XCTestCase {
         PricingSnapshot(
             model: "MiniMax-M3",
             provider: .minimaxCN,
-            input: 4.20, output: 16.80, cache: 0.84,
+            input: 2.10, output: 8.40, cache: 0.42,
             currency: "CNY",
             source: URL(string: "https://platform.minimaxi.com/docs/guides/pricing-paygo")!,
             capturedAt: PricingSnapshot.date(2026, 7, 13),
