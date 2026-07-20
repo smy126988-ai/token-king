@@ -582,18 +582,11 @@ final class CodexProvider: ProviderProtocol {
             return try buildStandardPayload(response: response, account: account)
         } catch {
             logger.error("Failed to decode Codex API response: \(error.localizedDescription)")
+            #if !CLI_TARGET
             if let jsonString = String(data: data, encoding: .utf8) {
-                logger.error("Codex raw response: \(jsonString.prefix(1000))")
-                let debugMsg = "[Codex] Raw response: \(jsonString)\n"
-                if let debugData = debugMsg.data(using: .utf8) {
-                    let path = "/tmp/provider_debug.log"
-                    if let handle = FileHandle(forWritingAtPath: path) {
-                        handle.seekToEndOfFile()
-                        handle.write(debugData)
-                        handle.closeFile()
-                    }
-                }
+                DiagnosticsLogger.shared.log("Codex response decode failed: \(jsonString)", category: "CodexProvider")
             }
+            #endif
             throw ProviderError.decodingError(error.localizedDescription)
         }
     }

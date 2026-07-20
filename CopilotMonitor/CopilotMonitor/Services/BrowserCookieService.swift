@@ -16,20 +16,8 @@ class BrowserCookieService {
     private init() {}
 
     private func debugLog(_ message: String) {
-        #if DEBUG
-        let msg = "[\(Date())] BrowserCookieService: \(message)\n"
-        if let data = msg.data(using: .utf8) {
-            let path = "/tmp/cookie_debug.log"
-            if FileManager.default.fileExists(atPath: path) {
-                if let handle = FileHandle(forWritingAtPath: path) {
-                    handle.seekToEndOfFile()
-                    handle.write(data)
-                    handle.closeFile()
-                }
-            } else {
-                try? data.write(to: URL(fileURLWithPath: path))
-            }
-        }
+        #if !CLI_TARGET
+        DiagnosticsLogger.shared.log(message, category: "BrowserCookieService")
         #endif
     }
 

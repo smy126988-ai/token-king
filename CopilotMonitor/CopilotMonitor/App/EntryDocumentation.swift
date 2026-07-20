@@ -24,8 +24,7 @@
 //     comments only.
 //
 // If you need to debug the menu bar item lifecycle, look for `attachTo:`
-// log lines in `/tmp/provider_debug.log` — that string is emitted by
-// `StatusBarController.attachTo(_:)` when the bridge successfully hands
-// over the `NSStatusItem`.
+// structured `AppDelegate` logs, or explicitly enable the sanitized
+// in-app diagnostics when a persistent trace is needed.
 
 // Intentionally empty — see comments above.

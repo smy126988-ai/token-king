@@ -4,8 +4,8 @@ import os.log
 /// Centralized diagnostic logger for Token King.
 ///
 /// Behavior:
-/// - **Default disabled.** When disabled, `log(...)` is a no-op (no file I/O,
-///   no leak). Old `/tmp/provider_debug.log` is NOT touched when disabled.
+/// - **Default disabled.** When disabled, `log(...)` is a no-op: no file I/O,
+///   no retained diagnostic content.
 /// - When enabled, writes sanitized lines to `<baseDirectory>/tokenking_diag.log`.
 /// - File rotation: when the active file exceeds `maxFileSizeBytes`,
 ///   it is rotated to `tokenking_diag.log.1`, `.2`, ... up to `maxRotatedFiles`.
@@ -19,7 +19,9 @@ final class DiagnosticsLogger: @unchecked Sendable {
 
     static let enabledDefaultsKey = "tokenKing.diagnostics.enabled"
     static let defaultLogFileName = "tokenking_diag.log"
-    static let maxFileSizeBytes: Int = 5 * 1024 * 1024  // 5 MB
+    /// 1 MB active + three 1 MB rotations keeps the complete diagnostic
+    /// footprint below the four-megabyte privacy budget.
+    static let maxFileSizeBytes: Int = 1 * 1024 * 1024
     static let maxRotatedFiles: Int = 3
     static let maxLineLength: Int = 4_096  // truncate lines longer than this
 
@@ -42,8 +44,8 @@ final class DiagnosticsLogger: @unchecked Sendable {
 
     /// Production initializer.
     private convenience init() {
-        // Default base directory is `/tmp`, distinct from the old
-        // `/tmp/provider_debug.log` to avoid clobbering user logs.
+        // Keep diagnostics separate from legacy temporary logs. Diagnostics
+        // remain disabled unless the user explicitly enables them.
         self.init(
             defaults: UserDefaults.standard,
             baseDirectory: URL(fileURLWithPath: "/tmp")
@@ -181,6 +183,10 @@ final class DiagnosticsLogger: @unchecked Sendable {
         if fileHandle != nil { return }
         if !FileManager.default.fileExists(atPath: activeFileURL.path) {
             FileManager.default.createFile(atPath: activeFileURL.path, contents: nil)
+            try FileManager.default.setAttributes(
+                [.posixPermissions: NSNumber(value: Int16(0o600))],
+                ofItemAtPath: activeFileURL.path
+            )
         }
         let handle = try FileHandle(forWritingTo: activeFileURL)
         try handle.seekToEnd()

@@ -300,19 +300,9 @@ final class OpenCodeZenProvider: ProviderProtocol {
     }
 
     private static func debugLog(_ message: String) {
-        let msg = "[\(Date())] OpenCodeZen: \(message)\n"
-        if let data = msg.data(using: .utf8) {
-            let path = "/tmp/opencode_debug.log"
-            if FileManager.default.fileExists(atPath: path) {
-                if let handle = FileHandle(forWritingAtPath: path) {
-                    handle.seekToEndOfFile()
-                    handle.write(data)
-                    handle.closeFile()
-                }
-            } else {
-                try? data.write(to: URL(fileURLWithPath: path))
-            }
-        }
+        #if !CLI_TARGET
+        DiagnosticsLogger.shared.log(message, category: "OpenCodeZen")
+        #endif
     }
 
     static func handleStatsOutput(outputData: Data, exitStatus: Int32) throws -> String {

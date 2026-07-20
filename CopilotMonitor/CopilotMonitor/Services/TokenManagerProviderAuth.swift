@@ -2257,13 +2257,10 @@ extension TokenManager {
 
         debugLines.append("================================================")
 
-        // Log all debug info
         let fullDebugLog = debugLines.joined(separator: "\n")
-        logger.info("\n\(fullDebugLog)")
-
-        // Also write to debug file for easier access
-        #if DEBUG
-        writeToDebugFile(fullDebugLog)
+        logger.info("Authentication environment diagnostics collected")
+        #if !CLI_TARGET
+        DiagnosticsLogger.shared.log(fullDebugLog, category: "TokenManagerProviderAuth")
         #endif
     }
 
@@ -2275,20 +2272,4 @@ extension TokenManager {
         return "\(prefix)...\(suffix)"
     }
 
-    /// Writes debug info to file for easier access
-    private func writeToDebugFile(_ content: String) {
-        let path = "/tmp/provider_debug.log"
-        let timestampedContent = "[\(Date())] TokenManager Environment Info:\n\(content)\n\n"
-        if let data = timestampedContent.data(using: .utf8) {
-            if FileManager.default.fileExists(atPath: path) {
-                if let handle = FileHandle(forWritingAtPath: path) {
-                    handle.seekToEndOfFile()
-                    handle.write(data)
-                    handle.closeFile()
-                }
-            } else {
-                try? data.write(to: URL(fileURLWithPath: path))
-            }
-        }
-    }
 }

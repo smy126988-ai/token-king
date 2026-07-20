@@ -57,23 +57,19 @@ final class DiagnosticsLoggerTests: XCTestCase {
         XCTAssertTrue(content.contains("TestCategory"), "Category must appear in log")
     }
 
-    // MARK: - Rotation at 5MB
+    // MARK: - Rotation within the four-megabyte total budget
 
-    func testRotationAt5MB() throws {
+    func testRotationAtOneMB() throws {
         let (defaults, _) = makeIsolatedDefaults()
         let dir = makeTempDir()
         let logger = DiagnosticsLogger(defaults: defaults, baseDirectory: dir)
         logger.setEnabled(true)
         defer { logger.setEnabled(false) }
 
-        // Lines are truncated to `maxLineLength` (4 KB) before writing, so each
-        // log() call writes ~4 KB regardless of input size. To cross the 5 MB
-        // rotation threshold, write enough lines.
-        // 1500 chunks × ~4 KB ≈ 6 MB which is well over the 5 MB cap.
-        let chunkCount = 1500
+        // Send 4 KB payloads so the active one-megabyte threshold is crossed.
+        let chunkCount = 300
         for i in 0..<chunkCount {
-            // Use small payload; the line will be truncated to maxLineLength anyway.
-            logger.log("rotation-marker-\(i)", category: "Rotation")
+            logger.log("rotation-marker-\(i)-" + String(repeating: "x", count: 4_096), category: "Rotation")
         }
         logger.flush()
 
@@ -81,8 +77,8 @@ final class DiagnosticsLoggerTests: XCTestCase {
         let rotatedFile = dir.appendingPathComponent("tokenking_diag.log.1")
         let activeSize = (try? FileManager.default.attributesOfItem(atPath: baseFile.path)[.size] as? Int) ?? 0
         let rotatedExists = FileManager.default.fileExists(atPath: rotatedFile.path)
-        XCTAssertTrue(rotatedExists || activeSize <= 5 * 1024 * 1024,
-                      "After >5MB write, either a rotated file should exist or active file should be within cap")
+        XCTAssertTrue(rotatedExists || activeSize <= DiagnosticsLogger.maxFileSizeBytes,
+                      "After crossing one megabyte, either a rotation should exist or active file must be within cap")
     }
 
     // MARK: - Sanitization
