@@ -25,6 +25,10 @@ final class WidgetSnapshotCoordinator {
     /// Safe to call every 5s; the writer handles throttling.
     func tickAndWrite() {
         guard let controller = statusBarController else { return }
+        guard hasPublishableProviderState(controller) else {
+            logger.debug("tickAndWrite skipped (provider refresh has not produced a result yet)")
+            return
+        }
         let snapshot = buildSnapshot(controller: controller)
         let didChange = WidgetSnapshotWriter.shared.write(snapshot)
         if didChange {
@@ -38,6 +42,10 @@ final class WidgetSnapshotCoordinator {
             logger.debug("primeAndWrite skipped (no controller)")
             return
         }
+        guard hasPublishableProviderState(controller) else {
+            logger.debug("primeAndWrite skipped (provider refresh has not produced a result yet)")
+            return
+        }
         let snapshot = buildSnapshot(controller: controller)
         let didChange = WidgetSnapshotWriter.shared.writeNow(snapshot)
         if didChange {
@@ -47,6 +55,10 @@ final class WidgetSnapshotCoordinator {
 
     // MARK: - Snapshot construction
 
+    private func hasPublishableProviderState(_ controller: StatusBarController) -> Bool {
+        !controller.providerResults.isEmpty || !controller.lastProviderErrors.isEmpty
+    }
+
     /// Compose a snapshot from the controller's cached state.
     private func buildSnapshot(controller: StatusBarController) -> WidgetSnapshot {
         // Real monthly spend (actual pay-as-you-go charges + subscription fees),
@@ -55,7 +67,9 @@ final class WidgetSnapshotCoordinator {
         let monthlyCost = controller.widgetMonthlySpend()
         return WidgetSnapshotMapper.makeSnapshot(
             providerResults: controller.providerResults,
-            monthlyCost: monthlyCost
+            monthlyCost: monthlyCost,
+            providerErrors: controller.lastProviderErrors,
+            providerLastSuccessfulFetchAt: controller.providerLastSuccessfulFetchAt
         )
     }
 }

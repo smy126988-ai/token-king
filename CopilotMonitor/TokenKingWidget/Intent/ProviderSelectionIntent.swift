@@ -3,17 +3,19 @@ import WidgetKit
 
 /// User-configurable intent that selects a single AI provider for detail widgets.
 ///
-/// This placeholder is registered with `AppIntentConfiguration` in
-/// `TokenKingWidget.swift`. The picker is backed by `ProviderEntity` and
-/// `ProviderQuery`, which read the current widget snapshot so the list stays in
-/// sync with the main app. A follow-up agent may refine the parameter set and
-/// default selection behavior.
+/// The picker reads display names from the current snapshot while persisting
+/// the provider's stable id directly, keeping the timeline independent from
+/// AppEntity registration caches.
 struct ProviderSelectionIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "Select Provider"
     static var description = IntentDescription("Choose a provider to display in the widget.")
 
-    @Parameter(title: "Provider")
-    var provider: ProviderEntity?
+    @Parameter(title: "Provider", optionsProvider: ProviderOptionsProvider())
+    var provider: String?
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Show \(\.$provider)")
+    }
 
     init() {}
 }

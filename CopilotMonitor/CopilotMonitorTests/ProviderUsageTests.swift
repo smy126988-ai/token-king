@@ -373,14 +373,21 @@ final class ProviderUsageTests: XCTestCase {
         )
         let manager = ProviderManager(providers: [provider])
 
+        let beforeFetch = Date()
         let first = await manager.fetchAll()
+        let firstSuccessfulFetchAt = (await manager.getLastSuccessfulFetchAt())[.claude]
+        try? await Task.sleep(nanoseconds: 20_000_000)
         let second = await manager.fetchAll()
+        let secondSuccessfulFetchAt = (await manager.getLastSuccessfulFetchAt())[.claude]
         let fetchCount = await provider.fetchCount()
 
         XCTAssertEqual(fetchCount, 1)
         XCTAssertEqual(first.results[.claude]?.usage.remainingQuota, 42)
         XCTAssertEqual(second.results[.claude]?.usage.remainingQuota, 42)
         XCTAssertTrue(second.errors.isEmpty)
+        XCTAssertNotNil(firstSuccessfulFetchAt)
+        XCTAssertGreaterThanOrEqual(firstSuccessfulFetchAt ?? .distantPast, beforeFetch)
+        XCTAssertEqual(secondSuccessfulFetchAt, firstSuccessfulFetchAt)
     }
 
     func testProviderManagerDeduplicatesConcurrentFetches() async {
@@ -416,6 +423,30 @@ final class ProviderUsageTests: XCTestCase {
         XCTAssertNil(second.results[.claude])
         XCTAssertTrue(second.errors[.claude]?.contains("Rate limited") == true)
         XCTAssertTrue(second.errors[.claude]?.contains("Retrying in") == true)
+    }
+
+    func testProviderManagerKeepsCachedFallbackStaleDuringCooldown() async {
+        let provider = SuccessThenFailureStubProvider(
+            identifier: .codex,
+            minimumFetchInterval: 0.1,
+            result: makeQuotaResult(remaining: 42)
+        )
+        let manager = ProviderManager(providers: [provider])
+
+        let first = await manager.fetchAll()
+        let successfulFetchAt = (await manager.getLastSuccessfulFetchAt())[.codex]
+        try? await Task.sleep(nanoseconds: 150_000_000)
+        let failedWithCache = await manager.fetchAll()
+        let throttledCache = await manager.fetchAll()
+        let finalSuccessfulFetchAt = (await manager.getLastSuccessfulFetchAt())[.codex]
+
+        XCTAssertEqual(first.results[.codex]?.usage.remainingQuota, 42)
+        XCTAssertEqual(failedWithCache.results[.codex]?.usage.remainingQuota, 42)
+        XCTAssertNotNil(failedWithCache.errors[.codex])
+        XCTAssertEqual(throttledCache.results[.codex]?.usage.remainingQuota, 42)
+        XCTAssertNotNil(throttledCache.errors[.codex])
+        XCTAssertTrue(throttledCache.errors[.codex]?.contains("Retrying in") == true)
+        XCTAssertEqual(finalSuccessfulFetchAt, successfulFetchAt)
     }
 
     // MARK: - Provider Enablement
@@ -533,5 +564,33 @@ private final class RateLimitedStubProvider: ProviderProtocol {
 
     func fetchCount() async -> Int {
         await state.currentFetchCount()
+    }
+}
+
+private final class SuccessThenFailureStubProvider: ProviderProtocol {
+    let identifier: ProviderIdentifier
+    let type: ProviderType = .quotaBased
+    let minimumFetchInterval: TimeInterval
+
+    private let result: ProviderResult
+    private let state = StubProviderState()
+
+    init(
+        identifier: ProviderIdentifier,
+        minimumFetchInterval: TimeInterval,
+        result: ProviderResult
+    ) {
+        self.identifier = identifier
+        self.minimumFetchInterval = minimumFetchInterval
+        self.result = result
+    }
+
+    func fetch() async throws -> ProviderResult {
+        await state.incrementFetchCount()
+        let fetchCount = await state.currentFetchCount()
+        if fetchCount == 1 {
+            return result
+        }
+        throw ProviderError.networkError("Temporary network failure")
     }
 }

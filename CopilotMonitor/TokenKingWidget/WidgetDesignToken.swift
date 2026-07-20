@@ -34,8 +34,14 @@ extension Color {
 // MARK: - Layer 2: Named tokens
 
 enum WidgetDesignToken {
-    // MARK: Typography (DESIGN.md typography.sizes)
-    static let wNameSize: CGFloat = 14
+    // MARK: Typography
+    // SF Rounded gives provider names and quota figures one coherent voice.
+    // Monospaced is reserved for timestamps and financial values.
+    static let quotaFontDesign: Font.Design = .rounded
+    static let quotaTitleWeight: Font.Weight = .semibold
+    static let quotaNumberWeight: Font.Weight = .medium
+    static let quotaSuffixWeight: Font.Weight = .semibold
+    static let quotaLabelWeight: Font.Weight = .medium
     static let bodySize: CGFloat = 13
     static let percentRingSize: CGFloat = 13
     static let percentBigSize: CGFloat = 24
@@ -43,99 +49,86 @@ enum WidgetDesignToken {
     static let mLabelSize: CGFloat = 9.5
     static let portSize: CGFloat = 10
     static let slashLimitSize: CGFloat = 14
-    static let footerSize: CGFloat = 10
+    static let footerSize: CGFloat = 11
 
-    // MARK: Percent-hero typography (quota-float exact)
-    static let percentHeroSize: CGFloat = 64
-    static let percentHeroMediumSize: CGFloat = 48
-    static let percentHeroWeight: Font.Weight = .medium
-    static let percentHeroTracking: CGFloat = -4
-    static let percentHeroSmallTracking: CGFloat = -2
-    static let percentSuffixSize: CGFloat = 21
-    static let percentSuffixWeight: Font.Weight = .bold
-    static let percentSuffixTracking: CGFloat = -1
-    static let eyebrowSize: CGFloat = 14
-    static let eyebrowWeight: Font.Weight = .semibold
-    static let eyebrowTracking: CGFloat = 2.5
-    static let updatedSize: CGFloat = 14
-    static let updatedWeight: Font.Weight = .medium
-    static let updatedTracking: CGFloat = 1.1
-    static let updatedOpacity: Double = 0.9
-    static let resetTimeSize: CGFloat = 12
+    // MARK: Percent hero typography
+    static let percentHeroSize: CGFloat = 68
+    static let percentHeroMediumSize: CGFloat = 52
+    static let percentHeroWeight = quotaNumberWeight
+    static let percentHeroTracking: CGFloat = -3.2
+    static let percentSuffixSize: CGFloat = 22
+    static let percentSuffixWeight = quotaSuffixWeight
+    static let percentSuffixTracking: CGFloat = -0.5
+    static let providerTitleMediumSize: CGFloat = 15
+    static let providerTitleLargeSize: CGFloat = 16
+    static let providerTitleTracking: CGFloat = 0
+    static let sectionTitleSize: CGFloat = 13
+    static let sectionTitleTracking: CGFloat = 1.2
+    static let updatedSize: CGFloat = 12
+    static let updatedWeight = quotaLabelWeight
+    static let updatedTracking: CGFloat = 0
+    static let resetTimeSize: CGFloat = 11
     static let resetTimeOpacity: Double = 0.52
-    static let orbSize: CGFloat = 27
     static let orbWeight: Font.Weight = .semibold
-    static let orbSuffixSize: CGFloat = 10
-    static let orbSuffixWeight: Font.Weight = .bold
     static let orbSuffixSpacing: CGFloat = 1
-    static let orbTracking: CGFloat = -1.6
 
-    // MARK: QuotaCard adaptation (medium) + canvas-scaled orb (small) — 2026-07-16
-    // Small-widget orb scaled from quota-float QuotaOrb: 27px number in an 80px orb
-    // → 56px on the ~166pt systemSmall canvas (27 × 166/80 ≈ 56).
-    static let orbHeroSize: CGFloat = 56
-    static let orbHeroTracking: CGFloat = -3.4   // -.06em at 56px (quota-float orb-metric letter-spacing)
-    static let orbHeroSuffixSpacing: CGFloat = 2
-    // Medium hero: quota-float primary-metric is 64px; 48px (percentHeroMediumSize) is the
-    // established vertical scale for the 166pt card. -.07em at 48px ≈ -3.4.
-    static let mediumHeroTracking: CGFloat = -3.4
-    static let resetTimeTracking: CGFloat = 0.6  // .05em at 12px (quota-float .reset-time)
-    // Footer secondary metric (quota-float weekly-metric 30px → 17px at the 0.57 vertical scale).
-    static let weeklyNumberSize: CGFloat = 17
-    static let weeklyLabelTracking: CGFloat = 1  // ≈.08em at 12px, kept readable at 10px
-    static let mediumFooterIconSize: CGFloat = 20
+    // MARK: QuotaCard adaptation (medium)
+    // The 52pt hero keeps a clear lead over the 24–26pt secondary metric
+    // without overpowering the 166pt-high medium family.
+    static let mediumHeroTracking: CGFloat = -2.2
+    static let resetTimeTracking: CGFloat = 0
 
-    // MARK: QuotaOrb card (small) — 2026-07-16 round 3
-    // quota-float QuotaOrb is an 80px light frosted card, NOT bare content on the
-    // aurora: bg #edf3f8 @ .82, 1px white border .42, inset top highlight .48,
-    // soft shadow 0 4px 14px rgba(72,88,112,.08), radius 28, aurora drawn inside.
     static let orbCardBackground = Color(hex: "#edf3f8")
-    static let orbCardBackgroundOpacity: Double = 0.82
-    static let orbCardRadius: CGFloat = 28
-    static let orbCardBorderOpacity: Double = 0.42
     static let orbCardBorderWidth: CGFloat = 1
-    static let orbCardHighlightOpacity: Double = 0.48
-    static let orbCardShadowColor = Color(red: 0.282, green: 0.345, blue: 0.44).opacity(0.08)
-    static let orbCardShadowRadius: CGFloat = 14
-    static let orbCardShadowY: CGFloat = 4
-    static let orbHeroCardTracking: CGFloat = -2.9  // -.06em at 48px (orb-metric letter-spacing)
 
     // MARK: QuotaOrb exact copy (small) — 2026-07-16 round 6
     // Everything below is quota-float source-exact, scaled ×1.675 from the 80px
     // orb to the ~134pt card area inside systemSmall (80px × 1.675 = 134pt).
-    static let orbCopyScale: CGFloat = 1.675
     static let orbCopyNumberSize: CGFloat = 45       // 27px × 1.675
     static let orbCopySuffixSize: CGFloat = 17       // 10px × 1.675
     static let orbCopyTracking: CGFloat = -2.7       // -.06em at 45px (orb-metric)
     static let orbCopySuffixSpacing: CGFloat = 1.7   // % margin-left 1px × 1.675
     static let orbCopySuffixLift: CGFloat = 5        // % margin-bottom 3px × 1.675
-    static let orbCopyRadius: CGFloat = 47           // card radius 28px × 1.675
-    // Aurora layer: quota-float draws it at inset -55% (⇒ 2.1× card size), so
-    // cloud centres sit mostly OFF the card and only their fades bleed in.
-    static let orbAuroraScale: CGFloat = 2.1         // 1 + 2×0.55
-    // Cloud radii: CSS fade stop (glow 43% / warm 34% / cool 52%) × the ray to
-    // the layer's farthest corner (278/326/282pt), expressed in unscaled view
-    // space (÷2.1). healthy-tier fades; per-tier fade deltas are <8%, invisible.
-    static let orbAuroraGlowRadius: CGFloat = 57
-    static let orbAuroraWarmRadius: CGFloat = 53
-    static let orbAuroraCoolRadius: CGFloat = 70
 
-    // MARK: Mini QuotaCard (small) — 2026-07-16 round 7
-    // quota-float's expanded card (min 320px) compressed into systemSmall.
-    // Reference screenshot (docs/images/quota-states.png in the quota-float
-    // repo): eyebrow 14px + descriptor 14px on a 320px card ⇒ 7.3px at 0.52
-    // scale — below the readability floor, so labels pin at 8-9px.
-    static let miniEyebrowSize: CGFloat = 9
-    static let miniEyebrowTracking: CGFloat = 1.7   // .18em at 9px (quota-float eyebrow)
-    static let miniDescriptorSize: CGFloat = 8      // "5-hour remaining" line
+    // MARK: Mini QuotaCard (small)
+    // Every provider shares one optical box and one text rhythm. Brand artwork
+    // has no extra plate; status remains a separate signal at the trailing edge.
+    static let smallProviderTitleSize: CGFloat = 15
+    static let smallProviderTitleWeight = quotaTitleWeight
+    static let smallProviderTitleTracking: CGFloat = 0
+    static let smallProviderTitleMinimumScale: CGFloat = 0.72
+    static let smallProviderSubtitleSize: CGFloat = 11
+    static let smallProviderHeaderSpacing: CGFloat = 7
+    static let smallProviderHeaderTextSpacing: CGFloat = 2
+    static let smallProviderMarkWidth: CGFloat = 22
+    static let smallProviderMarkHeight: CGFloat = 20
+    static let smallProviderMarkIconSize: CGFloat = 18
+    static let smallCodexMarkIconSize: CGFloat = 24
+    static let smallProviderStatusDotSize: CGFloat = 6
+    static let smallProviderTitleStatusSpacing: CGFloat = 7
+    static let smallProviderStatusGlowRadius: CGFloat = 3
+    static let smallHeaderToHeroSpacing: CGFloat = 14
+    static let smallHeroNumberSize: CGFloat = 48
+    static let smallHeroSuffixSize: CGFloat = 17
+    static let smallHeroTracking: CGFloat = -1.8
+    static let smallHeroSuffixLift: CGFloat = 4
+    static let smallHeroToBarSpacing: CGFloat = 12
+    static let smallBarToResetSpacing: CGFloat = 6
+    static let smallProgressHeight: CGFloat = 5
+    static let smallResetSize: CGFloat = 11
+    static let smallMetadataWeight: Font.Weight = .regular
+    static let smallResetOpacity: Double = 0.52
+    static let smallMetadataSpacing: CGFloat = 4
+    static let smallMetadataMinimumScale: CGFloat = 0.82
+    static let miniDescriptorSize: CGFloat = 11
     static let miniResetSize: CGFloat = 8           // reset-time line
     static let miniBarTopMargin: CGFloat = 9        // progress margin-top 18px × 0.52
-    static let descriptorTopMargin: CGFloat = 5     // quota-float .updated margin-top
+    static let descriptorTopMargin: CGFloat = 2
     // quota-float primary-metric line-height:.82 — the hero's box hugs the
     // glyphs. SwiftUI's default ~1.2 line height adds invisible slack that
     // made every gap below the hero read too loose.
     static let quotaHeroBoxFactor: CGFloat = 0.82
-    static let eyebrowMinimumScale: CGFloat = 0.75  // long provider names shrink, never truncate
+    static let eyebrowMinimumScale: CGFloat = 0.75  // medium/large provider names
     // Uniform content inset for ALL sizes, calibrated on the approved small
     // widget: quota-float card padding 30px on the 320px card (9.375%) →
     // 30/320 × 166pt ≈ 15.6 → 16pt. Applied explicitly in TokenKingWidgetView
@@ -151,7 +144,7 @@ enum WidgetDesignToken {
     // Weekly footer metric: 30px/400 number + 15px % (quota-float weekly-metric).
     static let weeklyHeroSize: CGFloat = 30
     static let weeklyHeroSuffixSize: CGFloat = 15
-    static let weeklyLabelWeight: Font.Weight = .light  // 300
+    static let weeklyLabelWeight = quotaLabelWeight
     // Status indicator: 8px dot inside a 25px frosted circle (usage-indicator:
     // border white .32, bg white .12).
     static let indicatorRingSize: CGFloat = 25
@@ -159,6 +152,87 @@ enum WidgetDesignToken {
     static let indicatorRingBackgroundOpacity: Double = 0.12
     // Provider mark bottom-right (43px on the 320px card).
     static let providerMarkSize: CGFloat = 43
+
+    // MARK: Generic quota card composition
+    // Shared by non-Codex provider widgets. These keep the same reading rhythm
+    // across families without coupling the layouts to a particular quota window.
+    static let quotaMediumBodyTopSpacing: CGFloat = 10
+    static let quotaMediumColumnSpacing: CGFloat = 14
+    static let quotaMediumSecondaryWidth: CGFloat = 74
+    static let quotaMediumSecondaryNumberSize: CGFloat = 26
+    static let quotaMediumDividerHeight: CGFloat = 56
+    static let quotaLargeHeroTopSpacing: CGFloat = 12
+    static let quotaLargeBarTopSpacing: CGFloat = 13
+    static let quotaLargeFooterTopSpacing: CGFloat = 12
+    static let quotaDividerOpacity: Double = 0.14
+    static let quotaMetadataSize: CGFloat = 10
+
+    // MARK: Codex QuotaCard
+    static let codexCardCornerRadius: CGFloat = 22
+    static let codexHeaderMarkSmallSize: CGFloat = 20
+    static let codexHeaderMarkMediumSize: CGFloat = 22
+    static let codexHeaderMarkLargeSize: CGFloat = 28
+    static let codexHeaderSmallSize: CGFloat = 15
+    static let codexHeaderMediumSize: CGFloat = 15
+    static let codexHeaderLargeSize: CGFloat = 16
+    static let codexAccountSmallSize: CGFloat = 9
+    static let codexAccountMediumSize: CGFloat = 11
+    static let codexAccountLargeSize: CGFloat = 12
+    static let codexMetadataSmallSize: CGFloat = 9
+    static let codexMetadataMediumSize: CGFloat = 10
+    static let codexMetadataLargeSize: CGFloat = 11
+    static let codexHeroSmallSize: CGFloat = 48
+    static let codexHeroMediumSize: CGFloat = 52
+    static let codexHeroLargeSize: CGFloat = 68
+    static let codexSuffixSmallSize: CGFloat = 17
+    static let codexSuffixMediumSize: CGFloat = 19
+    static let codexSuffixLargeSize: CGFloat = 22
+    static let codexDescriptorSmallSize: CGFloat = 10
+    static let codexDescriptorMediumSize: CGFloat = 11
+    static let codexDescriptorLargeSize: CGFloat = 12
+    static let codexResetSmallSize: CGFloat = 9
+    static let codexResetMediumSize: CGFloat = 10
+    static let codexResetLargeSize: CGFloat = 11
+    static let codexSecondaryMediumSize: CGFloat = 24
+    static let codexSecondaryLargeSize: CGFloat = 30
+    static let codexSecondarySuffixMediumSize: CGFloat = 11
+    static let codexSecondarySuffixLargeSize: CGFloat = 14
+    static let codexStatusRingSize: CGFloat = 20
+    static let codexMediumSecondaryWidth: CGFloat = 68
+    static let codexMetadataPillRadius: CGFloat = 8
+    static let codexMetadataPillHPadding: CGFloat = 7
+    static let codexMetadataPillVPadding: CGFloat = 3
+    static let codexStateIconSize: CGFloat = 18
+    static let codexStateTitleSize: CGFloat = 14
+    static let codexStateDetailSize: CGFloat = 11
+    static let codexSmallSpacing: CGFloat = 3
+    static let codexMediumSpacing: CGFloat = 5
+    static let codexLargeSpacing: CGFloat = 8
+    static let codexSectionSpacing: CGFloat = 12
+    static let codexLargeSectionSpacing: CGFloat = 18
+    static let codexSmallHeaderToHeroSpacing: CGFloat = 8
+    static let codexSmallHeroToBarSpacing: CGFloat = 8
+    static let codexLargeMetadataSpacing: CGFloat = 10
+    static let codexMediumPrimaryMinWidth: CGFloat = 164
+    static let codexLargeHeroTopSpacing: CGFloat = 12
+    static let codexHeroTrackingSmall: CGFloat = -1.8
+    static let codexHeroTrackingMedium: CGFloat = -2.2
+    static let codexHeroTrackingLarge: CGFloat = -3.2
+    static let codexSuffixLiftSmall: CGFloat = 4
+    static let codexSuffixLiftMedium: CGFloat = 5
+    static let codexSuffixLiftLarge: CGFloat = 7
+    static let codexBarMediumHeight: CGFloat = 7
+    static let codexBarLargeHeight: CGFloat = 8
+    static let codexDividerOpacity: Double = 0.14
+    static let codexMutedOpacity: Double = 0.68
+    static let codexFaintOpacity: Double = 0.46
+    static let codexTrackOpacity: Double = 0.16
+    static let codexStatusRingOpacity: Double = 0.10
+    static let codexBorderTopOpacity: Double = 0.42
+    static let codexBorderBottomOpacity: Double = 0.34
+    static let auroraCoolEndRadius: CGFloat = 220
+    static let auroraGlowEndRadius: CGFloat = 170
+    static let auroraWarmEndRadius: CGFloat = 150
 
     // MARK: Progress bar effects
     static let barGlowRadius: CGFloat = 8
@@ -190,13 +264,27 @@ enum WidgetDesignToken {
     static let ringIconSize: CGFloat = 24
     static let mediumIconSize: CGFloat = 16
     static let largeIconSize: CGFloat = 15
-    static let mediumRefreshSize: CGFloat = 23
-    static let smallRefreshRadius: CGFloat = 7
+    static let refreshControlSize: CGFloat = 20
+    static let refreshSymbolSize: CGFloat = 9
+    static let refreshStatusDotSize: CGFloat = 6
+    static let refreshStatusSpacing: CGFloat = 7
+    static let refreshTimestampSpacing: CGFloat = 2
+    static let refreshTimestampSize: CGFloat = 10
+    static let refreshTimestampOpacity: Double = 0.64
+    static let refreshBackgroundOpacity: Double = 0.12
+    static let refreshBorderOpacity: Double = 0.24
+    static let refreshShadowOpacity: Double = 0.06
+    static let refreshShadowRadius: CGFloat = 2
+    static let refreshPressedScale: CGFloat = 0.84
+    static let refreshPressedOpacity: Double = 0.64
+    static let refreshPressedRotation: Double = -16
+    static let refreshAnimationDuration: Double = 0.12
     static let statusDotSize: CGFloat = 8
 
     // MARK: Layout constants (no stray literals in views)
     static let zeroInt: Int = 0
     static let singleLine: Int = 1
+    static let codexStateSmallLineCount: Int = 2
     static let singleWindowCount: Int = 1
     static let mediumVisibleCount: Int = 1
     static let largeVisibleCount: Int = 5
@@ -205,6 +293,7 @@ enum WidgetDesignToken {
     static let zeroDouble: Double = 0
     static let percentMax: Double = 100
     static let secondsPerHour: Double = 3600
+    static let codexFreshnessThreshold: TimeInterval = 90 * 60
     static let ringStart: CGFloat = 0
     static let ringRotation: Double = -90
     static let trackOpacity: Double = 0.13
@@ -212,7 +301,6 @@ enum WidgetDesignToken {
     static let badgeStrokeOpacity: Double = 0.10
     static let hairlineOpacity: Double = 0.5
     static let zeroSpacing: CGFloat = 0
-    static let tinyGap: CGFloat = 2
     static let zeroLength: CGFloat = 0
     static let badgeHPadding: CGFloat = 7
     static let badgeVPadding: CGFloat = 2
@@ -222,6 +310,7 @@ enum WidgetDesignToken {
 
     // MARK: Provider identifiers for widgets that filter by kind.
     enum ProviderID {
+        static let codex = "codex"
         static let braveSearch = "brave_search"
         static let tavilySearch = "tavily_search"
     }
@@ -298,7 +387,7 @@ enum WidgetDesignToken {
             progressStart: Color(hex: "#ff7848"), progressEnd: Color(hex: "#ffd064"),
             opacity: 0.56, angle: 213, warmX: 0.11, warmY: 0.98)
 
-        /// Pick a tier from used-percent, matching Severity thresholds (amber 60, red 85).
+        /// Pick a tier using the legacy widget thresholds.
         static func tier(forUsedPercent p: Double) -> Tier {
             if p >= WidgetDesignToken.Severity.redAt { return critical }
             if p >= WidgetDesignToken.Severity.amberAt { return caution }
@@ -318,6 +407,30 @@ enum WidgetDesignToken {
         static let primary = Color(hex: "#17191f")
         static let secondary = Color(red: 0.09, green: 0.10, blue: 0.12).opacity(0.62)
         static let faint = Color(red: 0.09, green: 0.10, blue: 0.12).opacity(0.42)
+    }
+
+    enum CodexInk {
+        static let primary = AuroraInk.primary
+        static let secondary = AuroraInk.secondary
+        static let faint = AuroraInk.faint
+        static let track = AuroraInk.faint.opacity(WidgetDesignToken.codexTrackOpacity)
+    }
+
+    enum CodexQuota {
+        static let cautionUsedAbove: Double = 50
+        static let criticalUsedAbove: Double = 90
+
+        static func tier(forUsedPercent percent: Double) -> Aurora.Tier {
+            if percent > criticalUsedAbove { return Aurora.critical }
+            if percent > cautionUsedAbove { return Aurora.caution }
+            return Aurora.healthy
+        }
+    }
+
+    enum DataStatus {
+        static let fresh = Color(hex: "#63f58c")
+        static let stale = Color(hex: "#8f9094")
+        static let unavailable = Color(hex: "#ff7653")
     }
 }
 
@@ -358,12 +471,12 @@ enum RelativeResetFormatter {
         let minutes = Int((interval.truncatingRemainder(dividingBy: 3600)) / 60)
         if hours >= 24 {
             let days = hours / 24
-            return "resets in \(days)d"
+            return "\(days)d left"
         }
         if hours >= 1 {
-            return "resets in \(hours)h \(minutes)m"
+            return "\(hours)h \(minutes)m left"
         }
-        return "resets in \(minutes)m"
+        return "\(minutes)m left"
     }
 }
 

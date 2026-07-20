@@ -63,6 +63,7 @@ actor ProviderManager {
     /// Access via updateCache/getCache methods for thread safety
     private var cachedResults: [ProviderIdentifier: ProviderResult] = [:]
     private var lastNetworkFetchAt: [ProviderIdentifier: Date] = [:]
+    private var lastSuccessfulFetchAt: [ProviderIdentifier: Date] = [:]
     private var lastProviderErrors: [ProviderIdentifier: String] = [:]
     private var inFlightFetches: [ProviderIdentifier: InFlightProviderFetch] = [:]
 
@@ -91,21 +92,7 @@ actor ProviderManager {
     }
 
     private nonisolated func debugLog(_ message: String) {
-        #if DEBUG
-        let msg = "[\(Date())] ProviderManager: \(message)\n"
-        if let data = msg.data(using: .utf8) {
-            let path = "/tmp/provider_debug.log"
-            if FileManager.default.fileExists(atPath: path) {
-                if let handle = FileHandle(forWritingAtPath: path) {
-                    handle.seekToEndOfFile()
-                    handle.write(data)
-                    handle.closeFile()
-                }
-            } else {
-                try? data.write(to: URL(fileURLWithPath: path))
-            }
-        }
-        #endif
+        DiagnosticsLogger.shared.log(message, category: "ProviderManager")
     }
 
     // MARK: - Public API
@@ -222,6 +209,12 @@ actor ProviderManager {
         return providers
     }
 
+    /// Returns the completion time of the latest real successful provider fetch.
+    /// Throttled cache reads never advance these timestamps.
+    func getLastSuccessfulFetchAt() -> [ProviderIdentifier: Date] {
+        lastSuccessfulFetchAt
+    }
+
     /// Gets a specific provider by identifier
     /// - Parameter identifier: The provider identifier to find
     /// - Returns: The provider instance, or nil if not found
@@ -280,6 +273,9 @@ actor ProviderManager {
         do {
             let result = try await inFlight.task.value
             cachedResults[identifier] = result
+            if inFlightFetches[identifier]?.token == inFlight.token {
+                lastSuccessfulFetchAt[identifier] = Date()
+            }
             lastProviderErrors[identifier] = nil
             clearInFlightFetch(identifier: identifier, token: inFlight.token)
 
@@ -344,6 +340,12 @@ actor ProviderManager {
         }
 
         if let cached {
+            if let lastErrorMessage {
+                return ThrottledFetchOutcome(
+                    result: cached,
+                    errorMessage: "\(lastErrorMessage) Retrying in \(formatCooldownDuration(remaining))."
+                )
+            }
             return ThrottledFetchOutcome(result: cached, errorMessage: nil)
         }
 

@@ -49,6 +49,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
     // `applicationDidFinishLaunching`; ticks alongside the 5s refresh loop.
     private var widgetCoordinator: WidgetSnapshotCoordinator?
 
+    /// A widget URL can arrive while the app is still constructing its menu
+    /// controller. Keep one pending request and drain it after startup.
+    private var pendingWidgetRefreshRequest = false
+
     // Loopback snapshot server: lets the widget extension read the latest
     // snapshot over HTTP (127.0.0.1 only) instead of a coordinated file read.
     // Started in `startRefreshActor`; failure is non-fatal — the widget
@@ -147,15 +151,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
 
     /// Read `statusItem` from an `NSStatusBarWindow` via Swift reflection,
     /// avoiding the KVC `valueForKey:` path that can raise NSException on
-    /// macOS 26.x when the private ivar is absent. If Mirror also fails to
-    /// find the ivar (e.g., the replicant window on a secondary display
-    /// has a differently-named ivar), fall back to KVC and tolerate nil.
+    /// macOS 26.x when the private ivar is absent. A window whose internals
+    /// are not reflectable is skipped; the supported bridge remains the
+    /// primary attachment path.
     @MainActor
     func _safeStatusItem(from window: NSWindow) -> NSStatusItem? {
         if let viaMirror = Mirror(reflecting: window).descendant("statusItem") as? NSStatusItem {
             return viaMirror
         }
-        return window.value(forKey: "statusItem") as? NSStatusItem
+        return nil
     }
 
     /// Observability: log `controller.statusItem.button.image` setter calls
@@ -211,29 +215,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
                 lines.append("🔍   win[\(i)] screen=\(screenName) frame=(x=\(frame.origin.x),y=\(frame.origin.y),w=\(frame.width),h=\(frame.height)) - no item (Mirror.descendant and KVC both returned nil)")
             }
         }
-        // File mirror — logger.info is unreadable in macOS 26.5 via `log show`.
-        Self.writeObservability(lines: lines, tag: tag)
+        DiagnosticsLogger.shared.log(lines.joined(separator: "\n"), category: "StatusBar.\(tag)")
     }
 
-    /// Standalone file writer for observability — survives the lifetime of the
-    /// debug session independent of `logger.info` (unreadable on macOS 26.5).
-    nonisolated static func writeObservability(lines: [String], tag: String) {
-        let path = "/tmp/tk_observ.log"
-        let text = lines.joined(separator: "\n") + "\n"
-        if FileManager.default.fileExists(atPath: path) {
-            if let handle = try? FileHandle(forWritingTo: URL(fileURLWithPath: path)) {
-                try? handle.seekToEnd()
-                try? handle.write(contentsOf: Data(text.utf8))
-                try? handle.close()
-            }
-        } else {
-            try? text.write(toFile: path, atomically: true, encoding: .utf8)
-        }
-    }
-
-    /// Convenience: one-line log; also goes to os.log via logger.info.
+    /// Convenience: one-line, sanitized diagnostic plus structured system log.
     nonisolated static func observ(_ msg: String) {
-        Self.writeObservability(lines: [msg], tag: "log")
+        DiagnosticsLogger.shared.log(msg, category: "AppDelegate")
         Logger(subsystem: "com.opencodeproviders", category: "AppDelegate").info("\(msg, privacy: .public)")
     }
 
@@ -271,6 +258,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
 
         configureAutomaticUpdates()
         statusBarController = StatusBarController(options: .production)
+        statusBarController.onProviderRefreshCompleted = { [weak self] in
+            self?.widgetCoordinator?.primeAndWrite()
+        }
         closeAllWindows()
 
         // Drain the bridge queue if the bridge callback already fired
@@ -325,6 +315,26 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         // controller + status item are wired so the first snapshot can render
         // into the existing menu immediately.
         startRefreshActor()
+        drainPendingWidgetRefreshRequest()
+    }
+
+    @MainActor
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard urls.contains(where: Self.isWidgetRefreshURL) else { return }
+        pendingWidgetRefreshRequest = true
+        drainPendingWidgetRefreshRequest()
+    }
+
+    static func isWidgetRefreshURL(_ url: URL) -> Bool {
+        url.scheme?.lowercased() == "tokenking" && url.host?.lowercased() == "refresh"
+    }
+
+    @MainActor
+    private func drainPendingWidgetRefreshRequest() {
+        guard pendingWidgetRefreshRequest, let statusBarController else { return }
+        pendingWidgetRefreshRequest = false
+        logger.notice("Widget requested an immediate provider refresh")
+        statusBarController.triggerRefresh()
     }
 
     @MainActor
@@ -440,8 +450,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
     /// We poll for up to ~15.8s (cumulative) at increasing intervals. At
     /// each tick we check whether the bridge already fired; if so, stop. If
     /// not, we scan `NSApp.windows` for an `NSStatusBarWindow` and pull the
-    /// `statusItem` ivar out via `Mirror` (KVC `value(forKey: "statusItem")`
-    /// crashes on macOS 26.5) and feed it to `attachStatusItem(_:)`.
+    /// `statusItem` ivar out via best-effort Swift reflection, then feed it
+    /// to `attachStatusItem(_:)`.
     ///
     /// Idempotent: if the bridge eventually fires too, attachStatusItem is
     /// called again with the same item and the controller just re-resolves.
@@ -461,9 +471,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
                 logger.info("🌉 [Bridge] retry +\(delay)s: NSApp.windows has \(barWindows.count) NSStatusBarWindow(s) to consider")
                 for window in barWindows {
                     let viaMirror = Mirror(reflecting: window).descendant("statusItem") as? NSStatusItem
-                    let viaKVC = window.value(forKey: "statusItem") as? NSStatusItem
-                    if let item = viaMirror ?? viaKVC {
-                        logger.info("🌉 [Bridge] retry +\(delay)s: bridge didn't fire, attaching manually (mirror=\(viaMirror != nil) kvc=\(viaKVC != nil))")
+                    if let item = viaMirror {
+                        logger.info("🌉 [Bridge] retry +\(delay)s: bridge didn't fire, attaching manually via reflection")
                         self.attachStatusItem(item)
                         return
                     }

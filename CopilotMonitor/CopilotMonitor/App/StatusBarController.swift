@@ -180,6 +180,10 @@ final class StatusBarController: NSObject {
     private var lastFetchTime: Date?
     var isFetching = false
 
+    /// Called after a provider refresh finishes so the app can publish the
+    /// result to WidgetKit immediately instead of waiting for the writer tick.
+    var onProviderRefreshCompleted: (() -> Void)?
+
     // History fetch properties
     private var historyFetchTimer: Timer?
     private var customerId: String?
@@ -194,6 +198,7 @@ final class StatusBarController: NSObject {
     var enabledProvidersMenu: NSMenu!
     var currencyMenu: NSMenu?
     var lastProviderErrors: [ProviderIdentifier: String] = [:]
+    var providerLastSuccessfulFetchAt: [ProviderIdentifier: Date] = [:]
     var viewErrorDetailsItem: NSMenuItem!
     private var orphanedSubscriptionKeys: [String] = []
     private var orphanedSubscriptionTotal: Double = 0
@@ -1012,6 +1017,7 @@ final class StatusBarController: NSObject {
     // MARK: - Multi-Provider Fetch
 
      private func fetchMultiProviderData() async {
+           defer { onProviderRefreshCompleted?() }
            debugLog("🔵 fetchMultiProviderData: started")
            logger.info("🔵 [StatusBarController] fetchMultiProviderData() started")
            
@@ -1037,6 +1043,7 @@ final class StatusBarController: NSObject {
            logger.info("🟡 [StatusBarController] fetchMultiProviderData: Calling ProviderManager.fetchAll()")
            debugLog("🟡 fetchMultiProviderData: calling ProviderManager.fetchAll()")
            let fetchResult = await ProviderManager.shared.fetchAll()
+           let lastSuccessfulFetchAt = await ProviderManager.shared.getLastSuccessfulFetchAt()
            debugLog("🟢 fetchMultiProviderData: fetchAll returned \(fetchResult.results.count) results, \(fetchResult.errors.count) errors")
            logger.info("🟢 [StatusBarController] fetchMultiProviderData: fetchAll() returned \(fetchResult.results.count) results, \(fetchResult.errors.count) errors")
 
@@ -1072,7 +1079,11 @@ final class StatusBarController: NSObject {
             let filteredErrors = fetchResult.errors.filter { identifier, _ in
                 isProviderEnabled(identifier)
             }
+            let filteredSuccessfulFetchAt = lastSuccessfulFetchAt.filter { identifier, _ in
+                isProviderEnabled(identifier)
+            }
             self.lastProviderErrors = filteredErrors
+            self.providerLastSuccessfulFetchAt = filteredSuccessfulFetchAt
 
            for identifier in filteredResults.keys {
                loadingProviders.remove(identifier)
@@ -2312,8 +2323,8 @@ final class StatusBarController: NSObject {
          let duplicateGroups = SubscriptionSettingsManager.shared.findLikelyDuplicateSubscriptionGroups()
          if !duplicateGroups.isEmpty {
              // B44-followup observability: log the detection + per-key label
-             // breakdown so the user/dev can verify the menu state from
-             // `cat /tmp/provider_debug.log` without clicking through.
+             // breakdown so the user/dev can verify the menu state through
+             // the opt-in sanitized diagnostics without clicking through.
              debugLog("[B44-followup] duplicate detection: \(duplicateGroups.count) group(s)")
              for (i, group) in duplicateGroups.enumerated() {
                  for key in group {
@@ -5096,6 +5107,7 @@ extension StatusBarController {
         // Clear any loading states
         loadingProviders.removeAll()
         lastProviderErrors.removeAll()
+        providerLastSuccessfulFetchAt.removeAll()
         
         debugLog("[🎬 DemoMode] Demo data loaded: \(providerResults.count) providers")
         

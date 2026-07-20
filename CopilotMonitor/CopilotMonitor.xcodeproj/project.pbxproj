@@ -248,12 +248,17 @@
 		VOLCANOTYPESCLI11111111111 /* VolcanoArkTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = VOLCANOTYPESFILE2222222222 /* VolcanoArkTypes.swift */; };
 		WIDGETAST0000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A66666666666666666666666 /* Assets.xcassets */; };
 		WIDGETCOORDBF000000000001 /* WidgetSnapshotCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETCOORDFR000000000001 /* WidgetSnapshotCoordinator.swift */; };
+		CODEXQUOTAVIEWBF000000001 /* CodexQuotaCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CODEXQUOTAVIEWFR000000001 /* CodexQuotaCardView.swift */; };
+		CODEXACCOUNTENTBF000000001 /* CodexAccountEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CODEXACCOUNTENTFR000000001 /* CodexAccountEntity.swift */; };
+		CODEXACCOUNTINTBF000000001 /* CodexAccountSelectionIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CODEXACCOUNTINTFR000000001 /* CodexAccountSelectionIntent.swift */; };
 		WIDGETDTKBF0000000000001 /* WidgetDesignToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */; };
 		WIDGETEMB000000000000000 /* TokenKingWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = WIDGETAEX000000000000000 /* TokenKingWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		WIDGETFNB000000000000000 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = WIDGETFNF000000000000000 /* Foundation.framework */; };
 		WIDGETMAINBF0000000000001 /* TokenKingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETMAINFR0000000000001 /* TokenKingWidget.swift */; };
 		WIDGETMAPBF00000000000001 /* WidgetSnapshotMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETMAPFR00000000000001 /* WidgetSnapshotMapper.swift */; };
 		WIDGETMAPTSTBF00000000001 /* WidgetSnapshotMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETMAPTSTFR0000000001 /* WidgetSnapshotMapperTests.swift */; };
+		CODEXWIDGETBLDBF000000001 /* CodexWidgetSnapshotBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CODEXWIDGETBLDFR000000001 /* CodexWidgetSnapshotBuilder.swift */; };
+		CODEXWIDGETTSTBF000000001 /* CodexWidgetSnapshotBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CODEXWIDGETTSTFR000000001 /* CodexWidgetSnapshotBuilderTests.swift */; };
 		WIDGETPEB0000000000000001 /* ProviderEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETPEF0000000000000001 /* ProviderEntity.swift */; };
 		WIDGETPSB0000000000000001 /* ProviderSelectionIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETPSF0000000000000001 /* ProviderSelectionIntent.swift */; };
 		WIDGETSNAPBF0000000000001 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETSNAPFR0000000000001 /* WidgetSnapshot.swift */; };
@@ -535,6 +540,9 @@
 		VOLCANOTYPESFILE2222222222 /* VolcanoArkTypes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VolcanoArkTypes.swift; sourceTree = "<group>"; };
 		WIDGETAEX000000000000000 /* TokenKingWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TokenKingWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		WIDGETCOORDFR000000000001 /* WidgetSnapshotCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotCoordinator.swift; sourceTree = "<group>"; };
+		CODEXQUOTAVIEWFR000000001 /* CodexQuotaCardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CodexQuotaCardView.swift; sourceTree = "<group>"; };
+		CODEXACCOUNTENTFR000000001 /* CodexAccountEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Intent/CodexAccountEntity.swift; sourceTree = "<group>"; };
+		CODEXACCOUNTINTFR000000001 /* CodexAccountSelectionIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Intent/CodexAccountSelectionIntent.swift; sourceTree = "<group>"; };
 		WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetDesignToken.swift; sourceTree = "<group>"; };
 		WIDGETENT000000000000000 /* TokenKingWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TokenKingWidget/TokenKingWidget.entitlements; sourceTree = "<group>"; };
 		WIDGETFNF000000000000000 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
@@ -542,6 +550,8 @@
 		WIDGETMAINFR0000000000001 /* TokenKingWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokenKingWidget.swift; sourceTree = "<group>"; };
 		WIDGETMAPFR00000000000001 /* WidgetSnapshotMapper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotMapper.swift; sourceTree = "<group>"; };
 		WIDGETMAPTSTFR0000000001 /* WidgetSnapshotMapperTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotMapperTests.swift; sourceTree = "<group>"; };
+		CODEXWIDGETBLDFR000000001 /* CodexWidgetSnapshotBuilder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CodexWidgetSnapshotBuilder.swift; sourceTree = "<group>"; };
+		CODEXWIDGETTSTFR000000001 /* CodexWidgetSnapshotBuilderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CodexWidgetSnapshotBuilderTests.swift; sourceTree = "<group>"; };
 		WIDGETPEF0000000000000001 /* ProviderEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Intent/ProviderEntity.swift; sourceTree = "<group>"; };
 		WIDGETPSF0000000000000001 /* ProviderSelectionIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Intent/ProviderSelectionIntent.swift; sourceTree = "<group>"; };
 		WIDGETSNAPFR0000000000001 /* WidgetSnapshot.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
@@ -796,6 +806,7 @@
 				CF11AA22BB33CC44DD55EE02 /* CurrencyFormatter.swift */,
 				DLG000000000000000000002 /* DiagnosticsLogger.swift */,
 				DSN000000000000000000002 /* DiagnosticsSanitizer.swift */,
+				CODEXWIDGETBLDFR000000001 /* CodexWidgetSnapshotBuilder.swift */,
 				WIDGETMAPFR00000000000001 /* WidgetSnapshotMapper.swift */,
 				WIDGETWRITERFR000000000001 /* WidgetSnapshotWriter.swift */,
 				WIDGETCOORDFR000000000001 /* WidgetSnapshotCoordinator.swift */,
@@ -1012,8 +1023,11 @@
 				WIDGETINP000000000000000 /* Info.plist */,
 				WIDGETENT000000000000000 /* TokenKingWidget.entitlements */,
 				WIDGETMAINFR0000000000001 /* TokenKingWidget.swift */,
+				CODEXQUOTAVIEWFR000000001 /* CodexQuotaCardView.swift */,
 				WIDGETVWFR0000000000001 /* TokenKingWidgetView.swift */,
 				WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */,
+				CODEXACCOUNTENTFR000000001 /* CodexAccountEntity.swift */,
+				CODEXACCOUNTINTFR000000001 /* CodexAccountSelectionIntent.swift */,
 				WIDGETPEF0000000000000001 /* ProviderEntity.swift */,
 				WIDGETPSF0000000000000001 /* ProviderSelectionIntent.swift */,
 				WIDGETAEX000000000000000 /* TokenKingWidget.appex */,
@@ -1044,6 +1058,7 @@
 		WIDGETSVCSTSTGP00000001 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				CODEXWIDGETTSTFR000000001 /* CodexWidgetSnapshotBuilderTests.swift */,
 				WIDGETWRITERTFR0000000000 /* WidgetSnapshotWriterTests.swift */,
 			);
 			path = Services;
@@ -1315,6 +1330,7 @@
 				APPLAUNCHMODEAPPBF111111 /* AppLaunchMode.swift in Sources */,
 				PROVCREDAPP111111111111 /* ProviderCredentialProviding.swift in Sources */,
 				283348F92F313096004DADE1 /* ProviderResult.swift in Sources */,
+				CODEXWIDGETBLDBF000000001 /* CodexWidgetSnapshotBuilder.swift in Sources */,
 				WIDGETMAPBF00000000000001 /* WidgetSnapshotMapper.swift in Sources */,
 				WIDGETWRITERBF000000000001 /* WidgetSnapshotWriter.swift in Sources */,
 				WIDGETCOORDBF000000000001 /* WidgetSnapshotCoordinator.swift in Sources */,
@@ -1545,6 +1561,7 @@
 				01F3CEDD4DF8427C9D85D492 /* ClaudeProviderTests.swift in Sources */,
 				6E7602C0A30D407C805EEB62 /* SubscriptionSettingsManagerTests.swift in Sources */,
 				36DF35D8A8344F6BAE3A1E24 /* ZaiCodingPlanProviderTests.swift in Sources */,
+				CODEXWIDGETTSTBF000000001 /* CodexWidgetSnapshotBuilderTests.swift in Sources */,
 				WIDGETMAPTSTBF00000000001 /* WidgetSnapshotMapperTests.swift in Sources */,
 				WIDGETWRITERTBF0000000000 /* WidgetSnapshotWriterTests.swift in Sources */,
 				B2E1A0D737779A8704AD8A22 /* WidgetSnapshotReaderTests.swift in Sources */,
@@ -1559,8 +1576,11 @@
 				WIDGETWSB000000000000000 /* WidgetSnapshot.swift in Sources */,
 				WIDGETWLB000000000000000 /* WidgetLogger.swift in Sources */,
 				WIDGETMAINBF0000000000001 /* TokenKingWidget.swift in Sources */,
+				CODEXQUOTAVIEWBF000000001 /* CodexQuotaCardView.swift in Sources */,
 				WIDGETVWBF0000000000001 /* TokenKingWidgetView.swift in Sources */,
 				WIDGETDTKBF0000000000001 /* WidgetDesignToken.swift in Sources */,
+				CODEXACCOUNTENTBF000000001 /* CodexAccountEntity.swift in Sources */,
+				CODEXACCOUNTINTBF000000001 /* CodexAccountSelectionIntent.swift in Sources */,
 				WIDGETPEB0000000000000001 /* ProviderEntity.swift in Sources */,
 				WIDGETPSB0000000000000001 /* ProviderSelectionIntent.swift in Sources */,
 				FF0934BA268C8BA6EDD65A9D /* WidgetSnapshotReader.swift in Sources */,
@@ -1796,11 +1816,11 @@
 				CODE_SIGN_ENTITLEMENTS = CopilotMonitor/CopilotMonitor.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 8;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CopilotMonitor/Info.plist;
@@ -1825,7 +1845,7 @@
 				CODE_SIGN_ENTITLEMENTS = CopilotMonitor/CopilotMonitor.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 8;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = NO;
@@ -1943,7 +1963,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TokenKingWidget/TokenKingWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 8;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
@@ -1968,7 +1988,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TokenKingWidget/TokenKingWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 8;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;

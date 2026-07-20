@@ -6,6 +6,18 @@ import AppKit
 /// status-item icon attachment.
 @MainActor
 final class AppDelegateB39Tests: XCTestCase {
+    func testWidgetRefreshURLMatchesRegisteredRoute() throws {
+        let url = try XCTUnwrap(URL(string: "tokenking://refresh"))
+        XCTAssertTrue(AppDelegate.isWidgetRefreshURL(url))
+    }
+
+    func testWidgetRefreshURLRejectsOtherRoutes() throws {
+        let wrongHost = try XCTUnwrap(URL(string: "tokenking://settings"))
+        let wrongScheme = try XCTUnwrap(URL(string: "https://refresh"))
+        XCTAssertFalse(AppDelegate.isWidgetRefreshURL(wrongHost))
+        XCTAssertFalse(AppDelegate.isWidgetRefreshURL(wrongScheme))
+    }
+
     private var primaryItem: NSStatusItem?
     private var fakeWindow: NSWindow?
 

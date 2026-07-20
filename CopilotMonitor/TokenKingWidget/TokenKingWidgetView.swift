@@ -23,6 +23,8 @@ struct TokenKingWidgetView: View {
     @ViewBuilder
     private var innerContent: some View {
         switch entry.readStatus {
+        case .placeholder:
+            EmptyStateView(message: "Updating widget", detail: "Loading the latest data")
         case .noFile:
             EmptyStateView(message: "Open Token King to populate")
         case .corrupt:
@@ -36,7 +38,7 @@ struct TokenKingWidgetView: View {
             } else {
                 EmptyStateView(message: "Stale data unavailable")
             }
-        case .ok:
+        case .ready:
             if let snapshot = entry.snapshot {
                 content(for: snapshot, kind: entry.kind)
             } else {
@@ -76,16 +78,27 @@ struct EmptyStateView: View {
                 .font(.title2)
                 .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
             Text(message)
-                .font(.system(size: WidgetDesignToken.bodySize))
+                .font(.system(
+                    size: WidgetDesignToken.bodySize,
+                    weight: WidgetDesignToken.quotaTitleWeight,
+                    design: WidgetDesignToken.quotaFontDesign
+                ))
                 .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
                 .multilineTextAlignment(.center)
             if let detail = detail {
                 Text(detail)
-                    .font(.system(size: WidgetDesignToken.captionSize, design: .monospaced))
+                    .font(.system(
+                        size: WidgetDesignToken.captionSize,
+                        weight: WidgetDesignToken.quotaLabelWeight,
+                        design: WidgetDesignToken.quotaFontDesign
+                    ))
                     .foregroundStyle(WidgetDesignToken.AuroraInk.faint)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay(alignment: .topTrailing) {
+            WidgetRefreshButton()
+        }
     }
 }
 
@@ -105,37 +118,171 @@ struct StaleBadge: View {
 
 // MARK: - Small widget
 
+struct SmallProviderHeader: View {
+    let providerId: String
+    let title: String
+    let subtitle: String?
+    let statusColor: Color
+    let lastUpdatedAt: Date?
+
+    var body: some View {
+        HStack(alignment: .top, spacing: WidgetDesignToken.zeroSpacing) {
+            HStack(alignment: .top, spacing: WidgetDesignToken.smallProviderHeaderSpacing) {
+                SmallProviderMark(providerId: providerId)
+                VStack(alignment: .leading, spacing: WidgetDesignToken.smallProviderHeaderTextSpacing) {
+                    HStack(spacing: WidgetDesignToken.smallProviderTitleStatusSpacing) {
+                        Text(title)
+                            .font(.system(
+                                size: WidgetDesignToken.smallProviderTitleSize,
+                                weight: WidgetDesignToken.smallProviderTitleWeight,
+                                design: WidgetDesignToken.quotaFontDesign
+                            ))
+                            .tracking(WidgetDesignToken.smallProviderTitleTracking)
+                            .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                            .lineLimit(WidgetDesignToken.singleLine)
+                            .minimumScaleFactor(WidgetDesignToken.smallProviderTitleMinimumScale)
+                            .allowsTightening(true)
+                            .layoutPriority(1)
+                        StatusDot(
+                            color: statusColor,
+                            size: WidgetDesignToken.smallProviderStatusDotSize,
+                            glowRadius: WidgetDesignToken.smallProviderStatusGlowRadius
+                        )
+                    }
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.system(
+                                size: WidgetDesignToken.smallProviderSubtitleSize,
+                                weight: WidgetDesignToken.quotaLabelWeight,
+                                design: WidgetDesignToken.quotaFontDesign
+                            ))
+                            .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
+                            .lineLimit(WidgetDesignToken.singleLine)
+                    }
+                }
+            }
+            .layoutPriority(1)
+            Spacer(minLength: WidgetDesignToken.zeroLength)
+            WidgetHeaderActions(lastUpdatedAt: lastUpdatedAt)
+                .fixedSize(horizontal: true, vertical: false)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct SmallProviderMark: View {
+    let providerId: String
+
+    private var iconSize: CGFloat {
+        providerId == WidgetDesignToken.ProviderID.codex
+            ? WidgetDesignToken.smallCodexMarkIconSize
+            : WidgetDesignToken.smallProviderMarkIconSize
+    }
+
+    var body: some View {
+        ProviderIconView(
+            providerId: providerId,
+            size: iconSize,
+            fallbackTint: WidgetDesignToken.AuroraInk.primary
+        )
+        .widgetAccentable()
+        .frame(
+            width: WidgetDesignToken.smallProviderMarkWidth,
+            height: WidgetDesignToken.smallProviderMarkHeight
+        )
+    }
+}
+
+struct SmallQuotaBody: View {
+    let windowLabel: String
+    let usedPercent: Double
+    let resetsAt: Date?
+
+    private var remaining: Double {
+        max(
+            WidgetDesignToken.zeroDouble,
+            min(WidgetDesignToken.percentMax, WidgetDesignToken.percentMax - usedPercent)
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: WidgetDesignToken.zeroSpacing) {
+            RemainingQuotaMetric(
+                remaining: remaining,
+                numberSize: WidgetDesignToken.smallHeroNumberSize,
+                suffixSize: WidgetDesignToken.smallHeroSuffixSize,
+                tracking: WidgetDesignToken.smallHeroTracking,
+                suffixLift: WidgetDesignToken.smallHeroSuffixLift
+            )
+            .frame(
+                height: WidgetDesignToken.smallHeroNumberSize * WidgetDesignToken.quotaHeroBoxFactor,
+                alignment: .bottom
+            )
+
+            CapsuleProgressBar(
+                value: remaining,
+                colorValue: usedPercent,
+                height: WidgetDesignToken.smallProgressHeight,
+                glow: true
+            )
+            .padding(.top, WidgetDesignToken.smallHeroToBarSpacing)
+
+            SmallQuotaMetadata(windowLabel: windowLabel, resetsAt: resetsAt)
+                .padding(.top, WidgetDesignToken.smallBarToResetSpacing)
+        }
+        .padding(.top, WidgetDesignToken.smallHeaderToHeroSpacing)
+    }
+}
+
+struct SmallQuotaMetadata: View {
+    let windowLabel: String
+    let resetsAt: Date?
+
+    var body: some View {
+        HStack(spacing: WidgetDesignToken.smallMetadataSpacing) {
+            Text(windowLabel)
+                .fontWeight(WidgetDesignToken.quotaLabelWeight)
+            Text("·")
+                .accessibilityHidden(true)
+            Text(resetsAt == nil ? "Reset unknown" : RelativeResetFormatter.string(from: resetsAt))
+        }
+        .font(.system(
+            size: WidgetDesignToken.smallResetSize,
+            weight: WidgetDesignToken.smallMetadataWeight,
+            design: WidgetDesignToken.quotaFontDesign
+        ))
+        .foregroundStyle(
+            WidgetDesignToken.AuroraInk.secondary.opacity(WidgetDesignToken.smallResetOpacity)
+        )
+        .lineLimit(WidgetDesignToken.singleLine)
+        .minimumScaleFactor(WidgetDesignToken.smallMetadataMinimumScale)
+        .allowsTightening(true)
+        .accessibilityElement(children: .combine)
+    }
+}
+
 struct SmallWidgetView: View {
     @Environment(\.colorScheme) private var scheme
     let snapshot: WidgetSnapshot
     let selectedProviderId: String?
 
     private var provider: ProviderSnapshot? {
-        selectedProvider(snapshot: snapshot, selectedProviderId: selectedProviderId)
-            ?? topProvider(snapshot: snapshot)
+        resolvedProvider(snapshot: snapshot, selectedProviderId: selectedProviderId)
     }
 
     var body: some View {
         if let provider = provider {
-            // quota-float QuotaCard, mini (reference: quota-states.png):
-            // eyebrow + status dot → "5-hour remaining" descriptor → big
-            // remaining-% number → glowing tier progress bar → reset-time.
-            // The milky card + aurora + border live in containerBackground, so
-            // vibrant/accented stays system-rendered with no gating needed here.
-            VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
-                // Eyebrow row: NAME (wide-tracked) + glowing status dot, top-right
-                HStack(spacing: WidgetDesignToken.smallGap) {
-                    Text(provider.displayName.uppercased())
-                        .font(.system(size: WidgetDesignToken.miniEyebrowSize, weight: WidgetDesignToken.eyebrowWeight))
-                        .tracking(WidgetDesignToken.miniEyebrowTracking)
-                        .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
-                        .lineLimit(WidgetDesignToken.singleLine)
-                        .minimumScaleFactor(WidgetDesignToken.eyebrowMinimumScale)
-                    Spacer(minLength: WidgetDesignToken.zeroLength)
-                    StatusDot(color: statusColor(for: provider))
-                }
-
-                if provider.kind == .usage, let spend = provider.spendUSD {
+            if provider.widgetDataStatus == .unavailable {
+                ProviderUnavailableStateView(providerName: provider.displayName)
+            } else if provider.kind == .usage, let spend = provider.spendUSD {
+                VStack(alignment: .leading, spacing: WidgetDesignToken.zeroSpacing) {
+                    SmallProviderHeader(
+                        providerId: provider.id,
+                        title: provider.compactDisplayName ?? provider.displayName,
+                        subtitle: "Usage",
+                        statusColor: statusColor(for: provider),
+                        lastUpdatedAt: provider.fetchedAt
+                    )
                     Spacer(minLength: WidgetDesignToken.zeroLength)
                     HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.orbCopySuffixSpacing) {
                         Text(USDFormatter.string(from: spend))
@@ -143,42 +290,42 @@ struct SmallWidgetView: View {
                             .monospacedDigit()
                             .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                         Text("spent")
-                            .font(.system(size: WidgetDesignToken.miniDescriptorSize))
+                            .font(.system(
+                                size: WidgetDesignToken.miniDescriptorSize,
+                                weight: WidgetDesignToken.quotaLabelWeight,
+                                design: WidgetDesignToken.quotaFontDesign
+                            ))
                             .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
                     }
                     Spacer(minLength: WidgetDesignToken.zeroLength)
-                } else if let window = shortWindow(of: provider) {
-                    // quota-float's updated line describes the short window
-                    Text(window.id == "5h" ? "5-hour remaining" : "\(window.label) remaining")
-                        .font(.system(size: WidgetDesignToken.miniDescriptorSize))
-                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
-
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            } else if let window = primaryWindow(of: provider) {
+                VStack(alignment: .leading, spacing: WidgetDesignToken.zeroSpacing) {
+                    SmallProviderHeader(
+                        providerId: provider.id,
+                        title: provider.compactDisplayName ?? provider.displayName,
+                        subtitle: nil,
+                        statusColor: statusColor(for: provider),
+                        lastUpdatedAt: provider.fetchedAt
+                    )
+                    SmallQuotaBody(
+                        windowLabel: window.label,
+                        usedPercent: window.usedPercent,
+                        resetsAt: window.resetsAt
+                    )
                     Spacer(minLength: WidgetDesignToken.zeroLength)
-
-                    let remaining = max(WidgetDesignToken.zeroDouble,
-                                        min(WidgetDesignToken.percentMax,
-                                            WidgetDesignToken.percentMax - window.usedPercent))
-                    // 64px/500 hero on the 320px card → 45px on systemSmall
-                    HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.orbCopySuffixSpacing) {
-                        Text("\(Int(remaining.rounded()))")
-                            .font(.system(size: WidgetDesignToken.orbCopyNumberSize, weight: WidgetDesignToken.percentHeroWeight))
-                            .monospacedDigit()
-                            .tracking(WidgetDesignToken.orbCopyTracking)
-                            .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
-                        Text("%")
-                            .font(.system(size: WidgetDesignToken.orbCopySuffixSize, weight: WidgetDesignToken.orbSuffixWeight))
-                            .baselineOffset(WidgetDesignToken.orbCopySuffixLift)
-                            .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
-                    }
-                    .padding(.bottom, WidgetDesignToken.miniBarTopMargin)
-                    // Width = remaining, tier gradient colours = used (critical
-                    // stays orange-red even on a short bar) + outer glow.
-                    CapsuleProgressBar(value: remaining, colorValue: window.usedPercent,
-                                       height: WidgetDesignToken.barHeight, glow: true)
-                    Text(window.resetsAt == nil ? "Reset unknown" : RelativeResetFormatter.string(from: window.resetsAt))
-                        .font(.system(size: WidgetDesignToken.miniResetSize))
-                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary.opacity(WidgetDesignToken.resetTimeOpacity))
-                } else {
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            } else {
+                VStack(alignment: .leading, spacing: WidgetDesignToken.zeroSpacing) {
+                    SmallProviderHeader(
+                        providerId: provider.id,
+                        title: provider.compactDisplayName ?? provider.displayName,
+                        subtitle: nil,
+                        statusColor: statusColor(for: provider),
+                        lastUpdatedAt: provider.fetchedAt
+                    )
                     Spacer(minLength: WidgetDesignToken.zeroLength)
                     HStack(spacing: WidgetDesignToken.zeroSpacing) {
                         Spacer(minLength: WidgetDesignToken.zeroLength)
@@ -188,15 +335,18 @@ struct SmallWidgetView: View {
                     }
                     Spacer(minLength: WidgetDesignToken.zeroLength)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            EmptyStateView(message: "No providers")
+            missingProviderView(selectedProviderId: selectedProviderId)
         }
     }
 
     private func statusColor(for provider: ProviderSnapshot) -> Color {
-        if let window = shortWindow(of: provider) {
+        if provider.widgetDataStatus == .stale {
+            return WidgetDesignToken.DataStatus.stale
+        }
+        if let window = primaryWindow(of: provider) {
             return window.usedPercent.severityColor(scheme)
         }
         return WidgetDesignToken.healthyColor
@@ -208,25 +358,46 @@ func selectedProvider(snapshot: WidgetSnapshot, selectedProviderId: String?) -> 
     return snapshot.providers.first { $0.id == id }
 }
 
-// MARK: - Ring gauge
+/// A configured provider never falls back to a different provider. `nil` is
+/// the intentional zero-configuration mode and selects the current priority
+/// provider instead.
+func resolvedProvider(snapshot: WidgetSnapshot, selectedProviderId: String?) -> ProviderSnapshot? {
+    if selectedProviderId != nil {
+        return selectedProvider(snapshot: snapshot, selectedProviderId: selectedProviderId)
+    }
+    return topProvider(snapshot: snapshot)
+}
 
-struct RingGauge<Content: View>: View {
-    @Environment(\.colorScheme) private var scheme
-    let percent: Double
-    let content: () -> Content
+extension ProviderSnapshot {
+    var widgetDataStatus: WidgetDataStatus {
+        status ?? .available
+    }
+}
+
+struct ProviderUnavailableStateView: View {
+    let providerName: String
 
     var body: some View {
-        ZStack {
-            Circle()
-                .stroke(WidgetDesignToken.AuroraInk.faint.opacity(WidgetDesignToken.trackOpacity), lineWidth: WidgetDesignToken.orbRingStroke)
-            Circle()
-                .trim(from: WidgetDesignToken.ringStart, to: min(percent, WidgetDesignToken.percentMax) / WidgetDesignToken.percentMax)
-                .stroke(percent.severityColor(scheme), style: StrokeStyle(lineWidth: WidgetDesignToken.orbRingStroke, lineCap: .round))
-                .rotationEffect(.degrees(WidgetDesignToken.ringRotation))
-            content()
-        }
-        .frame(width: WidgetDesignToken.orbRingDiameter, height: WidgetDesignToken.orbRingDiameter)
+        EmptyStateView(message: "Provider unavailable", detail: providerName)
     }
+}
+
+@ViewBuilder
+func missingProviderView(selectedProviderId: String?) -> some View {
+    if let selectedProviderId {
+        ProviderUnavailableStateView(providerName: fallbackProviderName(for: selectedProviderId))
+    } else {
+        EmptyStateView(message: "No providers")
+    }
+}
+
+func fallbackProviderName(for providerId: String) -> String {
+    if providerId == WidgetDesignToken.ProviderID.codex {
+        return "ChatGPT"
+    }
+    return providerId
+        .replacingOccurrences(of: "_", with: " ")
+        .capitalized
 }
 
 // MARK: - Medium overview widget
@@ -240,7 +411,7 @@ struct MediumOverviewView: View {
 
         VStack(alignment: .leading, spacing: WidgetDesignToken.rowGap) {
             ForEach(visible, id: \.id) { provider in
-                MediumProviderCard(provider: provider, fetchedAt: provider.fetchedAt ?? Date())
+                MediumProviderCard(provider: provider)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -255,14 +426,19 @@ struct MediumDetailView: View {
     let selectedProviderId: String?
 
     var body: some View {
-        let provider = selectedProvider(snapshot: snapshot, selectedProviderId: selectedProviderId)
-            ?? topProvider(snapshot: snapshot)
+        let provider = resolvedProvider(snapshot: snapshot, selectedProviderId: selectedProviderId)
 
         if let provider = provider {
-            MediumProviderCard(provider: provider, fetchedAt: provider.fetchedAt ?? Date())
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            Group {
+                if provider.widgetDataStatus == .unavailable {
+                    ProviderUnavailableStateView(providerName: provider.displayName)
+                } else {
+                    MediumProviderCard(provider: provider)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         } else {
-            EmptyStateView(message: "No providers")
+            missingProviderView(selectedProviderId: selectedProviderId)
         }
     }
 }
@@ -270,30 +446,25 @@ struct MediumDetailView: View {
 struct MediumProviderCard: View {
     @Environment(\.colorScheme) private var scheme
     let provider: ProviderSnapshot
-    let fetchedAt: Date
 
     private var statusColor: Color {
-        if let window = shortWindow(of: provider) {
+        if provider.widgetDataStatus == .stale {
+            return WidgetDesignToken.DataStatus.stale
+        }
+        if let window = primaryWindow(of: provider) {
             return window.usedPercent.severityColor(scheme)
         }
         return WidgetDesignToken.healthyColor
     }
 
-    private var fetchedAtString: String {
-        fetchedAt.formatted(
-            .dateTime
-            .hour(.twoDigits(amPM: .omitted))
-            .minute(.twoDigits)
-            .second(.twoDigits)
-        )
-    }
-
-    /// quota-float's weeklyWindow — the QuotaCard footer secondary metric.
-    private var secondaryWindow: UsageWindow? {
-        weeklyWindow(of: provider)
+    private var secondaryMetric: UsageWindow? {
+        secondaryWindow(of: provider)
     }
 
     var body: some View {
+        if provider.widgetDataStatus == .unavailable {
+            ProviderUnavailableStateView(providerName: provider.displayName)
+        } else {
         // quota-float QuotaCard (quota-states.png), compact for systemMedium:
         // eyebrow + "5-hour remaining" stacked left, glowing dot top-right →
         // hero remaining % → glowing tier bar → reset-time → weekly footer.
@@ -304,20 +475,28 @@ struct MediumProviderCard: View {
             // status dot pinned top-right.
             HStack(alignment: .top, spacing: WidgetDesignToken.smallGap) {
                 VStack(alignment: .leading, spacing: WidgetDesignToken.descriptorTopMargin) {
-                    Text(provider.displayName.uppercased())
-                        .font(.system(size: WidgetDesignToken.eyebrowSize, weight: WidgetDesignToken.eyebrowWeight))
-                        .tracking(WidgetDesignToken.eyebrowTracking)
+                    Text(provider.compactDisplayName ?? provider.displayName)
+                        .font(.system(
+                            size: WidgetDesignToken.providerTitleMediumSize,
+                            weight: WidgetDesignToken.quotaTitleWeight,
+                            design: WidgetDesignToken.quotaFontDesign
+                        ))
+                        .tracking(WidgetDesignToken.providerTitleTracking)
                         .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                         .lineLimit(WidgetDesignToken.singleLine)
                         .minimumScaleFactor(WidgetDesignToken.eyebrowMinimumScale)
-                    if let window = shortWindow(of: provider) {
-                        Text(window.id == "5h" ? "5-hour remaining" : "\(window.label) remaining")
-                            .font(.system(size: WidgetDesignToken.miniDescriptorSize))
+                    if let window = primaryWindow(of: provider) {
+                        Text(window.label)
+                            .font(.system(
+                                size: WidgetDesignToken.miniDescriptorSize,
+                                weight: WidgetDesignToken.quotaLabelWeight,
+                                design: WidgetDesignToken.quotaFontDesign
+                            ))
                             .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
                     }
                 }
                 Spacer(minLength: WidgetDesignToken.zeroLength)
-                StatusDot(color: statusColor)
+                WidgetHeaderActions(statusColor: statusColor, lastUpdatedAt: provider.fetchedAt)
             }
 
             // Body — flows straight down from the header like the reference
@@ -328,35 +507,51 @@ struct MediumProviderCard: View {
                         .font(.system(size: WidgetDesignToken.percentHeroMediumSize, weight: WidgetDesignToken.percentHeroWeight, design: .monospaced))
                         .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                     Text("spent")
-                        .font(.system(size: WidgetDesignToken.captionSize))
+                        .font(.system(
+                            size: WidgetDesignToken.captionSize,
+                            weight: WidgetDesignToken.quotaLabelWeight,
+                            design: WidgetDesignToken.quotaFontDesign
+                        ))
                         .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
                 }
-            } else if let window = shortWindow(of: provider) {
+            } else if let window = primaryWindow(of: provider) {
                 let remaining = max(WidgetDesignToken.zeroDouble,
                                     min(WidgetDesignToken.percentMax,
                                         WidgetDesignToken.percentMax - window.usedPercent))
-                VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
-                    HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.orbSuffixSpacing) {
-                        Text("\(Int(remaining.rounded()))")
-                            .font(.system(size: WidgetDesignToken.orbCopyNumberSize, weight: WidgetDesignToken.percentHeroWeight))
-                            .monospacedDigit()
-                            .tracking(WidgetDesignToken.mediumHeroTracking)
-                            .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
-                        Text("%")
-                            .font(.system(size: WidgetDesignToken.percentSuffixSize, weight: WidgetDesignToken.percentSuffixWeight))
-                            .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                HStack(alignment: .bottom, spacing: WidgetDesignToken.quotaMediumColumnSpacing) {
+                    VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
+                        RemainingQuotaMetric(
+                            remaining: remaining,
+                            numberSize: WidgetDesignToken.percentHeroMediumSize,
+                            suffixSize: WidgetDesignToken.percentSuffixSize,
+                            tracking: WidgetDesignToken.mediumHeroTracking
+                        )
+                        .frame(height: WidgetDesignToken.percentHeroMediumSize * WidgetDesignToken.quotaHeroBoxFactor)
+                        CapsuleProgressBar(value: remaining, colorValue: window.usedPercent, height: WidgetDesignToken.barHeight, glow: true)
+                        Text(window.resetsAt == nil ? "Reset unknown" : RelativeResetFormatter.string(from: window.resetsAt))
+                            .font(.system(
+                                size: WidgetDesignToken.resetTimeSize,
+                                weight: WidgetDesignToken.quotaLabelWeight,
+                                design: WidgetDesignToken.quotaFontDesign
+                            ))
+                            .tracking(WidgetDesignToken.resetTimeTracking)
+                            .foregroundStyle(WidgetDesignToken.AuroraInk.secondary.opacity(WidgetDesignToken.resetTimeOpacity))
                     }
-                    .frame(height: WidgetDesignToken.orbCopyNumberSize * WidgetDesignToken.quotaHeroBoxFactor)
-                    // Width encodes REMAINING; tier gradient colours encode USED —
-                    // critical stays orange-red even on a short bar (quota-float semantics).
-                    CapsuleProgressBar(value: remaining, colorValue: window.usedPercent, height: WidgetDesignToken.barHeight, glow: true)
-                    // quota-float renders "reset time unknown" when resetsAt is
-                    // null — the line always renders so the hero↔footer rhythm never collapses.
-                    Text(window.resetsAt == nil ? "Reset unknown" : RelativeResetFormatter.string(from: window.resetsAt))
-                        .font(.system(size: WidgetDesignToken.resetTimeSize))
-                        .tracking(WidgetDesignToken.resetTimeTracking)
-                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary.opacity(WidgetDesignToken.resetTimeOpacity))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .layoutPriority(1)
+
+                    if let secondary = secondaryMetric {
+                        Rectangle()
+                            .fill(WidgetDesignToken.AuroraInk.faint.opacity(WidgetDesignToken.quotaDividerOpacity))
+                            .frame(width: WidgetDesignToken.hairline, height: WidgetDesignToken.quotaMediumDividerHeight)
+                        SecondaryQuotaMetric(window: secondary, numberSize: WidgetDesignToken.quotaMediumSecondaryNumberSize)
+                            .frame(width: WidgetDesignToken.quotaMediumSecondaryWidth, alignment: .leading)
+                    } else {
+                        QuotaUpdatedMetadata(fetchedAt: provider.fetchedAt, status: provider.widgetDataStatus)
+                            .frame(width: WidgetDesignToken.quotaMediumSecondaryWidth, alignment: .trailing)
+                    }
                 }
+                .padding(.top, WidgetDesignToken.quotaMediumBodyTopSpacing)
             } else {
                 HStack(spacing: WidgetDesignToken.zeroSpacing) {
                     Spacer(minLength: WidgetDesignToken.zeroLength)
@@ -366,62 +561,8 @@ struct MediumProviderCard: View {
                 }
             }
 
-            Spacer(minLength: WidgetDesignToken.zeroLength)
-
-            // Footer: weekly-window metric when the provider reports a 7d
-            // window, else the update-cadence line.
-            if let secondary = secondaryWindow {
-                let secondaryRemaining = max(WidgetDesignToken.zeroDouble,
-                                             min(WidgetDesignToken.percentMax,
-                                                 WidgetDesignToken.percentMax - secondary.usedPercent))
-                HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.smallGap) {
-                    Text("\(secondary.label) LEFT".uppercased())
-                        .font(.system(size: WidgetDesignToken.footerSize, design: .monospaced))
-                        .tracking(WidgetDesignToken.weeklyLabelTracking)
-                        .foregroundStyle(WidgetDesignToken.AuroraInk.faint)
-                    Text("\(Int(secondaryRemaining.rounded()))")
-                        .font(.system(size: WidgetDesignToken.weeklyNumberSize, design: .monospaced))
-                        .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
-                    Text("%")
-                        .font(.system(size: WidgetDesignToken.orbSuffixSize, weight: WidgetDesignToken.orbSuffixWeight))
-                        .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
-                    Spacer(minLength: WidgetDesignToken.zeroLength)
-                    ProviderIconView(providerId: provider.id, size: WidgetDesignToken.mediumFooterIconSize)
-                }
-            } else {
-                // (medium widget height is tight, so use caption size instead of the
-                // full 14px updated token that quota-float uses on its taller cards).
-                HStack(spacing: WidgetDesignToken.smallGap) {
-                    Text("Updated \(fetchedAtString)")
-                        .font(.system(size: WidgetDesignToken.captionSize, weight: WidgetDesignToken.updatedWeight, design: .monospaced))
-                        .tracking(WidgetDesignToken.updatedTracking)
-                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary.opacity(WidgetDesignToken.updatedOpacity))
-                    Spacer(minLength: WidgetDesignToken.zeroLength)
-                    Text("Every 15 min")
-                        .font(.system(size: WidgetDesignToken.captionSize, weight: WidgetDesignToken.updatedWeight, design: .monospaced))
-                        .tracking(WidgetDesignToken.updatedTracking)
-                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary.opacity(WidgetDesignToken.updatedOpacity))
-                }
-            }
         }
-    }
-}
-
-struct ProviderBadge: View {
-    let text: String
-
-    var body: some View {
-        Text(text)
-            .font(.system(size: WidgetDesignToken.portSize))
-            .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
-            .padding(.horizontal, WidgetDesignToken.badgeHPadding)
-            .padding(.vertical, WidgetDesignToken.badgeVPadding)
-            .background(WidgetDesignToken.AuroraInk.faint.opacity(WidgetDesignToken.badgeBackgroundOpacity))
-            .overlay(
-                RoundedRectangle(cornerRadius: WidgetDesignToken.badgeRadius)
-                    .stroke(WidgetDesignToken.AuroraInk.faint.opacity(WidgetDesignToken.badgeStrokeOpacity), lineWidth: WidgetDesignToken.hairline)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: WidgetDesignToken.badgeRadius, style: .continuous))
+        }
     }
 }
 
@@ -438,10 +579,17 @@ struct LargeOverviewView: View {
             // Header
             HStack(spacing: WidgetDesignToken.smallGap) {
                 Text("TOKEN KING")
-                    .font(.system(size: WidgetDesignToken.eyebrowSize, weight: WidgetDesignToken.eyebrowWeight))
-                    .tracking(WidgetDesignToken.eyebrowTracking)
+                    .font(.system(
+                        size: WidgetDesignToken.sectionTitleSize,
+                        weight: WidgetDesignToken.quotaTitleWeight,
+                        design: WidgetDesignToken.quotaFontDesign
+                    ))
+                    .tracking(WidgetDesignToken.sectionTitleTracking)
                     .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                 Spacer(minLength: WidgetDesignToken.zeroLength)
+                WidgetHeaderActions(
+                    lastUpdatedAt: snapshot.providers.compactMap(\.fetchedAt).max()
+                )
             }
 
             Spacer(minLength: WidgetDesignToken.zeroLength)
@@ -480,112 +628,97 @@ struct LargeDetailView: View {
     let selectedProviderId: String?
 
     var body: some View {
-        let provider = selectedProvider(snapshot: snapshot, selectedProviderId: selectedProviderId)
-            ?? topProvider(snapshot: snapshot)
+        let provider = resolvedProvider(snapshot: snapshot, selectedProviderId: selectedProviderId)
 
         if let provider = provider {
-            // quota-float QuotaCard at near 1:1 scale (systemLarge ≈ the 320px
-            // card): eyebrow + "5-hour remaining" + frosted status indicator →
-            // 64px remaining-% hero → glowing tier bar → reset-time → weekly
-            // footer (30px metric + provider mark).
+            if provider.widgetDataStatus == .unavailable {
+                ProviderUnavailableStateView(providerName: provider.displayName)
+            } else {
             VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
                 // card-header
                 HStack(alignment: .top, spacing: WidgetDesignToken.smallGap) {
                     VStack(alignment: .leading, spacing: WidgetDesignToken.descriptorTopMargin) {
-                        Text(provider.displayName.uppercased())
-                            .font(.system(size: WidgetDesignToken.eyebrowSize, weight: WidgetDesignToken.eyebrowWeight))
-                            .tracking(WidgetDesignToken.eyebrowTracking)
+                        Text(provider.compactDisplayName ?? provider.displayName)
+                            .font(.system(
+                                size: WidgetDesignToken.providerTitleLargeSize,
+                                weight: WidgetDesignToken.quotaTitleWeight,
+                                design: WidgetDesignToken.quotaFontDesign
+                            ))
+                            .tracking(WidgetDesignToken.providerTitleTracking)
                             .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                             .lineLimit(WidgetDesignToken.singleLine)
                             .minimumScaleFactor(WidgetDesignToken.eyebrowMinimumScale)
-                        if let window = shortWindow(of: provider) {
-                            Text(window.id == "5h" ? "5-hour remaining" : "\(window.label) remaining")
-                                .font(.system(size: WidgetDesignToken.updatedSize, weight: WidgetDesignToken.updatedWeight))
+                        if let window = primaryWindow(of: provider) {
+                            Text(window.label)
+                                .font(.system(
+                                    size: WidgetDesignToken.updatedSize,
+                                    weight: WidgetDesignToken.updatedWeight,
+                                    design: WidgetDesignToken.quotaFontDesign
+                                ))
                                 .tracking(WidgetDesignToken.updatedTracking)
-                                .foregroundStyle(WidgetDesignToken.AuroraInk.primary.opacity(WidgetDesignToken.updatedOpacity))
+                                .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
                         }
                     }
                     Spacer(minLength: WidgetDesignToken.zeroLength)
-                    // usage-indicator: 8px dot inside a 25px frosted ring
-                    ZStack {
-                        Circle()
-                            .fill(Color.white.opacity(WidgetDesignToken.indicatorRingBackgroundOpacity))
-                        Circle()
-                            .strokeBorder(Color.white.opacity(WidgetDesignToken.indicatorRingBorderOpacity),
-                                          lineWidth: WidgetDesignToken.orbCardBorderWidth)
-                        StatusDot(color: statusColor(for: provider))
-                    }
-                    .frame(width: WidgetDesignToken.indicatorRingSize, height: WidgetDesignToken.indicatorRingSize)
+                    WidgetHeaderActions(
+                        statusColor: statusColor(for: provider),
+                        lastUpdatedAt: provider.fetchedAt
+                    )
                 }
 
                 if provider.kind == .usage, let spend = provider.spendUSD {
-                    Spacer(minLength: WidgetDesignToken.zeroLength)
                     HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.orbSuffixSpacing) {
                         Text(USDFormatter.string(from: spend))
                             .font(.system(size: WidgetDesignToken.percentHeroSize, weight: WidgetDesignToken.percentHeroWeight, design: .monospaced))
                             .tracking(WidgetDesignToken.percentHeroTracking)
                             .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                         Text("spent")
-                            .font(.system(size: WidgetDesignToken.captionSize))
+                            .font(.system(
+                                size: WidgetDesignToken.captionSize,
+                                weight: WidgetDesignToken.quotaLabelWeight,
+                                design: WidgetDesignToken.quotaFontDesign
+                            ))
                             .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
                     }
+                    .padding(.top, WidgetDesignToken.quotaLargeHeroTopSpacing)
                     Spacer(minLength: WidgetDesignToken.zeroLength)
-                } else if let window = shortWindow(of: provider) {
+                } else if let window = primaryWindow(of: provider) {
                     let remaining = max(WidgetDesignToken.zeroDouble,
                                         min(WidgetDesignToken.percentMax,
                                             WidgetDesignToken.percentMax - window.usedPercent))
-                    // primary-metric: 64px/500, -.07em, % 21px/700 baseline,
-                    // box at line-height .82 so the glyph frame stays tight
-                    HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.orbSuffixSpacing) {
-                        Text("\(Int(remaining.rounded()))")
-                            .font(.system(size: WidgetDesignToken.percentHeroSize, weight: WidgetDesignToken.percentHeroWeight))
-                            .monospacedDigit()
-                            .tracking(WidgetDesignToken.percentHeroTracking)
-                            .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
-                        Text("%")
-                            .font(.system(size: WidgetDesignToken.percentSuffixSize, weight: WidgetDesignToken.percentSuffixWeight))
-                            .tracking(WidgetDesignToken.percentSuffixTracking)
-                            .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
-                    }
+                    RemainingQuotaMetric(
+                        remaining: remaining,
+                        numberSize: WidgetDesignToken.percentHeroSize,
+                        suffixSize: WidgetDesignToken.percentSuffixSize,
+                        tracking: WidgetDesignToken.percentHeroTracking
+                    )
                     .frame(height: WidgetDesignToken.percentHeroSize * WidgetDesignToken.quotaHeroBoxFactor)
-                    .padding(.top, WidgetDesignToken.quotaHeroTopMargin)
-                    // Width = remaining; tier gradient colours = used (critical
-                    // stays orange-red even on a short bar) + outer glow.
+                    .padding(.top, WidgetDesignToken.quotaLargeHeroTopSpacing)
                     CapsuleProgressBar(value: remaining, colorValue: window.usedPercent,
                                        height: WidgetDesignToken.barHeight, glow: true)
-                        .padding(.top, WidgetDesignToken.quotaBarTopMargin)
+                        .padding(.top, WidgetDesignToken.quotaLargeBarTopSpacing)
                     Text(window.resetsAt == nil ? "Reset unknown" : RelativeResetFormatter.string(from: window.resetsAt))
-                        .font(.system(size: WidgetDesignToken.resetTimeSize))
+                        .font(.system(
+                            size: WidgetDesignToken.resetTimeSize,
+                            weight: WidgetDesignToken.quotaLabelWeight,
+                            design: WidgetDesignToken.quotaFontDesign
+                        ))
                         .tracking(WidgetDesignToken.resetTimeTracking)
                         .foregroundStyle(WidgetDesignToken.AuroraInk.secondary.opacity(WidgetDesignToken.resetTimeOpacity))
                         .padding(.top, WidgetDesignToken.quotaResetTopMargin)
 
                     Spacer(minLength: WidgetDesignToken.zeroLength)
 
-                    // card-footer: weekly metric + provider mark
-                    if let weekly = weeklyWindow(of: provider) {
-                        let weeklyRemaining = max(WidgetDesignToken.zeroDouble,
-                                                  min(WidgetDesignToken.percentMax,
-                                                      WidgetDesignToken.percentMax - weekly.usedPercent))
-                        HStack(alignment: .bottom, spacing: WidgetDesignToken.zeroLength) {
-                            VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
-                                Text(weeklyLabel(for: weekly))
-                                    .font(.system(size: WidgetDesignToken.resetTimeSize, weight: WidgetDesignToken.weeklyLabelWeight))
-                                    .tracking(WidgetDesignToken.weeklyLabelTracking)
-                                    .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
-                                HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.orbSuffixSpacing) {
-                                    Text("\(Int(weeklyRemaining.rounded()))")
-                                        .font(.system(size: WidgetDesignToken.weeklyHeroSize))
-                                        .tracking(WidgetDesignToken.percentSuffixTracking)
-                                        .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
-                                    Text("%")
-                                        .font(.system(size: WidgetDesignToken.weeklyHeroSuffixSize))
-                                        .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
-                                }
-                            }
-                            Spacer(minLength: WidgetDesignToken.zeroLength)
-                            ProviderIconView(providerId: provider.id, size: WidgetDesignToken.providerMarkSize)
+                    Rectangle()
+                        .fill(WidgetDesignToken.AuroraInk.faint.opacity(WidgetDesignToken.quotaDividerOpacity))
+                        .frame(height: WidgetDesignToken.hairline)
+                        .padding(.top, WidgetDesignToken.quotaLargeFooterTopSpacing)
+                    HStack(alignment: .bottom, spacing: WidgetDesignToken.smallGap) {
+                        if let secondary = secondaryWindow(of: provider) {
+                            SecondaryQuotaMetric(window: secondary, numberSize: WidgetDesignToken.weeklyHeroSize, label: secondaryLabel(for: secondary))
                         }
+                        Spacer(minLength: WidgetDesignToken.zeroLength)
+                        QuotaUpdatedMetadata(fetchedAt: provider.fetchedAt, status: provider.widgetDataStatus)
                     }
                 } else {
                     Spacer(minLength: WidgetDesignToken.zeroLength)
@@ -599,23 +732,26 @@ struct LargeDetailView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         } else {
-            EmptyStateView(message: "No providers")
+            missingProviderView(selectedProviderId: selectedProviderId)
         }
     }
 
     private func statusColor(for provider: ProviderSnapshot) -> Color {
-        if let window = shortWindow(of: provider) {
+        if provider.widgetDataStatus == .stale {
+            return WidgetDesignToken.DataStatus.stale
+        }
+        if let window = primaryWindow(of: provider) {
             return window.usedPercent.severityColor(scheme)
         }
         return WidgetDesignToken.healthyColor
     }
 
-    /// quota-float weeklyUntil: "Weekly remaining · until 7/12".
-    private func weeklyLabel(for window: UsageWindow) -> String {
-        guard let resetsAt = window.resetsAt else { return "Weekly remaining" }
+    private func secondaryLabel(for window: UsageWindow) -> String {
+        guard let resetsAt = window.resetsAt else { return window.label }
         let md = resetsAt.formatted(.dateTime.month(.defaultDigits).day(.defaultDigits))
-        return "Weekly remaining · until \(md)"
+        return "\(window.label) · until \(md)"
     }
 }
 
@@ -636,10 +772,17 @@ struct SearchEnginesView: View {
             // Header
             HStack(spacing: WidgetDesignToken.smallGap) {
                 Text("SEARCH ENGINES")
-                    .font(.system(size: WidgetDesignToken.eyebrowSize, weight: WidgetDesignToken.eyebrowWeight))
-                    .tracking(WidgetDesignToken.eyebrowTracking)
+                    .font(.system(
+                        size: WidgetDesignToken.sectionTitleSize,
+                        weight: WidgetDesignToken.quotaTitleWeight,
+                        design: WidgetDesignToken.quotaFontDesign
+                    ))
+                    .tracking(WidgetDesignToken.sectionTitleTracking)
                     .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                 Spacer(minLength: WidgetDesignToken.zeroLength)
+                WidgetHeaderActions(
+                    lastUpdatedAt: searchProviders.compactMap(\.fetchedAt).max()
+                )
             }
 
             Spacer(minLength: WidgetDesignToken.zeroLength)
@@ -666,13 +809,20 @@ struct LargeProviderRow: View {
     let provider: ProviderSnapshot
 
     var body: some View {
-        VStack(alignment: .leading, spacing: WidgetDesignToken.largeBarTopMargin) {
+        if provider.widgetDataStatus == .unavailable {
+            ProviderUnavailableRow(providerName: provider.displayName)
+        } else {
+            VStack(alignment: .leading, spacing: WidgetDesignToken.largeBarTopMargin) {
             HStack(spacing: WidgetDesignToken.largeRowGap) {
                 StatusDot(color: statusColor)
                 ProviderIconView(providerId: provider.id, size: WidgetDesignToken.largeIconSize)
                     .widgetAccentable()
                 Text(provider.displayName)
-                    .font(.system(size: WidgetDesignToken.bodySize, weight: .semibold))
+                    .font(.system(
+                        size: WidgetDesignToken.bodySize,
+                        weight: WidgetDesignToken.quotaTitleWeight,
+                        design: WidgetDesignToken.quotaFontDesign
+                    ))
                     .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
                     .lineLimit(WidgetDesignToken.singleLine)
                 Spacer(minLength: WidgetDesignToken.zeroLength)
@@ -685,11 +835,15 @@ struct LargeProviderRow: View {
             CapsuleProgressBar(value: progressValue, colorValue: colourValue,
                                height: WidgetDesignToken.largeBarHeight, glow: true)
                 .widgetAccentable()
+            }
         }
     }
 
     private var statusColor: Color {
-        if let window = shortWindow(of: provider) {
+        if provider.widgetDataStatus == .stale {
+            return WidgetDesignToken.DataStatus.stale
+        }
+        if let window = primaryWindow(of: provider) {
             return window.usedPercent.severityColor(scheme)
         }
         return WidgetDesignToken.healthyColor
@@ -697,20 +851,20 @@ struct LargeProviderRow: View {
 
     private var progressValue: Double {
         guard provider.kind != .usage else { return WidgetDesignToken.zeroDouble }
-        let used = shortWindow(of: provider)?.usedPercent ?? WidgetDesignToken.percentMax
+        let used = primaryWindow(of: provider)?.usedPercent ?? WidgetDesignToken.percentMax
         return max(WidgetDesignToken.zeroDouble,
                    min(WidgetDesignToken.percentMax, WidgetDesignToken.percentMax - used))
     }
 
     private var colourValue: Double {
-        shortWindow(of: provider)?.usedPercent ?? WidgetDesignToken.zeroDouble
+        primaryWindow(of: provider)?.usedPercent ?? WidgetDesignToken.zeroDouble
     }
 
     private var valueString: String {
         if provider.kind == .usage, let spend = provider.spendUSD {
             return "\(USDFormatter.string(from: spend)) spent"
         }
-        guard let window = shortWindow(of: provider) else {
+        guard let window = primaryWindow(of: provider) else {
             return ""
         }
         let remaining = max(WidgetDesignToken.zeroDouble,
@@ -720,13 +874,43 @@ struct LargeProviderRow: View {
     }
 }
 
+struct ProviderUnavailableRow: View {
+    let providerName: String
+
+    var body: some View {
+        HStack(spacing: WidgetDesignToken.largeRowGap) {
+            StatusDot(color: WidgetDesignToken.DataStatus.unavailable)
+            Text(providerName)
+                .font(.system(
+                    size: WidgetDesignToken.bodySize,
+                    weight: WidgetDesignToken.quotaTitleWeight,
+                    design: WidgetDesignToken.quotaFontDesign
+                ))
+                .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+                .lineLimit(WidgetDesignToken.singleLine)
+            Spacer(minLength: WidgetDesignToken.zeroLength)
+            Text("Unavailable")
+                .font(.system(
+                    size: WidgetDesignToken.captionSize,
+                    weight: WidgetDesignToken.quotaLabelWeight,
+                    design: WidgetDesignToken.quotaFontDesign
+                ))
+                .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
+        }
+    }
+}
+
 struct MonthlyCostFooter: View {
     let cost: MonthlyCost
 
     var body: some View {
         HStack {
             Text("Monthly")
-                .font(.system(size: WidgetDesignToken.captionSize))
+                .font(.system(
+                    size: WidgetDesignToken.captionSize,
+                    weight: WidgetDesignToken.quotaLabelWeight,
+                    design: WidgetDesignToken.quotaFontDesign
+                ))
                 .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
             Spacer(minLength: WidgetDesignToken.zeroLength)
             Text(USDFormatter.string(from: cost.usd))
@@ -743,15 +927,206 @@ struct MonthlyCostFooter: View {
 
 // MARK: - Shared components
 
+struct WidgetHeaderActions: View {
+    let statusColor: Color?
+    let lastUpdatedAt: Date?
+
+    private var alignment: HorizontalAlignment {
+        statusColor == nil ? .center : .trailing
+    }
+
+    init(statusColor: Color? = nil, lastUpdatedAt: Date? = nil) {
+        self.statusColor = statusColor
+        self.lastUpdatedAt = lastUpdatedAt
+    }
+
+    var body: some View {
+        VStack(alignment: alignment, spacing: WidgetDesignToken.refreshTimestampSpacing) {
+            HStack(spacing: WidgetDesignToken.refreshStatusSpacing) {
+                if let statusColor {
+                    StatusDot(
+                        color: statusColor,
+                        size: WidgetDesignToken.refreshStatusDotSize,
+                        glowRadius: WidgetDesignToken.smallProviderStatusGlowRadius
+                    )
+                }
+                WidgetRefreshButton()
+            }
+            if let lastUpdatedAt {
+                Text(
+                    lastUpdatedAt,
+                    format: .dateTime
+                        .hour(.twoDigits(amPM: .omitted))
+                        .minute(.twoDigits)
+                )
+                .font(.system(
+                    size: WidgetDesignToken.refreshTimestampSize,
+                    weight: WidgetDesignToken.quotaLabelWeight,
+                    design: WidgetDesignToken.quotaFontDesign
+                ))
+                .foregroundStyle(
+                    WidgetDesignToken.AuroraInk.faint.opacity(
+                        WidgetDesignToken.refreshTimestampOpacity
+                    )
+                )
+                .monospacedDigit()
+                .lineLimit(WidgetDesignToken.singleLine)
+                .contentTransition(.numericText())
+            }
+        }
+    }
+}
+
+struct WidgetRefreshButton: View {
+
+    private var destination: URL? {
+        URL(string: "tokenking://refresh")
+    }
+
+    var body: some View {
+        if let destination {
+            Link(destination: destination) {
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(WidgetDesignToken.refreshBackgroundOpacity))
+                        .overlay {
+                            Circle()
+                                .strokeBorder(
+                                    Color.white.opacity(WidgetDesignToken.refreshBorderOpacity),
+                                    lineWidth: WidgetDesignToken.orbCardBorderWidth
+                                )
+                        }
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(
+                            size: WidgetDesignToken.refreshSymbolSize,
+                            weight: .semibold
+                        ))
+                        .foregroundStyle(WidgetDesignToken.AuroraInk.secondary)
+                }
+                .frame(
+                    width: WidgetDesignToken.refreshControlSize,
+                    height: WidgetDesignToken.refreshControlSize
+                )
+                .shadow(
+                    color: Color.black.opacity(WidgetDesignToken.refreshShadowOpacity),
+                    radius: WidgetDesignToken.refreshShadowRadius
+                )
+            }
+            .buttonStyle(WidgetRefreshButtonStyle())
+            .accessibilityLabel("Refresh Token King")
+            .accessibilityHint("Fetch the latest provider usage")
+        }
+    }
+}
+
+private struct WidgetRefreshButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? WidgetDesignToken.refreshPressedScale : 1)
+            .rotationEffect(.degrees(
+                configuration.isPressed ? WidgetDesignToken.refreshPressedRotation : 0
+            ))
+            .opacity(configuration.isPressed ? WidgetDesignToken.refreshPressedOpacity : 1)
+            .animation(
+                .easeOut(duration: WidgetDesignToken.refreshAnimationDuration),
+                value: configuration.isPressed
+            )
+    }
+}
+
 struct StatusDot: View {
     let color: Color
+    var size: CGFloat = WidgetDesignToken.dotSize
+    var glowRadius: CGFloat = WidgetDesignToken.barGlowRadius
 
     var body: some View {
         Circle()
             .fill(color)
-            .frame(width: WidgetDesignToken.dotSize, height: WidgetDesignToken.dotSize)
+            .frame(width: size, height: size)
             .shadow(color: color.opacity(WidgetDesignToken.barGlowOpacity),
-                    radius: WidgetDesignToken.barGlowRadius, x: 0, y: 0)
+                    radius: glowRadius, x: 0, y: 0)
+    }
+}
+
+struct RemainingQuotaMetric: View {
+    let remaining: Double
+    let numberSize: CGFloat
+    let suffixSize: CGFloat
+    let tracking: CGFloat
+    var suffixLift: CGFloat = 0
+
+    var body: some View {
+        HStack(alignment: .lastTextBaseline, spacing: WidgetDesignToken.orbSuffixSpacing) {
+            Text("\(Int(remaining.rounded()))")
+                .font(.system(
+                    size: numberSize,
+                    weight: WidgetDesignToken.percentHeroWeight,
+                    design: WidgetDesignToken.quotaFontDesign
+                ))
+                .monospacedDigit()
+                .tracking(tracking)
+                .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+            Text("%")
+                .font(.system(
+                    size: suffixSize,
+                    weight: WidgetDesignToken.percentSuffixWeight,
+                    design: WidgetDesignToken.quotaFontDesign
+                ))
+                .baselineOffset(suffixLift)
+                .foregroundStyle(WidgetDesignToken.AuroraInk.primary)
+        }
+    }
+}
+
+struct SecondaryQuotaMetric: View {
+    let window: UsageWindow
+    let numberSize: CGFloat
+    var label: String? = nil
+
+    private var remaining: Double {
+        max(WidgetDesignToken.zeroDouble,
+            min(WidgetDesignToken.percentMax,
+                WidgetDesignToken.percentMax - window.usedPercent))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: WidgetDesignToken.smallGap) {
+            Text(label ?? "\(window.label) left")
+                .font(.system(
+                    size: WidgetDesignToken.footerSize,
+                    weight: WidgetDesignToken.weeklyLabelWeight,
+                    design: WidgetDesignToken.quotaFontDesign
+                ))
+                .foregroundStyle(WidgetDesignToken.AuroraInk.faint)
+                .lineLimit(WidgetDesignToken.singleLine)
+            RemainingQuotaMetric(
+                remaining: remaining,
+                numberSize: numberSize,
+                suffixSize: numberSize == WidgetDesignToken.weeklyHeroSize
+                    ? WidgetDesignToken.weeklyHeroSuffixSize
+                    : WidgetDesignToken.orbCopySuffixSize,
+                tracking: WidgetDesignToken.percentSuffixTracking
+            )
+        }
+    }
+}
+
+struct QuotaUpdatedMetadata: View {
+    let fetchedAt: Date?
+    let status: WidgetDataStatus
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: WidgetDesignToken.smallGap) {
+            Text(status == .stale ? "Stale data" : "Updated")
+                .font(.system(
+                    size: WidgetDesignToken.footerSize,
+                    weight: WidgetDesignToken.updatedWeight,
+                    design: WidgetDesignToken.quotaFontDesign
+                ))
+            Text(fetchedAt?.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits)) ?? "Time unknown")
+                .font(.system(size: WidgetDesignToken.quotaMetadataSize, design: .monospaced))
+        }
+        .foregroundStyle(WidgetDesignToken.AuroraInk.faint)
     }
 }
 
@@ -759,15 +1134,20 @@ struct CapsuleProgressBar: View {
     @Environment(\.colorScheme) private var scheme
     let value: Double
     var colorValue: Double? = nil
+    var tierOverride: WidgetDesignToken.Aurora.Tier? = nil
     var height: CGFloat = WidgetDesignToken.barHeight
     var glow: Bool = false
+    var trackColor: Color? = nil
 
     private var fraction: CGFloat {
         CGFloat(min(max(value, WidgetDesignToken.zeroDouble), WidgetDesignToken.percentMax) / WidgetDesignToken.percentMax)
     }
 
     private var gradientColors: (start: Color, end: Color) {
-        WidgetDesignToken.Aurora.progressGradient(forUsedPercent: colorValue ?? value)
+        if let tierOverride {
+            return (start: tierOverride.progressStart, end: tierOverride.progressEnd)
+        }
+        return WidgetDesignToken.Aurora.progressGradient(forUsedPercent: colorValue ?? value)
     }
 
     var body: some View {
@@ -776,7 +1156,7 @@ struct CapsuleProgressBar: View {
             let (startColor, endColor) = gradientColors
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: WidgetDesignToken.barRadius, style: .continuous)
-                    .fill(WidgetDesignToken.AuroraInk.faint.opacity(WidgetDesignToken.trackOpacity))
+                    .fill(trackColor ?? WidgetDesignToken.AuroraInk.faint.opacity(WidgetDesignToken.trackOpacity))
                 if glow {
                     RoundedRectangle(cornerRadius: WidgetDesignToken.barRadius, style: .continuous)
                         .fill(LinearGradient(colors: [startColor, endColor],
@@ -799,6 +1179,7 @@ struct CapsuleProgressBar: View {
 struct ProviderIconView: View {
     let providerId: String
     let size: CGFloat
+    var fallbackTint: Color = .secondary
 
     var body: some View {
         if let assetName = providerAssetName(providerId) {
@@ -807,11 +1188,13 @@ struct ProviderIconView: View {
                 .interpolation(.high)
                 .scaledToFit()
                 .frame(width: size, height: size)
-                .foregroundStyle(providerBrandTint(providerId) ?? .secondary)
+                .foregroundStyle(providerBrandTint(providerId) ?? fallbackTint)
         } else {
             Image(systemName: providerIconSystemName(providerId))
-                .font(.system(size: size))
-                .foregroundStyle(providerBrandTint(providerId) ?? .secondary)
+                .resizable()
+                .scaledToFit()
+                .frame(width: size, height: size)
+                .foregroundStyle(providerBrandTint(providerId) ?? fallbackTint)
         }
     }
 }
@@ -820,16 +1203,25 @@ struct ProviderIconView: View {
 
 func topProvider(snapshot: WidgetSnapshot) -> ProviderSnapshot? {
     snapshot.providers
-        .compactMap { p -> (ProviderSnapshot, Double)? in
-            guard let w = primaryWindow(of: p) else { return nil }
-            return (p, w.usedPercent)
+        .compactMap { provider -> (ProviderSnapshot, Double)? in
+            guard provider.widgetDataStatus != .unavailable,
+                  let window = primaryWindow(of: provider) else { return nil }
+            return (provider, window.usedPercent)
         }
         .max(by: { $0.1 < $1.1 })?.0
 }
 
 func topN(snapshot: WidgetSnapshot, n: Int) -> [ProviderSnapshot] {
-    let sorted = snapshot.providers.sorted { p1, p2 in
-        (primaryWindow(of: p1)?.usedPercent ?? WidgetDesignToken.zeroDouble) > (primaryWindow(of: p2)?.usedPercent ?? WidgetDesignToken.zeroDouble)
+    let sorted = snapshot.providers.sorted { leftProvider, rightProvider in
+        let leftUnavailable = leftProvider.widgetDataStatus == .unavailable
+        let rightUnavailable = rightProvider.widgetDataStatus == .unavailable
+        if leftUnavailable != rightUnavailable { return !leftUnavailable }
+        let leftPercent = primaryWindow(of: leftProvider)?.usedPercent ?? WidgetDesignToken.zeroDouble
+        let rightPercent = primaryWindow(of: rightProvider)?.usedPercent ?? WidgetDesignToken.zeroDouble
+        if leftPercent == rightPercent {
+            return leftProvider.id.localizedCaseInsensitiveCompare(rightProvider.id) == .orderedAscending
+        }
+        return leftPercent > rightPercent
     }
     return Array(sorted.prefix(n))
 }
@@ -842,20 +1234,27 @@ func primaryWindow(of provider: ProviderSnapshot) -> UsageWindow? {
     return provider.windows.first
 }
 
-/// quota-float's "short window" — the 5-hour session quota window that drives
-/// the QuotaOrb number and the QuotaCard hero. Falls back to the primary
-/// window for providers that don't report a 5h window.
-func shortWindow(of provider: ProviderSnapshot) -> UsageWindow? {
-    if let w = provider.windows.first(where: { $0.id == "5h" }) {
-        return w
-    }
-    return primaryWindow(of: provider)
+private enum WidgetUsageWindowID {
+    static let aggregate = "primary"
 }
 
-/// quota-float's "weekly window" — the 7-day quota window shown as the
-/// QuotaCard footer secondary metric. Nil when the provider has none.
-func weeklyWindow(of provider: ProviderSnapshot) -> UsageWindow? {
-    provider.windows.first { $0.id == "7d" || $0.id == "weekly" }
+/// Returns the next data-layer-ranked metric after the displayed primary.
+/// A synthetic aggregate must not displace a real secondary quota window.
+func secondaryWindow(of provider: ProviderSnapshot) -> UsageWindow? {
+    guard let primary = primaryWindow(of: provider) else { return nil }
+    return provider.windows
+        .filter { window in
+            window.id != primary.id &&
+                (primary.id == WidgetUsageWindowID.aggregate ||
+                    window.id != WidgetUsageWindowID.aggregate)
+        }
+        .enumerated()
+        .min { lhs, rhs in
+            let leftPriority = lhs.element.priority ?? Int.max
+            let rightPriority = rhs.element.priority ?? Int.max
+            return leftPriority == rightPriority ? lhs.offset < rhs.offset : leftPriority < rightPriority
+        }?
+        .element
 }
 
 func providerIconSystemName(_ providerId: String) -> String {
@@ -901,6 +1300,7 @@ func providerAssetName(_ providerId: String) -> String? {
     case "opencode_zen":                  return "OpencodeIcon"
     case "opencode_go":                   return "OpencodeIcon"
     case "kiro":                          return "KiroIcon"
+    case "kimi_cn", "kimi_global":       return "KimiIcon"
     case "grok":                          return "GrokIcon"
     case "minimax_coding_plan",
          "minimax_coding_plan_cn",
@@ -982,43 +1382,43 @@ extension WidgetSnapshot {
 #Preview("Small/Light/Focused", as: .systemSmall) {
     TokenKingWidgetSmall()
 } timeline: {
-    TokenKingEntry(date: .now, kind: .small, selectedProviderId: nil, snapshot: .previewFixture, readStatus: .ok, snapshotAgeSeconds: 30)
+    TokenKingEntry(date: .now, kind: .small, selectedProviderId: nil, snapshot: .previewFixture, readStatus: .ready, snapshotAgeSeconds: 30)
 }
 
 #Preview("MediumOverview/Light/Focused", as: .systemMedium) {
     TokenKingWidgetMediumOverview()
 } timeline: {
-    TokenKingEntry(date: .now, kind: .mediumOverview, selectedProviderId: nil, snapshot: .previewFixture, readStatus: .ok, snapshotAgeSeconds: 30)
+    TokenKingEntry(date: .now, kind: .mediumOverview, selectedProviderId: nil, snapshot: .previewFixture, readStatus: .ready, snapshotAgeSeconds: 30)
 }
 
 #Preview("MediumDetail/Light/Focused", as: .systemMedium) {
     TokenKingWidgetMediumDetail()
 } timeline: {
-    TokenKingEntry(date: .now, kind: .mediumDetail, selectedProviderId: "codex", snapshot: .previewFixture, readStatus: .ok, snapshotAgeSeconds: 30)
+    TokenKingEntry(date: .now, kind: .mediumDetail, selectedProviderId: "codex", snapshot: .previewFixture, readStatus: .ready, snapshotAgeSeconds: 30)
 }
 
 #Preview("LargeOverview/Light/Focused", as: .systemLarge) {
     TokenKingWidgetLargeOverview()
 } timeline: {
-    TokenKingEntry(date: .now, kind: .largeOverview, selectedProviderId: nil, snapshot: .previewFixture, readStatus: .ok, snapshotAgeSeconds: 30)
+    TokenKingEntry(date: .now, kind: .largeOverview, selectedProviderId: nil, snapshot: .previewFixture, readStatus: .ready, snapshotAgeSeconds: 30)
 }
 
 #Preview("LargeDetail/Light/Focused", as: .systemLarge) {
     TokenKingWidgetLargeDetail()
 } timeline: {
-    TokenKingEntry(date: .now, kind: .largeDetail, selectedProviderId: "codex", snapshot: .previewFixture, readStatus: .ok, snapshotAgeSeconds: 30)
+    TokenKingEntry(date: .now, kind: .largeDetail, selectedProviderId: "codex", snapshot: .previewFixture, readStatus: .ready, snapshotAgeSeconds: 30)
 }
 
 #Preview("SearchEngines/Light/Focused", as: .systemLarge) {
     TokenKingWidgetSearchEngines()
 } timeline: {
-    TokenKingEntry(date: .now, kind: .searchEngines, selectedProviderId: nil, snapshot: .previewFixture, readStatus: .ok, snapshotAgeSeconds: 30)
+    TokenKingEntry(date: .now, kind: .searchEngines, selectedProviderId: nil, snapshot: .previewFixture, readStatus: .ready, snapshotAgeSeconds: 30)
 }
 
 #Preview("Small/UsageProvider", as: .systemSmall) {
     TokenKingWidgetSmall()
 } timeline: {
-    TokenKingEntry(date: .now, kind: .small, selectedProviderId: "openrouter", snapshot: .previewFixture, readStatus: .ok, snapshotAgeSeconds: 30)
+    TokenKingEntry(date: .now, kind: .small, selectedProviderId: "openrouter", snapshot: .previewFixture, readStatus: .ready, snapshotAgeSeconds: 30)
 }
 
 #Preview("Small/Light/NoFile", as: .systemSmall) {
@@ -1030,7 +1430,7 @@ extension WidgetSnapshot {
 #Preview("Medium/Light/Empty", as: .systemMedium) {
     TokenKingWidgetMediumOverview()
 } timeline: {
-    TokenKingEntry(date: .now, kind: .mediumOverview, selectedProviderId: nil, snapshot: WidgetSnapshot(version: 1, snapshotAt: .now, providers: [], monthlyCost: nil), readStatus: .ok, snapshotAgeSeconds: 30)
+    TokenKingEntry(date: .now, kind: .mediumOverview, selectedProviderId: nil, snapshot: WidgetSnapshot(version: 1, snapshotAt: .now, providers: [], monthlyCost: nil), readStatus: .ready, snapshotAgeSeconds: 30)
 }
 
 #Preview("Large/Light/Stale", as: .systemLarge) {

@@ -40,6 +40,10 @@ struct ProviderSnapshot: Codable, Equatable {
     /// Human-readable display name.
     let displayName: String
 
+    /// Compact brand name for space-constrained widget headers. Optional so
+    /// existing v1 snapshots continue to decode without migration.
+    let compactDisplayName: String?
+
     /// Determines rendering style: progress bar vs spend amount.
     let kind: Kind
 
@@ -56,12 +60,54 @@ struct ProviderSnapshot: Codable, Equatable {
     /// When the provider was actually fetched (may be earlier than snapshotAt).
     let fetchedAt: Date?
 
+    /// Availability of the provider data itself. This is deliberately
+    /// independent from quota severity so the widget never presents cached or
+    /// unavailable data as a fresh quota.
+    let status: WidgetDataStatus?
+
+    /// Optional per-account data. Present only for providers that expose a
+    /// stable account-level quota presentation, currently Codex.
+    let accounts: [ProviderAccountSnapshot]?
+
+    init(
+        id: String,
+        displayName: String,
+        compactDisplayName: String? = nil,
+        kind: Kind,
+        primaryWindowId: String?,
+        windows: [UsageWindow],
+        spendUSD: Double?,
+        fetchedAt: Date?,
+        status: WidgetDataStatus? = nil,
+        accounts: [ProviderAccountSnapshot]? = nil
+    ) {
+        self.id = id
+        self.displayName = displayName
+        self.compactDisplayName = compactDisplayName
+        self.kind = kind
+        self.primaryWindowId = primaryWindowId
+        self.windows = windows
+        self.spendUSD = spendUSD
+        self.fetchedAt = fetchedAt
+        self.status = status
+        self.accounts = accounts
+    }
+
     enum Kind: String, Codable, Equatable {
         /// Quota-based: progress bar driven by `usedPercent`.
         case quota
         /// Pay-as-you-go: spend amount in `spendUSD`.
         case usage
     }
+}
+
+/// Provider-level freshness and availability for generic widgets.
+/// Optional on `ProviderSnapshot` for backwards-compatible decoding of v1
+/// snapshots written before this field existed.
+enum WidgetDataStatus: String, Codable, Equatable {
+    case available
+    case stale
+    case unavailable
 }
 
 /// Single quota window within a provider (e.g. "5h", "7d", "monthly").
@@ -83,6 +129,60 @@ struct UsageWindow: Codable, Equatable {
 
     /// Absolute limit value (quota-based only).
     let limit: Int?
+
+    /// Window duration in seconds, when the provider exposes it.
+    let windowSeconds: Int?
+
+    /// Stable display priority. Lower values render first.
+    let priority: Int?
+
+    init(
+        id: String,
+        label: String,
+        usedPercent: Double,
+        resetsAt: Date?,
+        used: Int?,
+        limit: Int?,
+        windowSeconds: Int? = nil,
+        priority: Int? = nil
+    ) {
+        self.id = id
+        self.label = label
+        self.usedPercent = usedPercent
+        self.resetsAt = resetsAt
+        self.used = used
+        self.limit = limit
+        self.windowSeconds = windowSeconds
+        self.priority = priority
+    }
+}
+
+/// Codex account data safe for crossing the app/widget process boundary.
+struct ProviderAccountSnapshot: Codable, Equatable {
+    /// Stable opaque id. Raw account identifiers and email addresses never
+    /// enter the snapshot through this field.
+    let id: String
+
+    /// Masked account label suitable for the widget configuration picker.
+    let displayName: String
+
+    /// Subscription plan label, when available.
+    let plan: String?
+
+    /// Account availability independent from quota severity.
+    let status: ProviderAccountStatus
+
+    /// Base Codex quota windows in display priority order.
+    let metrics: [UsageWindow]
+
+    /// Last successful fetch time, when known.
+    let fetchedAt: Date?
+}
+
+enum ProviderAccountStatus: String, Codable, Equatable {
+    case available
+    case stale
+    case unavailable
 }
 
 /// Monthly cost summary.
@@ -110,10 +210,37 @@ extension ProviderSnapshot {
     func isContentEqual(to other: ProviderSnapshot) -> Bool {
         id == other.id &&
         displayName == other.displayName &&
+        compactDisplayName == other.compactDisplayName &&
         kind == other.kind &&
         primaryWindowId == other.primaryWindowId &&
         windows == other.windows &&
-        spendUSD == other.spendUSD
-        // Intentionally ignores `fetchedAt` — it is not yet populated by the mapper.
+        spendUSD == other.spendUSD &&
+        status == other.status &&
+        accountsAreContentEqual(to: other.accounts)
+        // Intentionally ignores `fetchedAt` to avoid reloading a timeline on
+        // every successful polling heartbeat.
+    }
+
+    private func accountsAreContentEqual(to otherAccounts: [ProviderAccountSnapshot]?) -> Bool {
+        switch (accounts, otherAccounts) {
+        case (nil, nil):
+            return true
+        case let (lhs?, rhs?):
+            return lhs.count == rhs.count &&
+                zip(lhs, rhs).allSatisfy { $0.isContentEqual(to: $1) }
+        default:
+            return false
+        }
+    }
+}
+
+extension ProviderAccountSnapshot {
+    /// Compare semantic account content while ignoring fetch heartbeats.
+    func isContentEqual(to other: ProviderAccountSnapshot) -> Bool {
+        id == other.id &&
+        displayName == other.displayName &&
+        plan == other.plan &&
+        status == other.status &&
+        metrics == other.metrics
     }
 }

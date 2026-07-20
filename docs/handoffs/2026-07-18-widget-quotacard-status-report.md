@@ -76,16 +76,14 @@
 7. **medium(166pt)内容预算极限**:16pt 上下边距 + 全元素栈 ≈134pt 上限,hero 45px/描述 8px 是上限解;加元素必溢出顶边距。
 8. **长 provider 名截断**:eyebrow 一律 `minimumScaleFactor(0.75)` 自动缩,不许 lineLimit 截断。
 
-## 8. 死代码清单(给 Codex 清理,均已核实零引用)
+## 8. 死代码清理状态
 
-视图(TokenKingWidgetView.swift):
-- `RingGauge` struct、`ProviderBadge` struct
+已在 `codex/token-king-95-main` 清理：
 
-WidgetDesignToken 零引用 token(多为 orb 时代遗留):
-`orbHeroSize` `orbHeroTracking` `orbHeroCardTracking` `orbCopyRadius` `orbCardRadius` `orbAuroraScale` `orbAuroraGlowRadius` `orbAuroraWarmRadius` `orbAuroraCoolRadius` `orbCardBackgroundOpacity` `orbCardHighlightOpacity` `orbCardBorderOpacity` `orbCardShadowColor` `orbCardShadowRadius` `orbCardShadowY` `orbCopyScale` `orbTracking` `orbSize` `wNameSize`
+- `RingGauge`、`ProviderBadge` 两个零引用视图。
+- orb 时代的零引用 token：`orbHeroSize`、`orbHeroTracking`、`orbHeroCardTracking`、`orbCopyRadius`、`orbCardRadius`、`orbAuroraScale`、`orbAuroraGlowRadius`、`orbAuroraWarmRadius`、`orbAuroraCoolRadius`、`orbCardBackgroundOpacity`、`orbCardHighlightOpacity`、`orbCardBorderOpacity`、`orbCardShadowColor`、`orbCardShadowRadius`、`orbCardShadowY`、`orbCopyScale`、`orbTracking`、`orbSize`、`wNameSize`。
 
-历史假 token(任务书要求清除,需连带改调用点):
-`zeroInt` `zeroDouble` `zeroSpacing` `zeroLength` `tinyGap` `singleLine`
+仍可继续做的纯代码卫生项：将历史 `zeroInt`、`zeroDouble`、`zeroSpacing`、`zeroLength`、`singleLine` 调用改成 Swift 的 `0` / `1` 字面量；这不改变视觉或数据语义，优先级低于真实数据和安全收口。
 
 清理注意:`orbCardBorderWidth`、`percentHeroMediumSize`、`mediumHeroTracking`、`weeklyNumberSize`、`largeBarTopMargin` 仍在用,别误删。
 
@@ -102,7 +100,7 @@ WidgetDesignToken 零引用 token(多为 orb 时代遗留):
 
 ```bash
 # 1. 编译(必须 SUCCEEDED)
-cd CopilotMonitor && xcodebuild build -scheme CopilotMonitor -target TokenKingWidget \
+cd CopilotMonitor && xcodebuild build -project CopilotMonitor.xcodeproj -target TokenKingWidget \
   -destination 'platform=macOS' ENABLE_USER_SCRIPT_SANDBOXING=NO 2>&1 | grep -E "error:|BUILD (SUCCEEDED|FAILED)"
 # 2. 装机(Release + adhoc 签名 + PlugInKit 注册)
 bash scripts/build-and-install.sh

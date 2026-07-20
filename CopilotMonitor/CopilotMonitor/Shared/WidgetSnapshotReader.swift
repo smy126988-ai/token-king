@@ -57,4 +57,47 @@ enum WidgetSnapshotReader {
         }
         return result
     }
+
+    /// Returns the current snapshot through the same coordinated reader used
+    /// by the widget timeline. AppIntent entity queries use this instead of
+    /// directly decoding the file while the host may be replacing it.
+    static func currentSnapshot(
+        at url: URL = SharedPaths.snapshotURL,
+        now: Date = Date(),
+        staleThreshold: TimeInterval = 90 * 60
+    ) -> WidgetSnapshot? {
+        switch read(at: url, now: now, staleThreshold: staleThreshold) {
+        case let .ok(snapshot, _), let .stale(snapshot, _):
+            return snapshot
+        case .noFile, .corrupt:
+            return nil
+        }
+    }
+
+    /// Returns the latest snapshot from the host app's loopback bridge, then
+    /// falls back to the coordinated file reader when the host is unavailable.
+    /// AppIntent option providers use this path so their choices match the
+    /// data source used by widget timelines inside the sandbox.
+    static func currentSnapshotHTTPFirst(
+        at url: URL = SharedPaths.localSnapshotURL,
+        timeout: TimeInterval = 2
+    ) async -> WidgetSnapshot? {
+        var request = URLRequest(url: url)
+        request.timeoutInterval = timeout
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                return currentSnapshot()
+            }
+
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            return try decoder.decode(WidgetSnapshot.self, from: data)
+        } catch {
+            return currentSnapshot()
+        }
+    }
 }

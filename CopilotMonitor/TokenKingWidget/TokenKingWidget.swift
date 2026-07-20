@@ -12,6 +12,7 @@ struct TokenKingWidgetBundle: WidgetBundle {
         TokenKingWidgetLargeOverview()
         TokenKingWidgetLargeDetail()
         TokenKingWidgetSearchEngines()
+        TokenKingCodexWidget()
     }
 }
 
@@ -32,12 +33,40 @@ enum TokenKingWidgetKind: String, Equatable {
 
 // MARK: - Widgets
 
+struct TokenKingCodexWidget: Widget {
+    let kind = "com.tokenking.app.widget.codex"
+
+    var body: some WidgetConfiguration {
+        AppIntentConfiguration(
+            kind: kind,
+            intent: CodexAccountSelectionIntent.self,
+            provider: CodexQuotaTimelineProvider()
+        ) { entry in
+            CodexQuotaCardView(entry: entry)
+                .unredacted()
+                .containerBackground(for: .widget) {
+                    QuotaCardBackground(
+                        tier: codexTier(
+                            snapshot: entry.snapshot,
+                            selectedAccountId: entry.selectedProviderId
+                        )
+                    )
+                }
+        }
+        .contentMarginsDisabled()
+        .configurationDisplayName("Token King Codex")
+        .description("Codex quota remaining for one account.")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+    }
+}
+
 struct TokenKingWidgetSmall: Widget {
     let kind = "com.tokenking.app.widget.small"
 
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: ProviderSelectionIntent.self, provider: SmallProvider()) { entry in
             TokenKingWidgetView(entry: entry)
+                .unredacted()
                 .containerBackground(for: .widget) {
                     // quota-float QuotaCard container; tier follows the SAME
                     // short window the content displays.
@@ -58,6 +87,7 @@ struct TokenKingWidgetMediumOverview: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: MediumOverviewProvider()) { entry in
             TokenKingWidgetView(entry: entry)
+                .unredacted()
                 .containerBackground(for: .widget) {
                     QuotaCardBackground(tier: providerTier(snapshot: entry.snapshot,
                                                            selectedProviderId: entry.selectedProviderId))
@@ -76,6 +106,7 @@ struct TokenKingWidgetMediumDetail: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: ProviderSelectionIntent.self, provider: MediumDetailProvider()) { entry in
             TokenKingWidgetView(entry: entry)
+                .unredacted()
                 .containerBackground(for: .widget) {
                     QuotaCardBackground(tier: providerTier(snapshot: entry.snapshot,
                                                            selectedProviderId: entry.selectedProviderId))
@@ -94,6 +125,7 @@ struct TokenKingWidgetLargeOverview: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: LargeOverviewProvider()) { entry in
             TokenKingWidgetView(entry: entry)
+                .unredacted()
                 .containerBackground(for: .widget) {
                     QuotaCardBackground(tier: overviewTier(snapshot: entry.snapshot))
                 }
@@ -111,6 +143,7 @@ struct TokenKingWidgetLargeDetail: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: ProviderSelectionIntent.self, provider: LargeDetailProvider()) { entry in
             TokenKingWidgetView(entry: entry)
+                .unredacted()
                 .containerBackground(for: .widget) {
                     QuotaCardBackground(tier: providerTier(snapshot: entry.snapshot,
                                                            selectedProviderId: entry.selectedProviderId))
@@ -129,6 +162,7 @@ struct TokenKingWidgetSearchEngines: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: SearchEnginesProvider()) { entry in
             TokenKingWidgetView(entry: entry)
+                .unredacted()
                 .containerBackground(for: .widget) {
                     QuotaCardBackground(tier: overviewTier(snapshot: entry.snapshot))
                 }
@@ -171,11 +205,14 @@ struct AuroraBackgroundView: View {
                 startPoint: angleStart, endPoint: angleEnd
             )
             RadialGradient(colors: [tier.cool.opacity(0.9), .clear],
-                           center: UnitPoint(x: 0.52, y: 0.12), startRadius: 0, endRadius: 220)
+                           center: UnitPoint(x: 0.52, y: 0.12), startRadius: 0,
+                           endRadius: WidgetDesignToken.auroraCoolEndRadius)
             RadialGradient(colors: [tier.glow.opacity(0.78), .clear],
-                           center: UnitPoint(x: 0.28, y: 0.68), startRadius: 0, endRadius: 170)
+                           center: UnitPoint(x: 0.28, y: 0.68), startRadius: 0,
+                           endRadius: WidgetDesignToken.auroraGlowEndRadius)
             RadialGradient(colors: [tier.warm.opacity(0.64), .clear],
-                           center: UnitPoint(x: 0.82, y: 0.82), startRadius: 0, endRadius: 150)
+                           center: UnitPoint(x: 0.82, y: 0.82), startRadius: 0,
+                           endRadius: WidgetDesignToken.auroraWarmEndRadius)
         }
         .opacity(tier.opacity)
     }
@@ -191,10 +228,9 @@ struct AuroraBackgroundView: View {
 
 // MARK: - QuotaCard container background
 
-/// quota-float QuotaCard container shared by all six widgets: solid light
-/// card (orbCardBackground) + tier aurora inside + 1px white border with a
-/// brighter top edge (inset highlight). Pure gradient, no material; the
-/// system replaces it in vibrant/accented.
+/// Static light QuotaCard container with a tier aurora and subtle edge light.
+/// Pure gradients keep the extension deterministic and let the system replace
+/// the field in vibrant or accented rendering modes.
 struct QuotaCardBackground: View {
     let tier: WidgetDesignToken.Aurora.Tier
 
@@ -202,28 +238,46 @@ struct QuotaCardBackground: View {
         ZStack {
             WidgetDesignToken.orbCardBackground
             AuroraBackgroundView(tier: tier)
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(LinearGradient(colors: [Color.white.opacity(0.42),
-                                                Color.white.opacity(0.34)],
+            RoundedRectangle(cornerRadius: WidgetDesignToken.codexCardCornerRadius, style: .continuous)
+                .stroke(LinearGradient(colors: [Color.white.opacity(WidgetDesignToken.codexBorderTopOpacity),
+                                                Color.white.opacity(WidgetDesignToken.codexBorderBottomOpacity)],
                                        startPoint: .top, endPoint: .bottom),
-                        lineWidth: 1)
+                        lineWidth: WidgetDesignToken.orbCardBorderWidth)
         }
     }
+}
+
+/// Quota tier for the account this widget instance actually resolves.
+func codexTier(snapshot: WidgetSnapshot?, selectedAccountId: String?) -> WidgetDesignToken.Aurora.Tier {
+    guard let codex = snapshot?.providers.first(where: { $0.id == WidgetDesignToken.ProviderID.codex }) else {
+        return WidgetDesignToken.Aurora.healthy
+    }
+    let accounts = codex.accounts ?? []
+    let account: ProviderAccountSnapshot?
+    if let selectedAccountId {
+        account = accounts.first { $0.id == selectedAccountId }
+    } else {
+        account = accounts.count == WidgetDesignToken.singleWindowCount ? accounts.first : nil
+    }
+    guard account?.status == .available, let usedPercent = account?.metrics.first?.usedPercent else {
+        return WidgetDesignToken.Aurora.healthy
+    }
+    return WidgetDesignToken.CodexQuota.tier(forUsedPercent: usedPercent)
 }
 
 /// Tier for a single-provider widget: the displayed provider's short window.
 func providerTier(snapshot: WidgetSnapshot?, selectedProviderId: String?) -> WidgetDesignToken.Aurora.Tier {
     let provider = snapshot.flatMap {
-        selectedProvider(snapshot: $0, selectedProviderId: selectedProviderId) ?? topProvider(snapshot: $0)
+        resolvedProvider(snapshot: $0, selectedProviderId: selectedProviderId)
     }
-    let used = provider.flatMap { shortWindow(of: $0) }?.usedPercent ?? WidgetDesignToken.zeroDouble
+    let used = provider.flatMap { primaryWindow(of: $0) }?.usedPercent ?? WidgetDesignToken.zeroDouble
     return WidgetDesignToken.Aurora.tier(forUsedPercent: used)
 }
 
 /// Tier for a multi-provider widget: worst short-window usage across providers.
 func overviewTier(snapshot: WidgetSnapshot?) -> WidgetDesignToken.Aurora.Tier {
     let peak = snapshot?.providers
-        .compactMap { shortWindow(of: $0) }
+        .compactMap { primaryWindow(of: $0) }
         .map { $0.usedPercent }
         .max() ?? WidgetDesignToken.zeroDouble
     return WidgetDesignToken.Aurora.tier(forUsedPercent: peak)
@@ -240,10 +294,11 @@ struct TokenKingEntry: TimelineEntry {
     let snapshotAgeSeconds: Double?
 
     enum ReadStatus: Equatable {
-        case ok
+        case ready
         case stale
         case noFile
         case corrupt
+        case placeholder
     }
 }
 
@@ -263,8 +318,25 @@ extension BaseTokenKingProvider {
     /// 90 minutes — system throttles to 15-60min anyway.
     static var staleThreshold: TimeInterval { 90 * 60 }
 
-    func placeholder(in context: TimelineProviderContext) -> TokenKingEntry {
-        TokenKingEntry(date: Date(), kind: Self.kind, selectedProviderId: nil, snapshot: nil, readStatus: .noFile, snapshotAgeSeconds: nil)
+    func logConfiguration(selectedProviderId: String?, phase: String) {
+        WidgetLogger.provider.notice(
+            "\(phase, privacy: .public) kind=\(Self.kind.rawValue, privacy: .public) selectedProvider=\(selectedProviderId ?? "automatic", privacy: .public)"
+        )
+    }
+
+    func placeholderEntry() -> TokenKingEntry {
+        // The widget gallery renders this synchronously and may retain the
+        // result while the user is editing widgets. It must therefore be a
+        // complete card, rather than a transient "updating" state. Timeline
+        // and snapshot requests still replace this fixture with live data.
+        TokenKingEntry(
+            date: .now,
+            kind: Self.kind,
+            selectedProviderId: nil,
+            snapshot: .previewFixture,
+            readStatus: .ready,
+            snapshotAgeSeconds: 0
+        )
     }
 
     /// Read the shared snapshot from disk and tag the entry with this provider's kind.
@@ -287,7 +359,7 @@ extension BaseTokenKingProvider {
             return TokenKingEntry(date: Date(), kind: Self.kind, selectedProviderId: selectedProviderId, snapshot: snapshot, readStatus: status, snapshotAgeSeconds: age)
 
         case .ok(let snapshot, let age):
-            let status: TokenKingEntry.ReadStatus = .ok
+            let status: TokenKingEntry.ReadStatus = .ready
             WidgetLogger.provider.notice("read snapshot v\(snapshot.version) providers=\(snapshot.providers.count) ageSec=\(Int(age), privacy: .public) status=\(status.rawValueString, privacy: .public)")
             return TokenKingEntry(date: Date(), kind: Self.kind, selectedProviderId: selectedProviderId, snapshot: snapshot, readStatus: status, snapshotAgeSeconds: age)
         }
@@ -323,7 +395,7 @@ extension BaseTokenKingProvider {
             decoder.dateDecodingStrategy = .iso8601
             let snapshot = try decoder.decode(WidgetSnapshot.self, from: data)
             let age = Date().timeIntervalSince(snapshot.snapshotAt)
-            let status: TokenKingEntry.ReadStatus = age > Self.staleThreshold ? .stale : .ok
+            let status: TokenKingEntry.ReadStatus = age > Self.staleThreshold ? .stale : .ready
             WidgetLogger.provider.notice("read snapshot via http v\(snapshot.version, privacy: .public) providers=\(snapshot.providers.count, privacy: .public) ageSec=\(Int(age), privacy: .public) status=\(status.rawValueString, privacy: .public)")
             return TokenKingEntry(date: Date(), kind: Self.kind, selectedProviderId: selectedProviderId, snapshot: snapshot, readStatus: status, snapshotAgeSeconds: age)
         } catch {
@@ -354,12 +426,20 @@ struct SmallProvider: BaseTokenKingProvider, AppIntentTimelineProvider {
     typealias Intent = ProviderSelectionIntent
     typealias Entry = TokenKingEntry
 
+    func placeholder(in context: Context) -> TokenKingEntry {
+        placeholderEntry()
+    }
+
     func snapshot(for configuration: ProviderSelectionIntent, in context: Context) async -> TokenKingEntry {
-        await readEntryHTTPFirst(selectedProviderId: configuration.provider?.id)
+        let selectedProviderId = configuration.provider
+        logConfiguration(selectedProviderId: selectedProviderId, phase: "snapshot")
+        return await readEntryHTTPFirst(selectedProviderId: selectedProviderId)
     }
 
     func timeline(for configuration: ProviderSelectionIntent, in context: Context) async -> Timeline<TokenKingEntry> {
-        await makeTimelineHTTPFirst(selectedProviderId: configuration.provider?.id)
+        let selectedProviderId = configuration.provider
+        logConfiguration(selectedProviderId: selectedProviderId, phase: "timeline")
+        return await makeTimelineHTTPFirst(selectedProviderId: selectedProviderId)
     }
 }
 
@@ -369,12 +449,20 @@ struct MediumDetailProvider: BaseTokenKingProvider, AppIntentTimelineProvider {
     typealias Intent = ProviderSelectionIntent
     typealias Entry = TokenKingEntry
 
+    func placeholder(in context: Context) -> TokenKingEntry {
+        placeholderEntry()
+    }
+
     func snapshot(for configuration: ProviderSelectionIntent, in context: Context) async -> TokenKingEntry {
-        await readEntryHTTPFirst(selectedProviderId: configuration.provider?.id)
+        let selectedProviderId = configuration.provider
+        logConfiguration(selectedProviderId: selectedProviderId, phase: "snapshot")
+        return await readEntryHTTPFirst(selectedProviderId: selectedProviderId)
     }
 
     func timeline(for configuration: ProviderSelectionIntent, in context: Context) async -> Timeline<TokenKingEntry> {
-        await makeTimelineHTTPFirst(selectedProviderId: configuration.provider?.id)
+        let selectedProviderId = configuration.provider
+        logConfiguration(selectedProviderId: selectedProviderId, phase: "timeline")
+        return await makeTimelineHTTPFirst(selectedProviderId: selectedProviderId)
     }
 }
 
@@ -384,12 +472,39 @@ struct LargeDetailProvider: BaseTokenKingProvider, AppIntentTimelineProvider {
     typealias Intent = ProviderSelectionIntent
     typealias Entry = TokenKingEntry
 
+    func placeholder(in context: Context) -> TokenKingEntry {
+        placeholderEntry()
+    }
+
     func snapshot(for configuration: ProviderSelectionIntent, in context: Context) async -> TokenKingEntry {
-        await readEntryHTTPFirst(selectedProviderId: configuration.provider?.id)
+        let selectedProviderId = configuration.provider
+        logConfiguration(selectedProviderId: selectedProviderId, phase: "snapshot")
+        return await readEntryHTTPFirst(selectedProviderId: selectedProviderId)
     }
 
     func timeline(for configuration: ProviderSelectionIntent, in context: Context) async -> Timeline<TokenKingEntry> {
-        await makeTimelineHTTPFirst(selectedProviderId: configuration.provider?.id)
+        let selectedProviderId = configuration.provider
+        logConfiguration(selectedProviderId: selectedProviderId, phase: "timeline")
+        return await makeTimelineHTTPFirst(selectedProviderId: selectedProviderId)
+    }
+}
+
+/// Unified Codex provider shared by all supported WidgetKit families.
+struct CodexQuotaTimelineProvider: BaseTokenKingProvider, AppIntentTimelineProvider {
+    static let kind: TokenKingWidgetKind = .small
+    typealias Intent = CodexAccountSelectionIntent
+    typealias Entry = TokenKingEntry
+
+    func placeholder(in context: Context) -> TokenKingEntry {
+        placeholderEntry()
+    }
+
+    func snapshot(for configuration: CodexAccountSelectionIntent, in context: Context) async -> TokenKingEntry {
+        await readEntryHTTPFirst(selectedProviderId: configuration.account)
+    }
+
+    func timeline(for configuration: CodexAccountSelectionIntent, in context: Context) async -> Timeline<TokenKingEntry> {
+        await makeTimelineHTTPFirst(selectedProviderId: configuration.account)
     }
 }
 
@@ -399,6 +514,10 @@ struct LargeDetailProvider: BaseTokenKingProvider, AppIntentTimelineProvider {
 struct MediumOverviewProvider: BaseTokenKingProvider, TimelineProvider {
     static let kind: TokenKingWidgetKind = .mediumOverview
     typealias Entry = TokenKingEntry
+
+    func placeholder(in context: Context) -> TokenKingEntry {
+        placeholderEntry()
+    }
 
     func getSnapshot(in context: Context, completion: @escaping (TokenKingEntry) -> Void) {
         Task { completion(await readEntryHTTPFirst()) }
@@ -414,6 +533,10 @@ struct LargeOverviewProvider: BaseTokenKingProvider, TimelineProvider {
     static let kind: TokenKingWidgetKind = .largeOverview
     typealias Entry = TokenKingEntry
 
+    func placeholder(in context: Context) -> TokenKingEntry {
+        placeholderEntry()
+    }
+
     func getSnapshot(in context: Context, completion: @escaping (TokenKingEntry) -> Void) {
         Task { completion(await readEntryHTTPFirst()) }
     }
@@ -427,6 +550,10 @@ struct LargeOverviewProvider: BaseTokenKingProvider, TimelineProvider {
 struct SearchEnginesProvider: BaseTokenKingProvider, TimelineProvider {
     static let kind: TokenKingWidgetKind = .searchEngines
     typealias Entry = TokenKingEntry
+
+    func placeholder(in context: Context) -> TokenKingEntry {
+        placeholderEntry()
+    }
 
     func getSnapshot(in context: Context, completion: @escaping (TokenKingEntry) -> Void) {
         Task { completion(await readEntryHTTPFirst()) }
@@ -442,10 +569,11 @@ struct SearchEnginesProvider: BaseTokenKingProvider, TimelineProvider {
 extension TokenKingEntry.ReadStatus {
     var rawValueString: String {
         switch self {
-        case .ok: return "ok"
+        case .ready: return "ok"
         case .stale: return "stale"
         case .noFile: return "noFile"
         case .corrupt: return "corrupt"
+        case .placeholder: return "placeholder"
         }
     }
 }
