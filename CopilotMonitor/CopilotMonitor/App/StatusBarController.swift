@@ -2149,7 +2149,7 @@ final class StatusBarController: NSObject {
                f4Item.image = NSImage(systemSymbolName: "chart.bar.xaxis", accessibilityDescription: "Global Statistics")
                f4Item.tag = MenuItemTag.dynamic
                f4Item.identifier = NSUserInterfaceItemIdentifier("f4-global-stats")
-               f4Item.submenu = StatusBarController.createGlobalStatsSubmenu(snapshot: snapshot)
+               f4Item.submenu = StatusBarController.createGlobalStatsSubmenu(snapshot: snapshot, currencyFormatter: currencyFormatter)
                menu.insertItem(f4Item, at: insertIndex)
                insertIndex += 1
            }
@@ -2346,9 +2346,9 @@ final class StatusBarController: NSObject {
                      let rmbCost = SubscriptionSettingsManager.shared.monthlyCost(
                          forKey: key,
                          inCurrency: .rmb,
-                         formatter: CurrencyFormatter.shared
+                         formatter: self.currencyFormatter
                      )
-                     debugLog("[B44-followup]   group[\(i)]: key=\(key) rmb=\(CurrencyFormatter.shared.format(amount: rmbCost, as: .rmb, decimals: 0))")
+                     debugLog("[B44-followup]   group[\(i)]: key=\(key) rmb=\(self.currencyFormatter.format(amount: rmbCost, as: .rmb, decimals: 0))")
                  }
              }
              let warningItem = NSMenuItem()
@@ -2370,16 +2370,16 @@ final class StatusBarController: NSObject {
                          let cost = SubscriptionSettingsManager.shared.monthlyCost(
                              forKey: key,
                              inCurrency: .rmb,
-                             formatter: CurrencyFormatter.shared
+                             formatter: self.currencyFormatter
                          )
-                         priceText = "\(name) (\(CurrencyFormatter.shared.format(amount: cost, as: .rmb, decimals: 0))/月)"
+                         priceText = "\(name) (\(self.currencyFormatter.format(amount: cost, as: .rmb, decimals: 0))/月)"
                      case .custom:
                          let cost = SubscriptionSettingsManager.shared.monthlyCost(
                              forKey: key,
                              inCurrency: .rmb,
-                             formatter: CurrencyFormatter.shared
+                             formatter: self.currencyFormatter
                          )
-                         priceText = "自定义 (\(CurrencyFormatter.shared.format(amount: cost, as: .rmb, decimals: 0))/月)"
+                         priceText = "自定义 (\(self.currencyFormatter.format(amount: cost, as: .rmb, decimals: 0))/月)"
                      }
                      let item = NSMenuItem(
                          title: "🗑 删除 \(priceText)（Key: \(key)）",
@@ -3981,8 +3981,8 @@ final class StatusBarController: NSObject {
     /// tests can drive the flow without an alert.
     func performRemoveDuplicateSubscription(forKey key: String) {
         let beforeTotal = SubscriptionSettingsManager.shared.totalMonthlyCostDisplayText(
-            currency: CurrencyFormatter.shared.currency,
-            formatter: CurrencyFormatter.shared
+            currency: self.currencyFormatter.currency,
+            formatter: self.currencyFormatter
         )
         let beforeGroups = SubscriptionSettingsManager.shared.findLikelyDuplicateSubscriptionGroups()
         debugLog("[B44-followup] removeDuplicate: deleting key=\(key) total_before=\(beforeTotal) groups_before=\(beforeGroups.count)")
@@ -3992,8 +3992,8 @@ final class StatusBarController: NSObject {
         updateMultiProviderMenu()
 
         let afterTotal = SubscriptionSettingsManager.shared.totalMonthlyCostDisplayText(
-            currency: CurrencyFormatter.shared.currency,
-            formatter: CurrencyFormatter.shared
+            currency: self.currencyFormatter.currency,
+            formatter: self.currencyFormatter
         )
         let afterGroups = SubscriptionSettingsManager.shared.findLikelyDuplicateSubscriptionGroups()
         debugLog("[B44-followup] removeDuplicate: deleted key=\(key) total_after=\(afterTotal) groups_after=\(afterGroups.count)")
@@ -4986,9 +4986,12 @@ extension StatusBarController {
     /// Live data path (in production) calls `TokenUsageStore.fetchDayAggregates`
     /// + `TokenStatsAggregator.snapshot` then passes the result here. Static so
     /// the rendering can be unit-tested without constructing a controller.
-    static func createGlobalStatsSubmenu(snapshot: TokenStatsAggregator.Snapshot) -> NSMenu {
+    /// L1-M1: currencyFormatter (and later subscriptionManager in commit D) is
+    /// passed explicitly because a static method has no `self` to resolve the
+    /// facade through.
+    static func createGlobalStatsSubmenu(snapshot: TokenStatsAggregator.Snapshot, currencyFormatter: CurrencyFormatter) -> NSMenu {
         let menu = NSMenu()
-        let formatter = CurrencyFormatter.shared
+        let formatter = currencyFormatter
 
         let tokenHeader = NSMenuItem()
         tokenHeader.view = f4HeaderView(title: "Token 用量汇总")
