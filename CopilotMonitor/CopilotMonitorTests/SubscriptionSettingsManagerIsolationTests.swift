@@ -1,6 +1,13 @@
 import XCTest
 @testable import OpenCode_Bar
 
+/// B12 isolation tests intentionally keep `SubscriptionSettingsManager.shared`
+/// and `CurrencyFormatter.shared` accesses — their whole purpose is to assert
+/// `.shared` semantics (routing through `UserDefaults.standard`, not leaking
+/// across injected suites). The L1-M1 phase 3.1 test-migration plan §5.4
+/// explicitly preserves these references; do NOT rewrite them to use
+/// `InitOptions.testing`, or this suite stops being a regression guard for
+/// production-default singleton behavior.
 final class SubscriptionSettingsIsolationTests: XCTestCase {
 
     private func freshSuite(_ suffix: String = "B12") -> (name: String, suite: UserDefaults) {
