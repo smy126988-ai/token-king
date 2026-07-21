@@ -248,7 +248,7 @@ final class ProviderUsageTests: XCTestCase {
     }
 
     func testSubscriptionSettingsUsesAccountScopedKeys() {
-        let manager = SubscriptionSettingsManager.shared
+        let manager = SubscriptionSettingsManager(defaults: UserDefaults(suiteName: "test-\(UUID().uuidString)")!)
 
         XCTAssertEqual(manager.subscriptionKey(for: .claude), "claude._default_")
         XCTAssertEqual(
@@ -258,7 +258,8 @@ final class ProviderUsageTests: XCTestCase {
     }
 
     func testSubscriptionSettingsIgnoresLegacyProviderLevelKeys() {
-        let manager = SubscriptionSettingsManager.shared
+        let suite = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+        let manager = SubscriptionSettingsManager(defaults: suite)
         let validKey = manager.subscriptionKey(for: .codex, accountId: "subscription-settings-test@example.com")
         let providerLevelKey = "codex"
         let invalidProviderKey = "chatgpt.subscription-settings-test@example.com"
