@@ -4,7 +4,11 @@ import XCTest
 final class SubscriptionSettingsManagerTests: XCTestCase {
     private var suiteName: String = ""
     private var defaults: UserDefaults = .standard
-    private var manager: SubscriptionSettingsManager = .shared
+    // Initial value placeholder — setUp() reassigns this to an injected
+    // instance pointing at a per-test UserDefaults suite. Constructing a
+    // fresh `SubscriptionSettingsManager(defaults: .standard)` here avoids
+    // touching the deprecated `.shared` static while we wait for setUp().
+    private var manager: SubscriptionSettingsManager = SubscriptionSettingsManager(defaults: .standard)
 
     override func setUp() {
         super.setUp()
@@ -36,10 +40,17 @@ final class SubscriptionSettingsManagerTests: XCTestCase {
     }
 
     func testInjectedManagerDoesNotReadSharedDefaults() {
-        // Write via .shared (polutes .standard)
+        // Simulate pollution from another process via a separate
+        // `SubscriptionSettingsManager` instance targeting UserDefaults.standard.
+        // Constructing it explicitly (instead of touching the deprecated
+        // `.shared` static) keeps the test honest about the abstraction and
+        // also keeps it compile-safe if `.shared` is removed in a later phase.
+        // The injected `manager` (from setUp) targets a per-test suite, so
+        // it must NOT observe the .standard write below.
         let sharedKey = "minimax_coding_plan.shared-test@example.com"
-        SubscriptionSettingsManager.shared.setPlan(.preset("Plus", 20), forKey: sharedKey)
-        defer { SubscriptionSettingsManager.shared.removePlan(forKey: sharedKey) }
+        let polluter = SubscriptionSettingsManager(defaults: .standard)
+        polluter.setPlan(.preset("Plus", 20), forKey: sharedKey)
+        defer { polluter.removePlan(forKey: sharedKey) }
 
         // Injected manager should NOT see this
         XCTAssertEqual(manager.getPlan(forKey: sharedKey), .none,
