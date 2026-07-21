@@ -108,6 +108,13 @@ final class StatusBarController: NSObject {
     struct InitOptions {
         let userDefaults: UserDefaults
         let currencyFormatter: CurrencyFormatter
+        /// L1-M1: subscription-settings facade routed through InitOptions.
+        /// Production callers stay on `.shared` (kept compilable via the
+        /// @available(*, deprecated) annotation in SubscriptionSettings.swift);
+        /// tests construct a fresh `SubscriptionSettingsManager(defaults: suite)`.
+        /// Call sites still reference `SubscriptionSettingsManager.shared`
+        /// for now — Phase 3.2/3.3 will switch them to `self.subscriptionManager`.
+        let subscriptionManager: any SubscriptionConfigStoring
         /// When false, the controller skips the refresh timer, GitHub star
         /// prompt, and `CurrencyFormatter.refreshRateInBackground()`.
         let runBackgroundTasks: Bool
@@ -119,6 +126,7 @@ final class StatusBarController: NSObject {
         static let production = InitOptions(
             userDefaults: .standard,
             currencyFormatter: .shared,
+            subscriptionManager: SubscriptionSettingsManager.shared,
             runBackgroundTasks: true,
             promptGitHubStar: true,
             logDebugEnvironmentInfo: true
@@ -139,6 +147,7 @@ final class StatusBarController: NSObject {
             return InitOptions(
                 userDefaults: suite,
                 currencyFormatter: CurrencyFormatter(defaults: suite),
+                subscriptionManager: SubscriptionSettingsManager(defaults: suite),
                 runBackgroundTasks: false,
                 promptGitHubStar: false,
                 logDebugEnvironmentInfo: false
@@ -153,6 +162,12 @@ final class StatusBarController: NSObject {
 
     /// B09: CurrencyFormatter facade routing through the injected formatter.
     var currencyFormatter: CurrencyFormatter { initOptions.currencyFormatter }
+
+    /// L1-M1: SubscriptionSettingsManager facade routing through the injected
+    /// protocol-typed manager. Phase 3.0 only adds the surface; call sites
+    /// are migrated in 3.2/3.3 to use `self.subscriptionManager` instead of
+    /// `SubscriptionSettingsManager.shared`.
+    var subscriptionManager: any SubscriptionConfigStoring { initOptions.subscriptionManager }
 
     private(set) var statusItem: NSStatusItem?
     var statusBarIconView: StatusBarIconView?
