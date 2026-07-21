@@ -13,7 +13,8 @@ final class StatusBarControllerF4Tests: XCTestCase {
                 weekTotal: TokenBreakdown(input: 12000),
                 monthTotal: TokenBreakdown(input: 50_000, output: 20_000)
             ),
-            currencyFormatter: CurrencyFormatter(defaults: UserDefaults(suiteName: "F4Tests.\(UUID().uuidString)")!)
+            currencyFormatter: CurrencyFormatter(defaults: UserDefaults(suiteName: "F4Tests.\(UUID().uuidString)")!),
+            subscriptionManager: SubscriptionSettingsManager(defaults: UserDefaults(suiteName: "F4Tests.\(UUID().uuidString)")!)
         )
         let texts = extractText(from: submenu)
         XCTAssertTrue(texts.contains(where: { $0.contains("Token 用量汇总") }), "Token 用量汇总 header missing in \(texts)")
@@ -29,7 +30,8 @@ final class StatusBarControllerF4Tests: XCTestCase {
                 weekTotal: TokenBreakdown.zero,
                 monthTotal: TokenBreakdown.zero
             ),
-            currencyFormatter: CurrencyFormatter(defaults: UserDefaults(suiteName: "F4Tests.\(UUID().uuidString)")!)
+            currencyFormatter: CurrencyFormatter(defaults: UserDefaults(suiteName: "F4Tests.\(UUID().uuidString)")!),
+            subscriptionManager: SubscriptionSettingsManager(defaults: UserDefaults(suiteName: "F4Tests.\(UUID().uuidString)")!)
         )
         let texts = extractText(from: submenu)
         XCTAssertTrue(texts.contains(where: { $0.contains("额度状态") }), "额度状态 header missing in \(texts)")
@@ -43,7 +45,8 @@ final class StatusBarControllerF4Tests: XCTestCase {
                 weekTotal: TokenBreakdown.zero,
                 monthTotal: TokenBreakdown.zero
             ),
-            currencyFormatter: CurrencyFormatter(defaults: UserDefaults(suiteName: "F4Tests.\(UUID().uuidString)")!)
+            currencyFormatter: CurrencyFormatter(defaults: UserDefaults(suiteName: "F4Tests.\(UUID().uuidString)")!),
+            subscriptionManager: SubscriptionSettingsManager(defaults: UserDefaults(suiteName: "F4Tests.\(UUID().uuidString)")!)
         )
         XCTAssertEqual(submenu.items.count, 7, "Expected 7 items; got \(submenu.items.count)")
     }

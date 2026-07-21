@@ -2149,7 +2149,7 @@ final class StatusBarController: NSObject {
                f4Item.image = NSImage(systemSymbolName: "chart.bar.xaxis", accessibilityDescription: "Global Statistics")
                f4Item.tag = MenuItemTag.dynamic
                f4Item.identifier = NSUserInterfaceItemIdentifier("f4-global-stats")
-               f4Item.submenu = StatusBarController.createGlobalStatsSubmenu(snapshot: snapshot, currencyFormatter: currencyFormatter)
+               f4Item.submenu = StatusBarController.createGlobalStatsSubmenu(snapshot: snapshot, currencyFormatter: currencyFormatter, subscriptionManager: subscriptionManager)
                menu.insertItem(f4Item, at: insertIndex)
                insertIndex += 1
            }
@@ -4333,12 +4333,12 @@ final class StatusBarController: NSObject {
             copilotUsage: currentUsage
         )
         let payAsYouGoInCurrency = payAsYouGoUSD * (currency == .rmb ? rate : 1.0)
-        let subscriptionInCurrency = SubscriptionSettingsManager.shared.totalMonthlyCost(
+        let subscriptionInCurrency = subscriptionManager.totalMonthlyCost(
             inCurrency: currency,
             formatter: currencyFormatter
         )
         let totalTracked = payAsYouGoInCurrency + subscriptionInCurrency
-        let subscriptionDisplay = SubscriptionSettingsManager.shared.totalMonthlyCostDisplayText(
+        let subscriptionDisplay = subscriptionManager.totalMonthlyCostDisplayText(
             currency: currency,
             formatter: currencyFormatter
         )
@@ -4986,10 +4986,9 @@ extension StatusBarController {
     /// Live data path (in production) calls `TokenUsageStore.fetchDayAggregates`
     /// + `TokenStatsAggregator.snapshot` then passes the result here. Static so
     /// the rendering can be unit-tested without constructing a controller.
-    /// L1-M1: currencyFormatter (and later subscriptionManager in commit D) is
-    /// passed explicitly because a static method has no `self` to resolve the
-    /// facade through.
-    static func createGlobalStatsSubmenu(snapshot: TokenStatsAggregator.Snapshot, currencyFormatter: CurrencyFormatter) -> NSMenu {
+    /// L1-M1: currencyFormatter and subscriptionManager are passed explicitly
+    /// because a static method has no `self` to resolve the facade through.
+    static func createGlobalStatsSubmenu(snapshot: TokenStatsAggregator.Snapshot, currencyFormatter: CurrencyFormatter, subscriptionManager: any SubscriptionConfigStoring) -> NSMenu {
         let menu = NSMenu()
         let formatter = currencyFormatter
 
@@ -5029,11 +5028,11 @@ extension StatusBarController {
         quotaHeader.identifier = NSUserInterfaceItemIdentifier("f4-quota-header")
         menu.addItem(quotaHeader)
 
-        let total = SubscriptionSettingsManager.shared.totalMonthlyCost(
+        let total = subscriptionManager.totalMonthlyCost(
             inCurrency: formatter.currency, formatter: formatter
         )
         let displayText = total > 0
-            ? "  订阅参考：\(SubscriptionSettingsManager.shared.totalMonthlyCostDisplayText(currency: formatter.currency, formatter: formatter))/月"
+            ? "  订阅参考：\(subscriptionManager.totalMonthlyCostDisplayText(currency: formatter.currency, formatter: formatter))/月"
             : "  订阅参考：—/月"
         let quotaItem = NSMenuItem()
         quotaItem.view = f4RowView(text: displayText)
