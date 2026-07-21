@@ -112,7 +112,7 @@ final class StatusBarController: NSObject {
         /// Production callers stay on `.shared` (kept compilable via the
         /// @available(*, deprecated) annotation in SubscriptionSettings.swift);
         /// tests construct a fresh `SubscriptionSettingsManager(defaults: suite)`.
-        /// Call sites still reference `SubscriptionSettingsManager.shared`
+        /// Call sites still reference `subscriptionManager`
         /// for now — Phase 3.2/3.3 will switch them to `self.subscriptionManager`.
         let subscriptionManager: any SubscriptionConfigStoring
         /// When false, the controller skips the refresh timer, GitHub star
@@ -166,7 +166,7 @@ final class StatusBarController: NSObject {
     /// L1-M1: SubscriptionSettingsManager facade routing through the injected
     /// protocol-typed manager. Phase 3.0 only adds the surface; call sites
     /// are migrated in 3.2/3.3 to use `self.subscriptionManager` instead of
-    /// `SubscriptionSettingsManager.shared`.
+    /// `subscriptionManager`.
     var subscriptionManager: any SubscriptionConfigStoring { initOptions.subscriptionManager }
 
     private(set) var statusItem: NSStatusItem?
@@ -1154,7 +1154,7 @@ final class StatusBarController: NSObject {
         let payAsYouGoUSD = calculatePayAsYouGoTotal(providerResults: providerResults, copilotUsage: copilotUsage)
         let currency = currencyFormatter.currency
         let payAsYouGoInCurrency = payAsYouGoUSD * (currency == .rmb ? currencyFormatter.currentRate : 1.0)
-        let subscriptionsInCurrency = SubscriptionSettingsManager.shared.totalMonthlyCost(inCurrency: currency, formatter: currencyFormatter)
+        let subscriptionsInCurrency = subscriptionManager.totalMonthlyCost(inCurrency: currency, formatter: currencyFormatter)
         return payAsYouGoInCurrency + subscriptionsInCurrency
     }
 
@@ -1165,7 +1165,7 @@ final class StatusBarController: NSObject {
     /// no spend to report so the widget hides the row instead of showing $0.
     func widgetMonthlySpend() -> MonthlyCost? {
         let payAsYouGoUSD = calculatePayAsYouGoTotal(providerResults: providerResults, copilotUsage: currentUsage)
-        let subscriptionsUSD = SubscriptionSettingsManager.shared.totalMonthlyCost(inCurrency: .usd, formatter: currencyFormatter)
+        let subscriptionsUSD = subscriptionManager.totalMonthlyCost(inCurrency: .usd, formatter: currencyFormatter)
         let usd = payAsYouGoUSD + subscriptionsUSD
         guard usd > 0 else { return nil }
         let rate = currencyFormatter.currentRate
@@ -1394,7 +1394,7 @@ final class StatusBarController: NSObject {
     private func chutesMonthlyPercentFromDetails(_ details: DetailedUsage?) -> Double? {
         guard let details else { return nil }
 
-        let configuredPlan = SubscriptionSettingsManager.shared.getPlan(for: .chutes)
+        let configuredPlan = subscriptionManager.getPlan(for: .chutes, accountId: nil)
         let configuredCapUSD = configuredPlan.isSet
             ? configuredPlan.cost * ChutesProvider.monthlyValueMultiplier
             : nil
@@ -1971,7 +1971,7 @@ final class StatusBarController: NSObject {
                     } else {
                         subscriptionAccountId = nil
                     }
-                    let key = SubscriptionSettingsManager.shared.subscriptionKey(
+                    let key = subscriptionManager.subscriptionKey(
                         for: .geminiCLI,
                         accountId: subscriptionAccountId
                     )
@@ -1983,11 +1983,11 @@ final class StatusBarController: NSObject {
             if let accounts = result.accounts, !accounts.isEmpty {
                 for account in accounts {
                     let accountId = subscriptionAccountId(details: account.details, fallback: account.accountId)
-                    keys.insert(SubscriptionSettingsManager.shared.subscriptionKey(for: identifier, accountId: accountId))
+                    keys.insert(subscriptionManager.subscriptionKey(for: identifier, accountId: accountId))
                 }
             } else {
                 let accountId = subscriptionAccountId(details: result.details)
-                keys.insert(SubscriptionSettingsManager.shared.subscriptionKey(for: identifier, accountId: accountId))
+                keys.insert(subscriptionManager.subscriptionKey(for: identifier, accountId: accountId))
             }
         }
 
@@ -1996,7 +1996,7 @@ final class StatusBarController: NSObject {
 
     private func calculateOrphanedSubscriptions(providerResults: [ProviderIdentifier: ProviderResult]) -> (keys: [String], total: Double) {
         let visibleKeys = collectVisibleSubscriptionKeys(providerResults: providerResults)
-        let allKeys = SubscriptionSettingsManager.shared.getAllSubscriptionKeys()
+        let allKeys = subscriptionManager.getAllSubscriptionKeys()
         let currency = currencyFormatter.currency
 
         var orphaned: [String] = []
@@ -2027,29 +2027,29 @@ final class StatusBarController: NSObject {
             } else {
                 // Unknown provider prefix: still treat it as orphaned if it contributes a cost.
                 // This lets users clean up stale subscription entries after provider renames/removals.
-                let plan = SubscriptionSettingsManager.shared.getPlan(forKey: key)
+                let plan = subscriptionManager.getPlan(forKey: key)
                 if plan.cost <= 0 {
                     continue
                 }
 
                 orphaned.append(key)
-                total += SubscriptionSettingsManager.shared.monthlyCost(forKey: key, inCurrency: currency, formatter: currencyFormatter)
+                total += subscriptionManager.monthlyCost(forKey: key, inCurrency: currency, formatter: currencyFormatter)
                 continue
             }
 
-            let plan = SubscriptionSettingsManager.shared.getPlan(forKey: key)
+            let plan = subscriptionManager.getPlan(forKey: key)
             if plan.cost <= 0 {
                 continue
             }
 
             orphaned.append(key)
-            total += SubscriptionSettingsManager.shared.monthlyCost(forKey: key, inCurrency: currency, formatter: currencyFormatter)
+            total += subscriptionManager.monthlyCost(forKey: key, inCurrency: currency, formatter: currencyFormatter)
         }
 
         if orphaned.isEmpty {
             debugLog("Orphaned subscriptions: none")
         } else {
-            let displayTotal = SubscriptionSettingsManager.shared.totalMonthlyCostDisplayText(currency: currency, formatter: currencyFormatter)
+            let displayTotal = subscriptionManager.totalMonthlyCostDisplayText(currency: currency, formatter: currencyFormatter)
             let sanitizedKeys = orphaned.map { sanitizedSubscriptionKey($0) }.joined(separator: ", ")
             debugLog("Orphaned subscriptions detected: \(orphaned.count) key(s), total=\(displayTotal), keys=[\(sanitizedKeys)]")
         }
@@ -2313,11 +2313,11 @@ final class StatusBarController: NSObject {
         insertIndex += 1
 
          let quotaHeader = NSMenuItem()
-         let totalMonthlyCost = SubscriptionSettingsManager.shared.totalMonthlyCost(
+         let totalMonthlyCost = subscriptionManager.totalMonthlyCost(
              inCurrency: currencyFormatter.currency,
              formatter: currencyFormatter
          )
-         let subscriptionDisplay = SubscriptionSettingsManager.shared.totalMonthlyCostDisplayText(
+         let subscriptionDisplay = subscriptionManager.totalMonthlyCostDisplayText(
              currency: currencyFormatter.currency,
              formatter: currencyFormatter
          )
@@ -2335,7 +2335,7 @@ final class StatusBarController: NSObject {
          // user picks which side to drop. Use monthlyCost(forKey:) for the
          // label so CN keys show their native CNY price (via cnyCost), not
          // USD × exchange rate.
-         let duplicateGroups = SubscriptionSettingsManager.shared.findLikelyDuplicateSubscriptionGroups()
+         let duplicateGroups = subscriptionManager.findLikelyDuplicateSubscriptionGroups()
          if !duplicateGroups.isEmpty {
              // B44-followup observability: log the detection + per-key label
              // breakdown so the user/dev can verify the menu state through
@@ -2343,7 +2343,7 @@ final class StatusBarController: NSObject {
              debugLog("[B44-followup] duplicate detection: \(duplicateGroups.count) group(s)")
              for (i, group) in duplicateGroups.enumerated() {
                  for key in group {
-                     let rmbCost = SubscriptionSettingsManager.shared.monthlyCost(
+                     let rmbCost = subscriptionManager.monthlyCost(
                          forKey: key,
                          inCurrency: .rmb,
                          formatter: self.currencyFormatter
@@ -2361,20 +2361,20 @@ final class StatusBarController: NSObject {
 
              for group in duplicateGroups {
                  for key in group {
-                     let plan = SubscriptionSettingsManager.shared.getPlan(forKey: key)
+                     let plan = subscriptionManager.getPlan(forKey: key)
                      let priceText: String
                      switch plan {
                      case .none:
                          priceText = "无"
                      case .preset(let name, _):
-                         let cost = SubscriptionSettingsManager.shared.monthlyCost(
+                         let cost = subscriptionManager.monthlyCost(
                              forKey: key,
                              inCurrency: .rmb,
                              formatter: self.currencyFormatter
                          )
                          priceText = "\(name) (\(self.currencyFormatter.format(amount: cost, as: .rmb, decimals: 0))/月)"
                      case .custom:
-                         let cost = SubscriptionSettingsManager.shared.monthlyCost(
+                         let cost = subscriptionManager.monthlyCost(
                              forKey: key,
                              inCurrency: .rmb,
                              formatter: self.currencyFormatter
@@ -2987,7 +2987,7 @@ final class StatusBarController: NSObject {
         orphanedSubscriptionKeys = orphaned.keys
         orphanedSubscriptionTotal = orphaned.total
         if orphaned.total > 0 {
-            let displayTotal = SubscriptionSettingsManager.shared.totalMonthlyCostDisplayText(
+            let displayTotal = subscriptionManager.totalMonthlyCostDisplayText(
                 currency: currencyFormatter.currency,
                 formatter: currencyFormatter
             )
