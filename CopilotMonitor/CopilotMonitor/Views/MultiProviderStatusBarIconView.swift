@@ -117,7 +117,11 @@ final class MultiProviderStatusBarIconView: NSView {
         // StatusBarIconView instead. The currency symbol now respects the user's
         // currency preference ($ vs ¥) even though this renderer is not wired to the
         // live status item, so behavior is consistent if it ever does get wired up.
-        let text = CurrencyFormatter.shared.currency.symbol
+        // L1-M1: build a local formatter instance instead of touching the
+        // deprecated `.shared` static. This view is never constructed in
+        // production so the formatter's UserDefaults target is irrelevant;
+        // it just needs *some* `CurrencyFormatter` to read the currency symbol.
+        let text = CurrencyFormatter().currency.symbol
         let font = NSFont.boldSystemFont(ofSize: 14)
         // Use adaptive color for light/dark mode visibility
         let textColor = isDark ? NSColor.white : NSColor.black

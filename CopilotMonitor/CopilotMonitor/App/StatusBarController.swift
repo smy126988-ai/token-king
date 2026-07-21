@@ -468,7 +468,7 @@ final class StatusBarController: NSObject {
         // _statusItems` on macOS 26.x). It will be supplied later via `attachTo(_:)`
         // from AppDelegate. We only set up the custom StatusBarIconView here so it
         // is ready when the bridge arrives.
-        statusBarIconView = StatusBarIconView(frame: .zero)
+        statusBarIconView = StatusBarIconView(frame: .zero, currencyFormatter: currencyFormatter)
         statusBarIconView?.onIntrinsicContentSizeDidChange = { [weak self] in
             self?.updateStatusItemLayout(reason: "intrinsic-size-changed")
         }

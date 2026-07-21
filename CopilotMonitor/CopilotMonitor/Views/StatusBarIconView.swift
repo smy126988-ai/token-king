@@ -15,6 +15,24 @@ final class StatusBarIconView: NSView {
     private var loadingAnimationTimer: Timer?
     private var loadingRotationDegrees: CGFloat = 0
 
+    /// L1-M1: injected so this view no longer reaches for
+    /// `CurrencyFormatter.shared`. The single call site
+    /// (`StatusBarController.setupStatusItem`) passes the controller's
+    /// `initOptions.currencyFormatter` through.
+    private let currencyFormatter: CurrencyFormatter
+
+    init(frame frameRect: NSRect, currencyFormatter: CurrencyFormatter) {
+        self.currencyFormatter = currencyFormatter
+        super.init(frame: frameRect)
+    }
+
+    required init?(coder: NSCoder) {
+        // Storyboard/XIB initialization is not used by this app; bail with
+        // a clear failure if it ever is. The default `init(frame:)` path
+        // routes through the injected variant above.
+        fatalError("StatusBarIconView must be initialized with init(frame:currencyFormatter:)")
+    }
+
     /// Called whenever the intrinsic width may have changed.
     var onIntrinsicContentSizeDidChange: (() -> Void)?
 
@@ -302,6 +320,6 @@ final class StatusBarIconView: NSView {
     }
 
     private func formatCost(_ cost: Double) -> String {
-        CurrencyFormatter.shared.format(usd: cost)
+        currencyFormatter.format(usd: cost)
     }
 }

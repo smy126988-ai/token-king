@@ -1099,7 +1099,11 @@ struct TableFormatter {
         #if CLI_TARGET
         return String(format: "$%.2f spent", cost)
         #else
-        let f = formatter ?? .shared
+        // L1-M1: callers always pass an explicit formatter, so the fallback
+        // is only hit when `nil` propagates from the optional chain above.
+        // Use a freshly-constructed instance instead of the deprecated
+        // `CurrencyFormatter.shared` static.
+        let f = formatter ?? CurrencyFormatter()
         return f.format(usd: cost) + " spent"
         #endif
     }

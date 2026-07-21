@@ -119,7 +119,7 @@ extension SubscriptionPlan {
     /// User-facing title for the selected subscription plan, formatted with the supplied formatter.
     /// Pass the matching preset list so RMB mode can use native CNY prices where available.
     /// Example outputs: "Pro ($20/月)", "Moderato (¥99/月)", "自定义 (¥144/月)", "无 (¥0)".
-    func displayTitle(formatter: CurrencyFormatter = CurrencyFormatter.shared,
+    func displayTitle(formatter: CurrencyFormatter,
                       presets: [SubscriptionPreset] = []) -> String {
         switch self {
         case .none:
@@ -140,7 +140,7 @@ struct SubscriptionPreset {
     let cost: Double          // USD，ROI 计算唯一真值
     var cnyCost: Double? = nil // 国内套餐人民币原生价，仅展示用
 
-    func formattedPrice(decimals: Int = 0, formatter: CurrencyFormatter = CurrencyFormatter.shared) -> String {
+    func formattedPrice(decimals: Int = 0, formatter: CurrencyFormatter) -> String {
         if formatter.currency == .rmb, let cny = cnyCost {
             return "¥\(Int(cny))"
         }
