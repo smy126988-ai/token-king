@@ -3915,7 +3915,7 @@ final class StatusBarController: NSObject {
     @objc func subscriptionPlanSelected(_ sender: NSMenuItem) {
         guard let action = sender.representedObject as? SubscriptionMenuAction else { return }
 
-        SubscriptionSettingsManager.shared.setPlan(action.plan, forKey: action.subscriptionKey)
+        subscriptionManager.setPlan(action.plan, forKey: action.subscriptionKey)
         menu.cancelTracking()
         updateMultiProviderMenu()
     }
@@ -3932,7 +3932,7 @@ final class StatusBarController: NSObject {
             alert.addButton(withTitle: "取消")
 
             let inputField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
-            if case .custom(let currentCost) = SubscriptionSettingsManager.shared.getPlan(forKey: subscriptionKey) {
+            if case .custom(let currentCost) = subscriptionManager.getPlan(forKey: subscriptionKey) {
                 inputField.stringValue = String(format: "%.0f", currentCost)
             } else {
                 inputField.stringValue = ""
@@ -3945,7 +3945,7 @@ final class StatusBarController: NSObject {
             let response = alert.runModal()
             if response == .alertFirstButtonReturn {
                 if let cost = Double(inputField.stringValue), cost >= 0 {
-                    SubscriptionSettingsManager.shared.setPlan(.custom(cost), forKey: subscriptionKey)
+                    subscriptionManager.setPlan(.custom(cost), forKey: subscriptionKey)
                     menu.cancelTracking()
                     updateMultiProviderMenu()
                     shouldPrompt = false
@@ -3980,22 +3980,22 @@ final class StatusBarController: NSObject {
     /// The handler shows an NSAlert; the actual delete + rebuild is here so
     /// tests can drive the flow without an alert.
     func performRemoveDuplicateSubscription(forKey key: String) {
-        let beforeTotal = SubscriptionSettingsManager.shared.totalMonthlyCostDisplayText(
-            currency: self.currencyFormatter.currency,
-            formatter: self.currencyFormatter
+        let beforeTotal = subscriptionManager.totalMonthlyCostDisplayText(
+            currency: currencyFormatter.currency,
+            formatter: currencyFormatter
         )
-        let beforeGroups = SubscriptionSettingsManager.shared.findLikelyDuplicateSubscriptionGroups()
+        let beforeGroups = subscriptionManager.findLikelyDuplicateSubscriptionGroups()
         debugLog("[B44-followup] removeDuplicate: deleting key=\(key) total_before=\(beforeTotal) groups_before=\(beforeGroups.count)")
 
-        SubscriptionSettingsManager.shared.removePlan(forKey: key)
+        subscriptionManager.removePlan(forKey: key)
         menu.cancelTracking()
         updateMultiProviderMenu()
 
-        let afterTotal = SubscriptionSettingsManager.shared.totalMonthlyCostDisplayText(
-            currency: self.currencyFormatter.currency,
-            formatter: self.currencyFormatter
+        let afterTotal = subscriptionManager.totalMonthlyCostDisplayText(
+            currency: currencyFormatter.currency,
+            formatter: currencyFormatter
         )
-        let afterGroups = SubscriptionSettingsManager.shared.findLikelyDuplicateSubscriptionGroups()
+        let afterGroups = subscriptionManager.findLikelyDuplicateSubscriptionGroups()
         debugLog("[B44-followup] removeDuplicate: deleted key=\(key) total_after=\(afterTotal) groups_after=\(afterGroups.count)")
         debugLog("Removed duplicate subscription key=\(key)")
     }
@@ -4189,7 +4189,7 @@ final class StatusBarController: NSObject {
         }
 
         let orphanedCount = keysToReset.count
-        let displayTotal = SubscriptionSettingsManager.shared.totalMonthlyCostDisplayText(
+        let displayTotal = subscriptionManager.totalMonthlyCostDisplayText(
             currency: currencyFormatter.currency,
             formatter: currencyFormatter
         )
@@ -4223,7 +4223,7 @@ final class StatusBarController: NSObject {
         }
 
         let orphanedCount = keys.count
-        let displayTotal = SubscriptionSettingsManager.shared.totalMonthlyCostDisplayText(
+        let displayTotal = subscriptionManager.totalMonthlyCostDisplayText(
             currency: currencyFormatter.currency,
             formatter: currencyFormatter
         )
@@ -4231,9 +4231,9 @@ final class StatusBarController: NSObject {
         debugLog("resetOrphanedSubscriptions: resetting \(orphanedCount) key(s), total=\(displayTotal), keys=[\(sanitizedKeys)]")
         logger.info("Resetting orphaned subscription entries: count=\(orphanedCount), total=\(displayTotal, privacy: .public)")
 
-        SubscriptionSettingsManager.shared.removePlans(forKeys: keys)
+        subscriptionManager.removePlans(forKeys: keys)
 
-        let remainingKeys = Set(keys).intersection(SubscriptionSettingsManager.shared.getAllSubscriptionKeys())
+        let remainingKeys = Set(keys).intersection(subscriptionManager.getAllSubscriptionKeys())
         if remainingKeys.isEmpty {
             debugLog("resetOrphanedSubscriptions: removed all keys successfully")
         } else {
