@@ -98,23 +98,17 @@ final class SubscriptionPlanDisplayTests: XCTestCase {
         // never persisted anything) and the API reports the user is on
         // "Moderato". The detected preset is the implicit selection, so "无"
         // must NOT also be marked .on.
-        let previousCurrency = CurrencyFormatter.shared.currency
-        CurrencyFormatter.shared.currency = .usd
-        defer { CurrencyFormatter.shared.currency = previousCurrency }
+        let suite = makeDefaults()
+        let controller = StatusBarController(options: .testing(userDefaults: suite))
+        controller.currencyFormatter.currency = .usd
 
         let testAccount = "b38-detected-\(UUID().uuidString.lowercased())"
-        let manager = SubscriptionSettingsManager.shared
+        let manager = controller.subscriptionManager
         let key = manager.subscriptionKey(for: .kimiCN, accountId: testAccount)
         // Make sure no plan is persisted for this account.
         manager.removePlan(forKey: key)
         defer { manager.removePlan(forKey: key) }
 
-        let controller = StatusBarController()
-        // Suppress the GitHub star alert that the default init triggers.
-        let dismissKey = "githubStarPromptDismissed"
-        let previousDismiss = UserDefaults.standard.bool(forKey: dismissKey)
-        UserDefaults.standard.set(true, forKey: dismissKey)
-        defer { UserDefaults.standard.set(previousDismiss, forKey: dismissKey) }
         let menu = NSMenu()
         controller.addSubscriptionItems(
             to: menu,
@@ -139,17 +133,16 @@ final class SubscriptionPlanDisplayTests: XCTestCase {
     func testNoneItemIsSelectedWhenNoDetectedPlan() {
         // No saved plan AND no detected plan name → "无" is the only sensible
         // selection, so it must be marked .on.
-        let previousCurrency = CurrencyFormatter.shared.currency
-        CurrencyFormatter.shared.currency = .usd
-        defer { CurrencyFormatter.shared.currency = previousCurrency }
+        let suite = makeDefaults()
+        let controller = StatusBarController(options: .testing(userDefaults: suite))
+        controller.currencyFormatter.currency = .usd
 
         let testAccount = "b38-nodetected-\(UUID().uuidString.lowercased())"
-        let manager = SubscriptionSettingsManager.shared
+        let manager = controller.subscriptionManager
         let key = manager.subscriptionKey(for: .kimiCN, accountId: testAccount)
         manager.removePlan(forKey: key)
         defer { manager.removePlan(forKey: key) }
 
-        let controller = StatusBarController()
         let menu = NSMenu()
         controller.addSubscriptionItems(
             to: menu,
@@ -170,23 +163,17 @@ final class SubscriptionPlanDisplayTests: XCTestCase {
     func testUserPickedPresetStillSelectedAndNotNone() {
         // When the user has explicitly saved a preset and the API confirms it,
         // that preset is .on and "无" is NOT. This protects existing behavior.
-        let previousCurrency = CurrencyFormatter.shared.currency
-        CurrencyFormatter.shared.currency = .usd
-        defer { CurrencyFormatter.shared.currency = previousCurrency }
+        let suite = makeDefaults()
+        let controller = StatusBarController(options: .testing(userDefaults: suite))
+        controller.currencyFormatter.currency = .usd
 
         let testAccount = "b38-picked-\(UUID().uuidString.lowercased())"
-        let manager = SubscriptionSettingsManager.shared
+        let manager = controller.subscriptionManager
         let key = manager.subscriptionKey(for: .kimiCN, accountId: testAccount)
         manager.removePlan(forKey: key)
         manager.setPlan(.preset("Moderato", 19), forKey: key)
         defer { manager.removePlan(forKey: key) }
 
-        let controller = StatusBarController()
-        // Suppress the GitHub star alert that the default init triggers.
-        let dismissKey = "githubStarPromptDismissed"
-        let previousDismiss = UserDefaults.standard.bool(forKey: dismissKey)
-        UserDefaults.standard.set(true, forKey: dismissKey)
-        defer { UserDefaults.standard.set(previousDismiss, forKey: dismissKey) }
         let menu = NSMenu()
         controller.addSubscriptionItems(
             to: menu,
