@@ -88,8 +88,15 @@ final class MigrationPresetTests: XCTestCase {
 
     // MARK: - B06: getPlan(forKey:) integration — persists migrated value
 
+    private func makeIsolatedManager() -> SubscriptionSettingsManager {
+        let suiteName = "MigrationPresetTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        return SubscriptionSettingsManager(defaults: defaults)
+    }
+
     func testGetPlanForKeyMigratesLegacyMiniMaxNameAndPersists() {
-        let manager = SubscriptionSettingsManager.shared
+        let manager = makeIsolatedManager()
         let legacyKey = "minimax_coding_plan.b06-migration@example.com"
         defer { manager.removePlan(forKey: legacyKey) }
 
@@ -107,7 +114,7 @@ final class MigrationPresetTests: XCTestCase {
     }
 
     func testGetPlanForKeyCurrentNameNotReMigrated() {
-        let manager = SubscriptionSettingsManager.shared
+        let manager = makeIsolatedManager()
         let key = "minimax_coding_plan.b06-current@example.com"
         defer { manager.removePlan(forKey: key) }
 
@@ -119,7 +126,7 @@ final class MigrationPresetTests: XCTestCase {
     }
 
     func testGetPlanForKeyNonMiniMaxProviderDoesNotMigrate() {
-        let manager = SubscriptionSettingsManager.shared
+        let manager = makeIsolatedManager()
         let key = "kimi_cn.b06-no-op@example.com"
         defer { manager.removePlan(forKey: key) }
 
