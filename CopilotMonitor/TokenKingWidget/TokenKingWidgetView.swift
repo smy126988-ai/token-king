@@ -353,19 +353,13 @@ struct SmallWidgetView: View {
     }
 }
 
-func selectedProvider(snapshot: WidgetSnapshot, selectedProviderId: String?) -> ProviderSnapshot? {
-    guard let id = selectedProviderId else { return nil }
-    return snapshot.providers.first { $0.id == id }
-}
-
 /// A configured provider never falls back to a different provider. `nil` is
 /// the intentional zero-configuration mode and selects the current priority
 /// provider instead.
 func resolvedProvider(snapshot: WidgetSnapshot, selectedProviderId: String?) -> ProviderSnapshot? {
-    if selectedProviderId != nil {
-        return selectedProvider(snapshot: snapshot, selectedProviderId: selectedProviderId)
-    }
-    return topProvider(snapshot: snapshot)
+    ProviderSelectionResolver
+        .selectProvider(snapshot, selectedProviderId: selectedProviderId)
+        .provider
 }
 
 extension ProviderSnapshot {

@@ -253,7 +253,10 @@
 		CODEXACCOUNTINTBF000000001 /* CodexAccountSelectionIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CODEXACCOUNTINTFR000000001 /* CodexAccountSelectionIntent.swift */; };
 		WIDGETDTKBF0000000000001 /* WidgetDesignToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */; };
 		WIDGETDTAPPBF00000000001 /* WidgetDesignToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */; };
+		WIDGETSELECTAPPBF000000001 /* ProviderSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETSELECTFR000000001 /* ProviderSelection.swift */; };
+		WIDGETSELECTWBF000000001 /* ProviderSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETSELECTFR000000001 /* ProviderSelection.swift */; };
 		WIDGETTOKENTESTBF00000001 /* WidgetDesignTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETTOKENTESTFR00000001 /* WidgetDesignTokenTests.swift */; };
+		WIDGETSELECTTESTBF0000001 /* ProviderSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETSELECTTESTFR0000001 /* ProviderSelectionTests.swift */; };
 		WIDGETEMB000000000000000 /* TokenKingWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = WIDGETAEX000000000000000 /* TokenKingWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		WIDGETFNB000000000000000 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = WIDGETFNF000000000000000 /* Foundation.framework */; };
 		WIDGETMAINBF0000000000001 /* TokenKingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGETMAINFR0000000000001 /* TokenKingWidget.swift */; };
@@ -546,7 +549,9 @@
 		CODEXACCOUNTENTFR000000001 /* CodexAccountEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Intent/CodexAccountEntity.swift; sourceTree = "<group>"; };
 		CODEXACCOUNTINTFR000000001 /* CodexAccountSelectionIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Intent/CodexAccountSelectionIntent.swift; sourceTree = "<group>"; };
 		WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Widget/WidgetDesignToken.swift; sourceTree = "<group>"; };
+		WIDGETSELECTFR000000001 /* ProviderSelection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Widget/ProviderSelection.swift; sourceTree = "<group>"; };
 		WIDGETTOKENTESTFR00000001 /* WidgetDesignTokenTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Widget/WidgetDesignTokenTests.swift; sourceTree = "<group>"; };
+		WIDGETSELECTTESTFR0000001 /* ProviderSelectionTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Widget/ProviderSelectionTests.swift; sourceTree = "<group>"; };
 		WIDGETENT000000000000000 /* TokenKingWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TokenKingWidget/TokenKingWidget.entitlements; sourceTree = "<group>"; };
 		WIDGETFNF000000000000000 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		WIDGETINP000000000000000 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = TokenKingWidget/Info.plist; sourceTree = "<group>"; };
@@ -1043,6 +1048,7 @@
 				SHAREDPATHFR0000000000001 /* SharedPaths.swift */,
 				WIDGETSNAPFR0000000000001 /* WidgetSnapshot.swift */,
 				WIDGETDTFR0000000000001 /* WidgetDesignToken.swift */,
+				WIDGETSELECTFR000000001 /* ProviderSelection.swift */,
 				WIDGETWLG000000000000000 /* WidgetLogger.swift */,
 				C50760A0F5FFEAE2042D31E6 /* WidgetSnapshotReader.swift */,
 			);
@@ -1055,6 +1061,7 @@
 				WIDGETMAPTSTFR0000000001 /* WidgetSnapshotMapperTests.swift */,
 				71E2AAD25CDE294DF4845E9B /* WidgetSnapshotReaderTests.swift */,
 				WIDGETTOKENTESTFR00000001 /* WidgetDesignTokenTests.swift */,
+				WIDGETSELECTTESTFR0000001 /* ProviderSelectionTests.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -1341,6 +1348,7 @@
 				SHAREDPATHSBF0000000000001 /* SharedPaths.swift in Sources */,
 				WIDGETSNAPBF0000000000001 /* WidgetSnapshot.swift in Sources */,
 				WIDGETDTAPPBF00000000001 /* WidgetDesignToken.swift in Sources */,
+				WIDGETSELECTAPPBF000000001 /* ProviderSelection.swift in Sources */,
 				WIDGETWLA000000000000000 /* WidgetLogger.swift in Sources */,
 				A33333333333333333333333 /* AppDelegate.swift in Sources */,
 				APPMAIN11111111111111111111 /* EntryDocumentation.swift in Sources */,
@@ -1571,6 +1579,7 @@
 				WIDGETWRITERTBF0000000000 /* WidgetSnapshotWriterTests.swift in Sources */,
 				B2E1A0D737779A8704AD8A22 /* WidgetSnapshotReaderTests.swift in Sources */,
 				WIDGETTOKENTESTBF00000001 /* WidgetDesignTokenTests.swift in Sources */,
+				WIDGETSELECTTESTBF0000001 /* ProviderSelectionTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1585,6 +1594,7 @@
 				CODEXQUOTAVIEWBF000000001 /* CodexQuotaCardView.swift in Sources */,
 				WIDGETVWBF0000000000001 /* TokenKingWidgetView.swift in Sources */,
 				WIDGETDTKBF0000000000001 /* WidgetDesignToken.swift in Sources */,
+				WIDGETSELECTWBF000000001 /* ProviderSelection.swift in Sources */,
 				CODEXACCOUNTENTBF000000001 /* CodexAccountEntity.swift in Sources */,
 				CODEXACCOUNTINTBF000000001 /* CodexAccountSelectionIntent.swift in Sources */,
 				WIDGETPEB0000000000000001 /* ProviderEntity.swift in Sources */,
