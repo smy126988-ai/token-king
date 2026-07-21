@@ -1,8 +1,21 @@
 import Foundation
 
+/// Abstraction for `CurrencyFormatter` introduced as part of the L1-M1
+/// singleton-decoupling refactor (plan §3.2 / D.1). The concrete class
+/// conforms; future implementations (e.g. deterministic test doubles) can
+/// substitute via InitOptions.
+protocol CurrencyFormatting: AnyObject {
+    var currency: Currency { get set }
+    var currentRate: Double { get }
+    func format(usd amount: Double, decimals: Int) -> String
+    func format(amount: Double, as currency: Currency?, decimals: Int) -> String
+    func refreshRateInBackground()
+}
+
 /// Formats USD amounts into the user's selected display currency.
 /// USD amounts are the source of truth everywhere; this converts + renders at the edge.
-final class CurrencyFormatter {
+final class CurrencyFormatter: CurrencyFormatting {
+    @available(*, deprecated, message: "Use InitOptions.testing or inject CurrencyFormatting")
     static let shared = CurrencyFormatter()
 
     private let defaults: UserDefaults
