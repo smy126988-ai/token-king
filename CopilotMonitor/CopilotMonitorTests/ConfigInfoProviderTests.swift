@@ -156,14 +156,10 @@ final class ConfigInfoProviderTests: XCTestCase {
         // Every provider in the documented switch should have a case.
         // If a new identifier was added without an explicit configInfo case,
         // it would fall through to the unhelpful generic "对应 provider 的 key 字段".
-        let identifiers: [ProviderIdentifier] = [
-            .copilot, .claude, .openRouter, .openCode, .openCodeGo, .openCodeZen,
-            .kimi, .kimiCN, .minimaxCodingPlan, .minimaxCodingPlanCN,
-            .zaiCodingPlan, .nanoGpt, .synthetic, .chutes, .mimo,
-            .volcanoArk, .hunyuan, .zhipuGLM,
-            .codex, .antigravity, .cursor, .commandCode, .kiro, .geminiCLI,
-            .tavilySearch, .braveSearch, .grok
-        ]
+        // Drive iteration from ProviderIdentifier.allCases so any newly added
+        // identifier is automatically covered (no more silent drift when a case
+        // lands in the enum but not in this list).
+        let identifiers = ProviderIdentifier.allCases
         for id in identifiers {
             let info = controller.configInfo(for: id)
             XCTAssertFalse(

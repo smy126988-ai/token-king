@@ -3514,6 +3514,10 @@ final class StatusBarController: NSObject {
             return ("mimo-for-coding", "~/.local/share/opencode/auth.json")
         case .minimaxCN:
             return ("minimax-cn", "~/.local/share/opencode/auth.json")
+        case .minimax:
+            return ("minimax", "~/.local/share/opencode/auth.json")
+        case .xiaomi:
+            return ("xiaomi", "~/.local/share/opencode/auth.json")
         case .xiaomiTokenPlanCN:
             return ("xiaomi-token-plan-cn", "~/.local/share/opencode/auth.json")
         case .volcanoArk:
