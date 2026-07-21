@@ -175,10 +175,16 @@ final class StatusBarControllerTestingModeTests: XCTestCase {
     /// subscription is removed — without the user having to click through
     /// an alert.
     ///
-    /// StatusBarController always uses `SubscriptionSettingsManager.shared`
-    /// (not an injected instance), so this test manipulates the real shared
-    /// store. It snapshots and restores the developer's existing keys for
-    /// the same accountId to keep the test self-contained.
+    /// StatusBarController uses the injected `subscriptionManager` from
+    /// `InitOptions`. We route the controller through `.testing(userDefaults:
+    /// .standard)` so its injected manager targets `UserDefaults.standard`.
+    /// For setup/teardown this test uses a fresh
+    /// `SubscriptionSettingsManager(defaults: .standard)` (constructed
+    /// explicitly to avoid the deprecated `.shared` static) — both the
+    /// controller's manager and this local one resolve to the same backing
+    /// UserDefaults, so the snapshot/restore pattern still works. It
+    /// snapshots and restores the developer's existing keys for the same
+    /// accountId to keep the test self-contained.
     ///
     /// Uses a non-email accountId so the duplicate-detection grouping
     /// (which splits on "." after the provider prefix) groups correctly.
@@ -188,7 +194,9 @@ final class StatusBarControllerTestingModeTests: XCTestCase {
         let globalKey = "subscription_v2.kimi.\(accountId)"
         let cnKey = "subscription_v2.kimi_cn.\(accountId)"
 
-        let manager = SubscriptionSettingsManager.shared
+        // Construct an explicit instance targeting UserDefaults.standard so
+        // the test no longer touches the deprecated `.shared` static.
+        let manager = SubscriptionSettingsManager(defaults: .standard)
         let savedGlobal = manager.getPlan(forKey: "kimi.\(accountId)")
         let savedCN = manager.getPlan(forKey: "kimi_cn.\(accountId)")
         defer {
