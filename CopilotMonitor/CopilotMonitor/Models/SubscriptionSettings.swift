@@ -1,5 +1,30 @@
 import Foundation
 
+/// Abstraction for `SubscriptionSettingsManager` introduced as part of the
+/// L1-M1 singleton-decoupling refactor (plan §3.2 / D.1). The concrete class
+/// conforms; future implementations (e.g. deterministic test doubles) can
+/// substitute via InitOptions.
+protocol SubscriptionConfigStoring: AnyObject {
+    func subscriptionKey(for provider: ProviderIdentifier, accountId: String?) -> String
+
+    func getPlan(forKey key: String) -> SubscriptionPlan
+    func getPlan(for provider: ProviderIdentifier, accountId: String?) -> SubscriptionPlan
+
+    func setPlan(_ plan: SubscriptionPlan, forKey key: String)
+    func setPlan(_ plan: SubscriptionPlan, for provider: ProviderIdentifier, accountId: String?)
+
+    func removePlan(forKey key: String)
+    func removePlans(forKeys keys: [String])
+
+    func getAllSubscriptionKeys() -> [String]
+    func findLikelyDuplicateSubscriptionKeys() -> [String]
+    func findLikelyDuplicateSubscriptionGroups() -> [[String]]
+
+    func totalMonthlyCost(inCurrency currency: Currency, formatter: CurrencyFormatter) -> Double
+    func totalMonthlyCostDisplayText(currency: Currency, formatter: CurrencyFormatter) -> String
+    func monthlyCost(forKey key: String, inCurrency currency: Currency, formatter: CurrencyFormatter) -> Double
+}
+
 struct SubscriptionMenuAction {
     let subscriptionKey: String
     let plan: SubscriptionPlan
@@ -357,7 +382,8 @@ struct ProviderSubscriptionPresets {
     ]
 }
 
-final class SubscriptionSettingsManager {
+final class SubscriptionSettingsManager: SubscriptionConfigStoring {
+    @available(*, deprecated, message: "Use InitOptions.testing or inject SubscriptionConfigStoring")
     static let shared = SubscriptionSettingsManager(defaults: .standard)
     static let defaultAccountId = "_default_"
 
