@@ -182,7 +182,7 @@ final class ProviderRegionTests: XCTestCase {
     // MARK: - Migration / Config Preservation
 
     func testOldMiniMaxGlobalSubscriptionKeyIsStillReadable() {
-        let manager = SubscriptionSettingsManager.shared
+        let manager = makeIsolatedManager()
         let key = "minimax_coding_plan.migration-test@example.com"
         defer { manager.removePlan(forKey: key) }
 
@@ -193,7 +193,7 @@ final class ProviderRegionTests: XCTestCase {
     }
 
     func testOldKimiGlobalSubscriptionKeyIsStillReadable() {
-        let manager = SubscriptionSettingsManager.shared
+        let manager = makeIsolatedManager()
         let key = "kimi.migration-test@example.com"
         defer { manager.removePlan(forKey: key) }
 
@@ -216,7 +216,7 @@ final class ProviderRegionTests: XCTestCase {
 
     func testRMBMonthlyCostUsesNativeCNYForVolcanoArk() {
         let formatter = makeIsolatedFormatter(currency: .rmb, rate: 7.25)
-        let manager = SubscriptionSettingsManager.shared
+        let manager = makeIsolatedManager()
         let key = "volcano_ark.b32-volcano@example.com"
         defer { manager.removePlan(forKey: key) }
 
@@ -231,7 +231,7 @@ final class ProviderRegionTests: XCTestCase {
 
     func testRMBMonthlyCostUsesNativeCNYForHunyuan() {
         let formatter = makeIsolatedFormatter(currency: .rmb, rate: 7.25)
-        let manager = SubscriptionSettingsManager.shared
+        let manager = makeIsolatedManager()
         let key = "hunyuan.b32-hunyuan@example.com"
         defer { manager.removePlan(forKey: key) }
 
@@ -245,7 +245,7 @@ final class ProviderRegionTests: XCTestCase {
 
     func testRMBMonthlyCostUsesNativeCNYForZhipuGLM() {
         let formatter = makeIsolatedFormatter(currency: .rmb, rate: 7.25)
-        let manager = SubscriptionSettingsManager.shared
+        let manager = makeIsolatedManager()
         let key = "zhipu_glm.b32-zhipu@example.com"
         defer { manager.removePlan(forKey: key) }
 
@@ -267,5 +267,12 @@ final class ProviderRegionTests: XCTestCase {
         let formatter = CurrencyFormatter(defaults: defaults, rateStore: ExchangeRateStore(defaults: rateDefaults))
         formatter.currency = currency
         return formatter
+    }
+
+    private func makeIsolatedManager() -> SubscriptionSettingsManager {
+        let suiteName = "ProviderRegionTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        return SubscriptionSettingsManager(defaults: defaults)
     }
 }
