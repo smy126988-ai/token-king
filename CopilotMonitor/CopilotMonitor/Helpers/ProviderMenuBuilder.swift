@@ -70,14 +70,14 @@ extension StatusBarController {
         case .openRouter:
             if let remaining = details.creditsRemaining {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "额度：\(CurrencyFormatter.shared.format(usd: remaining, decimals: 0))")
+                item.view = createDisabledLabelView(text: "额度：\(currencyFormatter.format(usd: remaining, decimals: 0))")
                 submenu.addItem(item)
             }
 
         case .openCodeZen:
             if let avg = details.avgCostPerDay {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "日均：\(CurrencyFormatter.shared.format(usd: avg))")
+                item.view = createDisabledLabelView(text: "日均：\(currencyFormatter.format(usd: avg))")
                 submenu.addItem(item)
             }
             if let sessions = details.sessions {
@@ -103,7 +103,7 @@ extension StatusBarController {
                 for (model, cost) in sortedModels {
                     let shortName = model.components(separatedBy: "/").last ?? model
                     let item = NSMenuItem()
-                    item.view = createDisabledLabelView(text: "  \(shortName): \(CurrencyFormatter.shared.format(usd: cost))")
+                    item.view = createDisabledLabelView(text: "  \(shortName): \(currencyFormatter.format(usd: cost))")
                     submenu.addItem(item)
                 }
             }
@@ -264,13 +264,13 @@ extension StatusBarController {
 
                     let limitItem = NSMenuItem()
                     limitItem.view = createDisabledLabelView(
-                        text: "上限：\(CurrencyFormatter.shared.format(usd: limitUSD))/月"
+                        text: "上限：\(currencyFormatter.format(usd: limitUSD))/月"
                     )
                     submenu.addItem(limitItem)
 
                     let usedItem = NSMenuItem()
                     usedItem.view = createDisabledLabelView(
-                        text: "已用：\(CurrencyFormatter.shared.format(usd: usedUSD))"
+                        text: "已用：\(currencyFormatter.format(usd: usedUSD))"
                     )
                     submenu.addItem(usedItem)
                 }
@@ -367,7 +367,7 @@ extension StatusBarController {
             }
             if let credits = details.creditsBalance {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "额度：\(CurrencyFormatter.shared.format(usd: credits))")
+                item.view = createDisabledLabelView(text: "额度：\(currencyFormatter.format(usd: credits))")
                 submenu.addItem(item)
             }
             if let serviceDisplayName = codexServiceDisplayName() {
@@ -417,19 +417,19 @@ extension StatusBarController {
 
             if let used = details.monthlyCost, let total = details.creditsTotal {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "本月已用：\(CurrencyFormatter.shared.format(usd: used)) / \(CurrencyFormatter.shared.format(usd: total))")
+                item.view = createDisabledLabelView(text: "本月已用：\(currencyFormatter.format(usd: used)) / \(currencyFormatter.format(usd: total))")
                 submenu.addItem(item)
             }
 
             if let remaining = details.creditsRemaining {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "剩余额度：\(CurrencyFormatter.shared.format(usd: remaining))")
+                item.view = createDisabledLabelView(text: "剩余额度：\(currencyFormatter.format(usd: remaining))")
                 submenu.addItem(item)
             }
 
             if let purchasedCredits = details.creditsBalance, purchasedCredits > 0 {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "已购额度：\(CurrencyFormatter.shared.format(usd: purchasedCredits))")
+                item.view = createDisabledLabelView(text: "已购额度：\(currencyFormatter.format(usd: purchasedCredits))")
                 submenu.addItem(item)
             }
 
@@ -539,15 +539,15 @@ extension StatusBarController {
             // === Plan ===
             // Prefer the user-selected plan (currentPlan.displayTitle) over the
             // API-detected plan name. When neither is set, omit the row entirely.
-            let subscriptionKeyForHeader = SubscriptionSettingsManager.shared.subscriptionKey(
+            let subscriptionKeyForHeader = subscriptionManager.subscriptionKey(
                 for: identifier,
                 accountId: subscriptionAccountId
             )
-            let currentPlanForHeader = SubscriptionSettingsManager.shared.getPlan(forKey: subscriptionKeyForHeader)
+            let currentPlanForHeader = subscriptionManager.getPlan(forKey: subscriptionKeyForHeader)
             let planHeaderText: String?
             if currentPlanForHeader.isSet {
                 planHeaderText = currentPlanForHeader.displayTitle(
-                    formatter: CurrencyFormatter.shared,
+                    formatter: currencyFormatter,
                     presets: ProviderSubscriptionPresets.presets(for: identifier)
                 )
             } else if let plan = details.planType {
@@ -670,15 +670,15 @@ extension StatusBarController {
             }
 
             // === Plan (user-selected preferred; falls back to API-detected) ===
-            let openCodeGoSubscriptionKey = SubscriptionSettingsManager.shared.subscriptionKey(
+            let openCodeGoSubscriptionKey = subscriptionManager.subscriptionKey(
                 for: .openCodeGo,
                 accountId: subscriptionAccountId
             )
-            let openCodeGoCurrentPlan = SubscriptionSettingsManager.shared.getPlan(forKey: openCodeGoSubscriptionKey)
+            let openCodeGoCurrentPlan = subscriptionManager.getPlan(forKey: openCodeGoSubscriptionKey)
             let openCodeGoPlanHeader: String?
             if openCodeGoCurrentPlan.isSet {
                 openCodeGoPlanHeader = openCodeGoCurrentPlan.displayTitle(
-                    formatter: CurrencyFormatter.shared,
+                    formatter: currencyFormatter,
                     presets: ProviderSubscriptionPresets.presets(for: .openCodeGo)
                 )
             } else if let plan = details.planType {
@@ -869,7 +869,7 @@ extension StatusBarController {
 
             if let usdBalance = details.creditsBalance {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "美元余额：\(CurrencyFormatter.shared.format(usd: usdBalance))")
+                item.view = createDisabledLabelView(text: "美元余额：\(currencyFormatter.format(usd: usdBalance))")
                 submenu.addItem(item)
             }
 
@@ -906,20 +906,20 @@ extension StatusBarController {
                let usedPercent = chutesMonthlyValue.usedPercent {
                 let item = NSMenuItem()
                 item.view = createDisabledLabelView(
-                    text: "本月价值已用：\(CurrencyFormatter.shared.format(usd: usedUSD)) / \(CurrencyFormatter.shared.format(usd: capUSD)) （已用 \(String(format: "%.0f", usedPercent))%）"
+                    text: "本月价值已用：\(currencyFormatter.format(usd: usedUSD)) / \(currencyFormatter.format(usd: capUSD)) （已用 \(String(format: "%.0f", usedPercent))%）"
                 )
                 submenu.addItem(item)
             } else if let capUSD = chutesMonthlyValue.capUSD {
                 let item = NSMenuItem()
                 item.view = createDisabledLabelView(
-                    text: "月度上限：\(CurrencyFormatter.shared.format(usd: capUSD))（5× 订阅）"
+                    text: "月度上限：\(currencyFormatter.format(usd: capUSD))（5× 订阅）"
                 )
                 submenu.addItem(item)
             }
 
             if let credits = details.creditsBalance {
                 let item = NSMenuItem()
-                item.view = createDisabledLabelView(text: "额度余额：\(CurrencyFormatter.shared.format(usd: credits))")
+                item.view = createDisabledLabelView(text: "额度余额：\(currencyFormatter.format(usd: credits))")
                 submenu.addItem(item)
             }
 
@@ -1044,7 +1044,7 @@ extension StatusBarController {
             if let remaining = details.limitRemaining {
                 let item = NSMenuItem()
                 item.view = createDisabledLabelView(
-                    text: "剩余额度：\(CurrencyFormatter.shared.format(usd: remaining, decimals: 0))",
+                    text: "剩余额度：\(currencyFormatter.format(usd: remaining, decimals: 0))",
                     textColor: .secondaryLabelColor
                 )
                 submenu.addItem(item)
@@ -1079,7 +1079,7 @@ extension StatusBarController {
         if let daily = details.dailyUsage {
             let item = NSMenuItem()
             item.view = createDisabledLabelView(
-                text: "每日：\(CurrencyFormatter.shared.format(usd: daily))",
+                text: "每日：\(currencyFormatter.format(usd: daily))",
                 icon: NSImage(systemSymbolName: "calendar", accessibilityDescription: "Daily")
             )
             submenu.addItem(item)
@@ -1088,7 +1088,7 @@ extension StatusBarController {
         if let weekly = details.weeklyUsage {
             let item = NSMenuItem()
             item.view = createDisabledLabelView(
-                text: "每周：\(CurrencyFormatter.shared.format(usd: weekly))",
+                text: "每周：\(currencyFormatter.format(usd: weekly))",
                 icon: NSImage(systemSymbolName: "calendar", accessibilityDescription: "Weekly")
             )
             submenu.addItem(item)
@@ -1097,7 +1097,7 @@ extension StatusBarController {
         if let monthly = details.monthlyUsage, identifier != .grok {
             let item = NSMenuItem()
             item.view = createDisabledLabelView(
-                text: "每月：\(CurrencyFormatter.shared.format(usd: monthly))",
+                text: "每月：\(currencyFormatter.format(usd: monthly))",
                 icon: NSImage(systemSymbolName: "calendar", accessibilityDescription: "Monthly")
             )
             submenu.addItem(item)
@@ -1106,7 +1106,7 @@ extension StatusBarController {
         if let remaining = details.remainingCredits {
             let item = NSMenuItem()
             item.view = createDisabledLabelView(
-                text: "额度：\(CurrencyFormatter.shared.format(usd: remaining)) 剩余",
+                text: "额度：\(currencyFormatter.format(usd: remaining)) 剩余",
                 icon: NSImage(systemSymbolName: "creditcard", accessibilityDescription: "Credits")
             )
             submenu.addItem(item)
@@ -1115,7 +1115,7 @@ extension StatusBarController {
         if let limit = details.limit, let remaining = details.limitRemaining {
             let item = NSMenuItem()
             item.view = createDisabledLabelView(
-                text: "上限：\(CurrencyFormatter.shared.format(usd: remaining)) / \(CurrencyFormatter.shared.format(usd: limit))",
+                text: "上限：\(currencyFormatter.format(usd: remaining)) / \(currencyFormatter.format(usd: limit))",
                 icon: NSImage(systemSymbolName: "chart.bar", accessibilityDescription: "Limit")
             )
             submenu.addItem(item)
@@ -1305,7 +1305,7 @@ extension StatusBarController {
     }
 
     private func resolvedChutesMonthlyValuePresentation(details: DetailedUsage) -> (usedUSD: Double?, capUSD: Double?, usedPercent: Double?) {
-        let configuredPlan = SubscriptionSettingsManager.shared.getPlan(for: .chutes)
+        let configuredPlan = subscriptionManager.getPlan(for: .chutes, accountId: nil)
         let configuredCapUSD = configuredPlan.isSet
             ? configuredPlan.cost * ChutesProvider.monthlyValueMultiplier
             : nil
@@ -1427,8 +1427,8 @@ extension StatusBarController {
         accountId: String? = nil,
         detectedPlanName: String? = nil
     ) {
-        let subscriptionKey = SubscriptionSettingsManager.shared.subscriptionKey(for: provider, accountId: accountId)
-        let currentPlan = SubscriptionSettingsManager.shared.getPlan(forKey: subscriptionKey)
+        let subscriptionKey = subscriptionManager.subscriptionKey(for: provider, accountId: accountId)
+        let currentPlan = subscriptionManager.getPlan(forKey: subscriptionKey)
         let presets = ProviderSubscriptionPresets.presets(for: provider)
         let subscriptionScope = subscriptionKey.hasSuffix(".\(SubscriptionSettingsManager.defaultAccountId)") ? "default" : "account"
         debugLog("addSubscriptionItems: provider=\(provider.rawValue), subscriptionScope=\(subscriptionScope)")
@@ -1439,7 +1439,7 @@ extension StatusBarController {
         headerItem.view = createHeaderView(title: "订阅")
         submenu.addItem(headerItem)
 
-        let currency = CurrencyFormatter.shared.currency
+        let currency = currencyFormatter.currency
         let hasCNYPresets = presets.contains { $0.cnyCost != nil }
         let visiblePresets: [SubscriptionPreset]
         switch currency {
@@ -1467,7 +1467,7 @@ extension StatusBarController {
         }
 
         let noneItem = NSMenuItem(
-            title: SubscriptionPlan.none.displayTitle(formatter: CurrencyFormatter.shared, presets: presets),
+            title: SubscriptionPlan.none.displayTitle(formatter: currencyFormatter, presets: presets),
             action: #selector(subscriptionPlanSelected(_:)),
             keyEquivalent: ""
         )
@@ -1484,7 +1484,7 @@ extension StatusBarController {
             for preset in visiblePresets {
                 let item = NSMenuItem(
                     title: SubscriptionPlan.preset(preset.name, preset.cost)
-                        .displayTitle(formatter: CurrencyFormatter.shared, presets: presets),
+                        .displayTitle(formatter: currencyFormatter, presets: presets),
                     action: #selector(subscriptionPlanSelected(_:)),
                     keyEquivalent: ""
                 )
@@ -1516,7 +1516,7 @@ extension StatusBarController {
         if case .custom(let amount) = currentPlan {
             customItem.state = .on
             customItem.title = SubscriptionPlan.custom(amount)
-                .displayTitle(formatter: CurrencyFormatter.shared, presets: presets)
+                .displayTitle(formatter: currencyFormatter, presets: presets)
         }
         submenu.addItem(customItem)
     }
@@ -1573,9 +1573,9 @@ extension StatusBarController {
                 let overageReq = Int(day.billedRequests)
                 let label: String
                 if isToday {
-                    label = "\(dateStr) (Today): \(overageReq) overage (\(CurrencyFormatter.shared.format(usd: billedAmount)))"
+                    label = "\(dateStr) (Today): \(overageReq) overage (\(currencyFormatter.format(usd: billedAmount)))"
                 } else {
-                    label = "\(dateStr): \(overageReq) overage (\(CurrencyFormatter.shared.format(usd: billedAmount)))"
+                    label = "\(dateStr): \(overageReq) overage (\(currencyFormatter.format(usd: billedAmount)))"
                 }
 
                 let item = NSMenuItem()
