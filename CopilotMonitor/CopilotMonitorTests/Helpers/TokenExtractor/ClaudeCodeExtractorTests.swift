@@ -75,6 +75,22 @@ final class ClaudeCodeExtractorTests: XCTestCase {
         XCTAssertEqual(events.count, 2)
     }
 
+    func testSyntheticAndZeroTokenRowsAreSkipped() async {
+        let jsonl = """
+        {"type":"assistant","message":{"id":"synthetic","role":"assistant","model":"<synthetic>","usage":{"input_tokens":0,"output_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0}},"timestamp":1700000000}
+        {"type":"assistant","message":{"id":"zero","role":"assistant","model":"claude-sonnet-4-5","usage":{"input_tokens":0,"output_tokens":0}},"timestamp":1700000001}
+        {"type":"assistant","message":{"id":"real","role":"assistant","model":"claude-sonnet-4-5","usage":{"input_tokens":3,"output_tokens":4}},"timestamp":1700000002}
+        """
+        try? jsonl.write(toFile: tmpDir + "/proj1/synthetic.jsonl", atomically: true, encoding: .utf8)
+
+        let extractor = ClaudeCodeExtractor(rootPath: tmpDir)
+        let events = (try? await extractor.extractAll()) ?? []
+
+        XCTAssertEqual(events.count, 1)
+        XCTAssertEqual(events.first?.model, "claude-sonnet-4-5")
+        XCTAssertEqual(events.first?.tokens.total, 7)
+    }
+
     func testMultiSessionAggregation() async {
         writeSample(root: tmpDir)
         let extractor = ClaudeCodeExtractor(rootPath: tmpDir)

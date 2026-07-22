@@ -176,8 +176,13 @@ final class StatusBarControllerTests: XCTestCase {
 
     /// Header items render their text inside `item.view` instead of `item.title`.
     private func visibleStrings(in item: NSMenuItem) -> [String] {
-        guard let view = item.view else { return [item.title] }
+        guard let view = item.view else { return [menuItemText(item)] }
         return extractStrings(from: view)
+    }
+
+    private func menuItemText(_ item: NSMenuItem) -> String {
+        let attributedText = item.attributedTitle?.string ?? ""
+        return attributedText.isEmpty ? item.title : attributedText
     }
 
     private func extractStrings(from view: NSView) -> [String] {
@@ -189,6 +194,118 @@ final class StatusBarControllerTests: XCTestCase {
             results.append(contentsOf: extractStrings(from: subview))
         }
         return results
+    }
+
+    @MainActor
+    func testSearchProvidersAppearOnlyInsideSearchEngineGroup() throws {
+        let controller = makeController()
+        controller.injectProviderStateForTesting(results: [
+            .braveSearch: ProviderResult(
+                usage: .quotaBased(remaining: 75, entitlement: 100, overagePermitted: false),
+                details: nil
+            ),
+            .tavilySearch: ProviderResult(
+                usage: .quotaBased(remaining: 50, entitlement: 100, overagePermitted: false),
+                details: nil
+            )
+        ])
+
+        let menu = try XCTUnwrap(controller.topMenuForTesting)
+        let searchGroups = menu.items.filter { $0.title == "搜索引擎" }
+        XCTAssertEqual(searchGroups.count, 1)
+
+        let ordinaryTopLevelText = menu.items
+            .filter { $0.title != "搜索引擎" }
+            .map(menuItemText)
+            .joined(separator: "\n")
+        XCTAssertFalse(ordinaryTopLevelText.contains("Brave"))
+        XCTAssertFalse(ordinaryTopLevelText.contains("Tavily"))
+
+        let searchText = try XCTUnwrap(searchGroups.first?.submenu)
+            .items
+            .map(menuItemText)
+            .joined(separator: "\n")
+        XCTAssertTrue(searchText.contains("Brave"))
+        XCTAssertTrue(searchText.contains("Tavily"))
+    }
+
+    @MainActor
+    func testQuotaRowsNameWindowsAndMaskAccountEmail() throws {
+        let controller = makeController()
+        let details = DetailedUsage(
+            fiveHourUsage: 25,
+            sevenDayUsage: 40,
+            email: "person@example.com"
+        )
+        let account = ProviderAccountResult(
+            accountIndex: 0,
+            accountId: "person@example.com",
+            usage: .quotaBased(remaining: 75, entitlement: 100, overagePermitted: false),
+            details: details
+        )
+        controller.injectProviderStateForTesting(results: [
+            .claude: ProviderResult(
+                usage: account.usage,
+                details: details,
+                accounts: [account]
+            )
+        ])
+
+        let menu = try XCTUnwrap(controller.topMenuForTesting)
+        let text = menu.items.map(menuItemText).joined(separator: "\n")
+        XCTAssertTrue(text.contains("p•••@example.com"))
+        XCTAssertFalse(text.contains("person@example.com"))
+        XCTAssertTrue(text.contains("5h: 25% used"))
+        XCTAssertTrue(text.contains("Weekly: 40% used"))
+    }
+
+    @MainActor
+    func testUnavailableQuotaDoesNotPretendToBeZeroPercentUsage() throws {
+        let controller = makeController()
+        let account = ProviderAccountResult(
+            accountIndex: 0,
+            accountId: "person@example.com",
+            usage: .quotaBased(remaining: 0, entitlement: 0, overagePermitted: false),
+            details: nil
+        )
+        controller.injectProviderStateForTesting(results: [
+            .copilot: ProviderResult(
+                usage: account.usage,
+                details: nil,
+                accounts: [account]
+            )
+        ])
+
+        let menu = try XCTUnwrap(controller.topMenuForTesting)
+        let unavailableRow = try XCTUnwrap(menu.items.first { menuItemText($0).contains("无用量数据") })
+        XCTAssertFalse(menuItemText(unavailableRow).contains("0%"))
+        XCTAssertFalse(unavailableRow.isEnabled)
+    }
+
+    @MainActor
+    func testProviderErrorRowOpensDiagnosticDetails() throws {
+        let controller = makeController()
+        controller.injectProviderStateForTesting(
+            errors: [.openCodeGo: "Decoding error: dashboard markup changed"]
+        )
+
+        let menu = try XCTUnwrap(controller.topMenuForTesting)
+        let errorRow = try XCTUnwrap(menu.items.first { menuItemText($0).contains("OpenCode Go") })
+        XCTAssertTrue(errorRow.isEnabled)
+
+        let submenu = try XCTUnwrap(errorRow.submenu)
+        let detailText = submenu.items.flatMap(visibleStrings).joined(separator: "\n")
+        XCTAssertTrue(detailText.contains("dashboard markup changed"))
+    }
+
+    @MainActor
+    func testCustomTextViewsExposeAccessibilityLabels() {
+        let controller = makeController()
+        let header = controller.createHeaderView(title: "额度状态")
+        let row = controller.createDisabledLabelView(text: "5h: 25% used")
+
+        XCTAssertEqual(header.accessibilityLabel(), "额度状态")
+        XCTAssertEqual(row.accessibilityLabel(), "5h: 25% used")
     }
 
     @MainActor

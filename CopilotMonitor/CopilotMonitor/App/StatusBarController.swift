@@ -1055,9 +1055,10 @@ final class StatusBarController: NSObject {
            logger.debug("🟡 [StatusBarController] loadingProviders set: \(loadingNames)")
            updateMultiProviderMenu()
 
-           logger.info("🟡 [StatusBarController] fetchMultiProviderData: Calling ProviderManager.fetchAll()")
-           debugLog("🟡 fetchMultiProviderData: calling ProviderManager.fetchAll()")
-           let fetchResult = await ProviderManager.shared.fetchAll()
+           let enabledProviderIdentifiers = Set(enabledProviders.map(\.identifier))
+           logger.info("🟡 [StatusBarController] fetchMultiProviderData: fetching \(enabledProviderIdentifiers.count) enabled providers")
+           debugLog("🟡 fetchMultiProviderData: fetching enabled providers only")
+           let fetchResult = await ProviderManager.shared.fetch(identifiers: enabledProviderIdentifiers)
            let lastSuccessfulFetchAt = await ProviderManager.shared.getLastSuccessfulFetchAt()
            debugLog("🟢 fetchMultiProviderData: fetchAll returned \(fetchResult.results.count) results, \(fetchResult.errors.count) errors")
            logger.info("🟢 [StatusBarController] fetchMultiProviderData: fetchAll() returned \(fetchResult.results.count) results, \(fetchResult.errors.count) errors")
@@ -2115,8 +2116,8 @@ final class StatusBarController: NSObject {
               debugLog("updateMultiProviderMenu: providers=[\(providerNames)]")
           }
 
-          guard !providerResults.isEmpty else {
-              debugLog("updateMultiProviderMenu: no data, returning")
+          guard !providerResults.isEmpty || !lastProviderErrors.isEmpty || !loadingProviders.isEmpty else {
+              debugLog("updateMultiProviderMenu: no provider state, returning")
               recentChangeCandidate = nil
               updateStatusBarDisplayMenuState()
               updateStatusBarText()
@@ -2256,7 +2257,7 @@ final class StatusBarController: NSObject {
                     if let email = details.email {
                         let emailItem = NSMenuItem()
                         emailItem.view = createDisabledLabelView(
-                            text: "账号：\(email)",
+                            text: "账号：\(Self.privacySafeAccountLabel(email))",
                             icon: NSImage(systemSymbolName: "person.circle", accessibilityDescription: "User Account"),
                             multiline: false
                         )
@@ -2416,7 +2417,7 @@ final class StatusBarController: NSObject {
                     // Use accountId (login) when available, otherwise fall back to index
                     let accountIdentifier: String
                     if let accountId = account.accountId?.trimmingCharacters(in: .whitespacesAndNewlines), !accountId.isEmpty {
-                        accountIdentifier = accountId
+                        accountIdentifier = Self.privacySafeAccountLabel(accountId)
                     } else {
                         accountIdentifier = "#\(account.accountIndex + 1)"
                     }
@@ -2427,15 +2428,22 @@ final class StatusBarController: NSObject {
                     }
                     let unavailableLabel = unavailableUsageSuffix(for: account, identifier: .copilot)
                     if let unavailableLabel {
-                        displayName += " (\(unavailableLabel))"
+                        let quotaItem = createUnavailableQuotaMenuItem(
+                            name: displayName,
+                            status: unavailableLabel,
+                            icon: iconForProvider(.copilot)
+                        )
+                        quotaItem.tag = MenuItemTag.dynamic
+                        menu.insertItem(quotaItem, at: insertIndex)
+                        insertIndex += 1
+                        continue
                     }
-                    let isUnavailableRateLimited = unavailableLabel == "限流"
                     let usedPercent = account.usage.usagePercentage
                     let quotaItem = createNativeQuotaMenuItem(
                         name: displayName,
                         usedPercent: usedPercent,
                         icon: iconForProvider(.copilot),
-                        isEnabled: !isUnavailableRateLimited
+                        windowLabel: "Monthly"
                     )
                     quotaItem.tag = MenuItemTag.dynamic
 
@@ -2457,7 +2465,8 @@ final class StatusBarController: NSObject {
                 let quotaItem = createNativeQuotaMenuItem(
                     name: ProviderIdentifier.copilot.displayName,
                     usedPercent: usedPercent,
-                    icon: iconForProvider(.copilot)
+                    icon: iconForProvider(.copilot),
+                    windowLabel: "Monthly"
                 )
                 quotaItem.tag = MenuItemTag.dynamic
 
@@ -2516,7 +2525,7 @@ final class StatusBarController: NSObject {
                     if let email = providerResults[.copilot]?.details?.email {
                         let emailItem = NSMenuItem()
                         emailItem.view = createDisabledLabelView(
-                            text: "邮箱：\(email)",
+                            text: "邮箱：\(Self.privacySafeAccountLabel(email))",
                             icon: NSImage(systemSymbolName: "person.circle", accessibilityDescription: "User Email"),
                             multiline: false
                         )
@@ -2664,10 +2673,11 @@ final class StatusBarController: NSObject {
                         }
 
                         if let accountDisplayLabel {
+                            let safeAccountDisplayLabel = Self.privacySafeAccountLabel(accountDisplayLabel)
                             if displayAccounts.count > 1 {
-                                displayName += " (\(accountDisplayLabel))"
+                                displayName += " (\(safeAccountDisplayLabel))"
                             } else {
-                                displayName = "\(baseName) (\(accountDisplayLabel))"
+                                displayName = "\(baseName) (\(safeAccountDisplayLabel))"
                             }
                         } else if displayAccounts.count > 1, showAuthLabel {
                             let sourceLabel = authSourceLabel(for: account.details?.authSource, provider: identifier) ?? "Unknown"
@@ -2675,9 +2685,16 @@ final class StatusBarController: NSObject {
                         }
                         let unavailableLabel = unavailableUsageSuffix(for: account, identifier: identifier)
                         if let unavailableLabel {
-                            displayName += " (\(unavailableLabel))"
+                            let item = createUnavailableQuotaMenuItem(
+                                name: displayName,
+                                status: unavailableLabel,
+                                icon: iconForProvider(identifier)
+                            )
+                            item.tag = MenuItemTag.dynamic
+                            menu.insertItem(item, at: insertIndex)
+                            insertIndex += 1
+                            continue
                         }
-                        let isUnavailableRateLimited = unavailableLabel == "限流"
 
                         // Keep menu list rows in multi-window format (e.g., 5h, weekly, monthly together).
                         let usedPercents: [Double]
@@ -2746,7 +2763,11 @@ final class StatusBarController: NSObject {
                             name: displayName,
                             usedPercents: usedPercents,
                             icon: iconForProvider(identifier),
-                            isEnabled: !isUnavailableRateLimited
+                            windowLabels: quotaWindowLabels(
+                                for: identifier,
+                                details: account.details,
+                                count: usedPercents.count
+                            )
                         )
                         item.tag = MenuItemTag.dynamic
 
@@ -2764,6 +2785,17 @@ final class StatusBarController: NSObject {
                     }
                 } else if case .quotaBased(let remaining, let entitlement, _) = result.usage {
                     hasQuota = true
+                    if entitlement <= 0 {
+                        let item = createUnavailableQuotaMenuItem(
+                            name: identifier.displayName,
+                            status: "无用量数据",
+                            icon: iconForProvider(identifier)
+                        )
+                        item.tag = MenuItemTag.dynamic
+                        menu.insertItem(item, at: insertIndex)
+                        insertIndex += 1
+                        continue
+                    }
                     let singlePercent = entitlement > 0 ? (Double(entitlement - remaining) / Double(entitlement)) * 100 : 0
 
                     let usedPercents: [Double]
@@ -2828,7 +2860,16 @@ final class StatusBarController: NSObject {
                     } else {
                         usedPercents = [singlePercent]
                     }
-                    let item = createNativeQuotaMenuItem(name: identifier.displayName, usedPercents: usedPercents, icon: iconForProvider(identifier))
+                    let item = createNativeQuotaMenuItem(
+                        name: identifier.displayName,
+                        usedPercents: usedPercents,
+                        icon: iconForProvider(identifier),
+                        windowLabels: quotaWindowLabels(
+                            for: identifier,
+                            details: result.details,
+                            count: usedPercents.count
+                        )
+                    )
                     item.tag = MenuItemTag.dynamic
 
                     if let details = result.details, details.hasAnyValue {
@@ -2905,7 +2946,7 @@ final class StatusBarController: NSObject {
                     var displayName = "Gemini CLI"
 
                     if !normalizedEmail.isEmpty, normalizedEmail.lowercased() != "unknown" {
-                        displayName = "Gemini CLI (\(normalizedEmail))"
+                        displayName = "Gemini CLI (\(Self.privacySafeAccountLabel(normalizedEmail)))"
                     } else if geminiAccounts.count > 1, showGeminiAuthLabel {
                         displayName = "Gemini CLI #\(accountNumber)"
                         let sourceLabel = authSourceLabel(for: account.authSource, provider: .geminiCLI) ?? "Unknown"
@@ -2916,7 +2957,8 @@ final class StatusBarController: NSObject {
                     let item = createNativeQuotaMenuItem(
                         name: displayName,
                         usedPercents: usedPercents,
-                        icon: iconForProvider(.geminiCLI)
+                        icon: iconForProvider(.geminiCLI),
+                        windowLabels: ["Quota"]
                     )
                     item.tag = MenuItemTag.dynamic
 
@@ -3188,7 +3230,8 @@ final class StatusBarController: NSObject {
         name: String,
         usedPercents: [Double],
         icon: NSImage?,
-        isEnabled: Bool = true
+        isEnabled: Bool = true,
+        windowLabels: [String] = []
     ) -> NSMenuItem {
         let attributed = NSMutableAttributedString()
         let primaryColor = isEnabled ? NSColor.labelColor : NSColor.disabledControlTextColor
@@ -3219,8 +3262,14 @@ final class StatusBarController: NSObject {
                 ? MenuDesignToken.Typography.monospacedBoldFont
                 : defaultFontUsagePercent
             
+            let usageText: String
+            if windowLabels.indices.contains(index), !windowLabels[index].isEmpty {
+                usageText = "\(windowLabels[index]): \(percentText) used"
+            } else {
+                usageText = "\(percentText) used"
+            }
             attributed.append(NSAttributedString(
-                string: percentText,
+                string: usageText,
                 attributes: [
                     .font: font,
                     .foregroundColor: percentColor
@@ -3229,7 +3278,7 @@ final class StatusBarController: NSObject {
             
             if index < usedPercents.count - 1 {
                 attributed.append(NSAttributedString(
-                    string: ", ",
+                    string: " · ",
                     attributes: [
                         .font: defaultFontUsagePercent,
                         .foregroundColor: secondaryColor
@@ -3264,9 +3313,69 @@ final class StatusBarController: NSObject {
         name: String,
         usedPercent: Double,
         icon: NSImage?,
-        isEnabled: Bool = true
+        isEnabled: Bool = true,
+        windowLabel: String? = nil
     ) -> NSMenuItem {
-        return createNativeQuotaMenuItem(name: name, usedPercents: [usedPercent], icon: icon, isEnabled: isEnabled)
+        return createNativeQuotaMenuItem(
+            name: name,
+            usedPercents: [usedPercent],
+            icon: icon,
+            isEnabled: isEnabled,
+            windowLabels: windowLabel.map { [$0] } ?? []
+        )
+    }
+
+    private func createUnavailableQuotaMenuItem(name: String, status: String, icon: NSImage?) -> NSMenuItem {
+        let item = NSMenuItem(title: "\(name) · \(status)", action: nil, keyEquivalent: "")
+        item.image = tintedImage(icon, color: .disabledControlTextColor)
+        item.isEnabled = false
+        item.toolTip = status
+        return item
+    }
+
+    private func quotaWindowLabels(
+        for identifier: ProviderIdentifier,
+        details: DetailedUsage?,
+        count: Int
+    ) -> [String] {
+        let labels: [String]
+        switch identifier {
+        case .claude, .kimi, .kimiCN, .minimaxCodingPlan, .minimaxCodingPlanCN:
+            labels = ["5h", "Weekly", "Sonnet Weekly"]
+        case .codex:
+            labels = [
+                details?.codexPrimaryWindowLabel ?? "Primary",
+                details?.codexSecondaryWindowLabel ?? "Weekly",
+                details?.sparkPrimaryWindowLabel ?? "Spark Primary",
+                details?.sparkSecondaryWindowLabel ?? "Spark Weekly"
+            ]
+        case .openCodeGo:
+            labels = ["5h", "Weekly", "Monthly"]
+        case .grok, .copilot, .braveSearch, .tavilySearch:
+            labels = ["Monthly"]
+        case .cursor:
+            labels = ["Auto", "API"]
+        case .zaiCodingPlan:
+            labels = ["Tokens", "MCP"]
+        case .chutes:
+            labels = ["Daily", "Monthly"]
+        case .nanoGpt:
+            labels = ["Weekly", "Tokens", "MCP"]
+        default:
+            labels = []
+        }
+        return Array(labels.prefix(count))
+    }
+
+    nonisolated static func privacySafeAccountLabel(_ value: String) -> String {
+        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let separator = normalized.firstIndex(of: "@"), separator != normalized.startIndex else {
+            return normalized
+        }
+        let local = normalized[..<separator]
+        let domain = normalized[normalized.index(after: separator)...]
+        guard !domain.isEmpty else { return normalized }
+        return "\(local.prefix(1))•••@\(domain)"
     }
 
     private func unavailableUsageSuffix(for account: ProviderAccountResult, identifier: ProviderIdentifier) -> String? {
@@ -3355,9 +3464,9 @@ final class StatusBarController: NSObject {
 
         var shouldDisableListItem: Bool {
             switch self {
-            case .rateLimited, .error:
+            case .rateLimited:
                 return true
-            case .noCredentials, .noSubscription:
+            case .noCredentials, .noSubscription, .error:
                 return false
             }
         }
@@ -3633,7 +3742,7 @@ final class StatusBarController: NSObject {
     /// Uses the account name when available; falls back to a 1-based index otherwise.
     nonisolated static func searchEngineAccountTitle(base: String, accountId: String?, accountIndex: Int) -> String {
         if let accountId, !accountId.isEmpty {
-            return "\(base) (\(accountId))"
+            return "\(base) (\(privacySafeAccountLabel(accountId)))"
         }
         return "\(base) (#\(accountIndex + 1))"
     }
@@ -3652,7 +3761,8 @@ final class StatusBarController: NSObject {
                 let rowItem = createNativeQuotaMenuItem(
                     name: accountTitle,
                     usedPercent: account.usage.usagePercentage,
-                    icon: iconForProvider(identifier)
+                    icon: iconForProvider(identifier),
+                    windowLabel: "Monthly"
                 )
                 let accountResult = ProviderResult(usage: account.usage, details: account.details)
                 rowItem.submenu = createSearchEngineDetailSubmenu(
@@ -3680,7 +3790,12 @@ final class StatusBarController: NSObject {
         }
 
         if let result {
-            let rowItem = createNativeQuotaMenuItem(name: title, usedPercent: result.usage.usagePercentage, icon: iconForProvider(identifier))
+            let rowItem = createNativeQuotaMenuItem(
+                name: title,
+                usedPercent: result.usage.usagePercentage,
+                icon: iconForProvider(identifier),
+                windowLabel: "Monthly"
+            )
             rowItem.submenu = createSearchEngineDetailSubmenu(identifier: identifier, result: result, errorMessage: nil, isLoading: false)
             return rowItem
         }
@@ -4004,6 +4119,9 @@ final class StatusBarController: NSObject {
 
     func createHeaderView(title: String) -> NSView {
         let view = NSView(frame: NSRect(x: 0, y: 0, width: 250, height: 23))
+        view.setAccessibilityElement(true)
+        view.setAccessibilityRole(.staticText)
+        view.setAccessibilityLabel(title)
 
         let label = NSTextField(labelWithString: title)
         label.font = NSFont.systemFont(ofSize: 11, weight: .bold)
@@ -4053,6 +4171,9 @@ final class StatusBarController: NSObject {
         }
 
         let view = NSView(frame: NSRect(x: 0, y: 0, width: menuWidth, height: viewHeight))
+        view.setAccessibilityElement(true)
+        view.setAccessibilityRole(.staticText)
+        view.setAccessibilityLabel(text)
 
         if let icon = icon {
             let iconY = multiline ? viewHeight - 19 : 3
@@ -4975,9 +5096,7 @@ extension StatusBarController {
         .nanoGpt,
         .antigravity,
         .chutes,
-        .synthetic,
-        .braveSearch,
-        .tavilySearch
+        .synthetic
     ]
 }
 

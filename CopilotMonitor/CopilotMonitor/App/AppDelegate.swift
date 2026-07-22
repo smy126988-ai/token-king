@@ -66,14 +66,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
     // controller is created in `applicationDidFinishLaunching`.
     private var pendingStatusItem: NSStatusItem?
 
-    // Workaround: `MenuBarExtraAccess`'s `observerSetup()` runs ONCE on first
-    // `body` evaluation. If that evaluation happens *before* SwiftUI has put
-    // the NSStatusBarWindow into `NSApp.windows`, the introspection silently
-    // returns nil and the bridge closure is never called. We detect this by
-    // polling: if `bridgeHasFired` is still false after a few seconds, we
-    // attach the status item ourselves by scanning `NSApp.windows` directly.
-    private var bridgeHasFired = false
-
     /// B39: testability hook counting how many times the progressive post-launch
     /// resync scheduler has been entered.
     private(set) var resyncAfterLaunchCallCount = 0
@@ -86,7 +78,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
 
     @MainActor
     func attachStatusItem(_ statusItem: NSStatusItem) {
-        bridgeHasFired = true
+        StatusItemBridge.shared.markAttached()
         if let controller = statusBarController {
             logger.info("🌉 [Bridge] attachStatusItem: forwarding to existing controller")
             controller.attachTo(statusItem)
@@ -129,7 +121,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
             let safeItem = _safeStatusItem(from: window)
             if safeItem == nil {
                 skippedWithNoItem += 1
-                logger.info("🌉 [Bridge] sync: window frame=\(String(describing: window.frame)) - Mirror.descendant(\"statusItem\") returned nil")
+                logger.debug("🌉 [Bridge] sync: window frame=\(String(describing: window.frame)) - safe reflection found no status item")
                 continue
             }
             guard let item = safeItem, item !== primaryItem else { continue }
@@ -143,7 +135,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
             logger.info("🌉 [Bridge] syncMenuToAllStatusWindows: attached menu to \(attachedCount) secondary item(s)")
         }
         if skippedWithNoItem > 0 && attachedCount == 0 {
-            logger.warning("🌉 [Bridge] syncMenuToAllStatusWindows: \(skippedWithNoItem) secondary window(s) had no Mirror.statusItem")
+            logger.debug("🌉 [Bridge] syncMenuToAllStatusWindows: \(skippedWithNoItem) private status window(s) were not reflectable")
         }
         controller.debugLog("syncMenuToAllStatusWindows: finished barWindows=\(barWindows.count) attached=\(attachedCount) skipped=\(skippedWithNoItem)")
         return (barWindows.count, attachedCount, skippedWithNoItem)
@@ -156,8 +148,41 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
     /// primary attachment path.
     @MainActor
     func _safeStatusItem(from window: NSWindow) -> NSStatusItem? {
-        if let viaMirror = Mirror(reflecting: window).descendant("statusItem") as? NSStatusItem {
-            return viaMirror
+        reflectedStatusItem(in: window, remainingDepth: 3)
+    }
+
+    /// macOS has changed the private status-window storage shape across
+    /// releases. Walk a shallow reflected object graph so replicant items can
+    /// still be found without invoking exception-raising private KVC.
+    private func reflectedStatusItem(in value: Any, remainingDepth: Int) -> NSStatusItem? {
+        if let item = value as? NSStatusItem { return item }
+        guard remainingDepth > 0 else { return nil }
+
+        var currentMirror: Mirror? = Mirror(reflecting: value)
+        while let mirror = currentMirror {
+            for child in mirror.children {
+                if let item = child.value as? NSStatusItem {
+                    return item
+                }
+
+                let childLabel = child.label?.lowercased() ?? ""
+                guard childLabel.contains("status") || childLabel.contains("item") || childLabel.contains("storage") else {
+                    continue
+                }
+                let childMirror = Mirror(reflecting: child.value)
+                switch childMirror.displayStyle {
+                case .class, .struct, .optional:
+                    if let item = reflectedStatusItem(
+                        in: child.value,
+                        remainingDepth: remainingDepth - 1
+                    ) {
+                        return item
+                    }
+                default:
+                    continue
+                }
+            }
+            currentMirror = mirror.superclassMirror
         }
         return nil
     }
@@ -212,7 +237,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
                 let menuCount = it.menu?.items.count ?? 0
                 lines.append("🔍   win[\(i)] screen=\(screenName) frame=(x=\(frame.origin.x),y=\(frame.origin.y),w=\(frame.width),h=\(frame.height)) item=\(itemAddr) btn.image=\(imgDesc) menuItems=\(menuCount)")
             } else {
-                lines.append("🔍   win[\(i)] screen=\(screenName) frame=(x=\(frame.origin.x),y=\(frame.origin.y),w=\(frame.width),h=\(frame.height)) - no item (Mirror.descendant and KVC both returned nil)")
+                lines.append("🔍   win[\(i)] screen=\(screenName) frame=(x=\(frame.origin.x),y=\(frame.origin.y),w=\(frame.width),h=\(frame.height)) - no item found by safe reflection")
             }
         }
         DiagnosticsLogger.shared.log(lines.joined(separator: "\n"), category: "StatusBar.\(tag)")
@@ -274,11 +299,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         }
         syncMenuToAllStatusWindows()
 
-        // Workaround for the `MenuBarExtraAccess` race: bridge closure may
-        // never fire if SwiftUI evaluated body before NSApp.windows contained
-        // the NSStatusBarWindow. Poll until the bridge fires OR we attach
-        // ourselves by finding the window directly.
-        scheduleBridgeAttachRetry()
+        // MenuBarExtraAccess can miss its one-shot introspection during cold
+        // launch. Reinsert the supported SwiftUI scene until its callback
+        // arrives instead of adopting a private AppKit status item.
+        StatusItemBridge.shared.beginRecovery()
 
         // B39: secondary display's NSSceneStatusItem may not exist yet at
         // launch. Wait a beat for SwiftUI's lazy scene creation, then retry.
@@ -339,6 +363,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
 
     @MainActor
     func applicationWillTerminate(_ notification: Notification) {
+        StatusItemBridge.shared.cancelRecovery()
         localHTTPServer?.stop()
         guard launchMode.shouldActivateOfflineSandbox, let sandbox = offlineTestSandbox else { return }
         do {
@@ -438,47 +463,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
                 logger.info("🌉 [Bridge] scheduleResyncAfterLaunch: firing progressive retry at +\(delay)s")
                 self.syncMenuToAllStatusWindows()
             }
-        }
-    }
-
-    /// Workaround for `MenuBarExtraAccess` bridge race. The bridge closure
-    /// `statusItem: { ... }` only ever fires when observerSetup() is invoked
-    /// with a non-empty `MenuBarExtraUtils.statusItems` list. If body was
-    /// evaluated before that list had anything in it, observerSetup returns
-    /// silently and the closure never runs.
-    ///
-    /// We poll for up to ~15.8s (cumulative) at increasing intervals. At
-    /// each tick we check whether the bridge already fired; if so, stop. If
-    /// not, we scan `NSApp.windows` for an `NSStatusBarWindow` and pull the
-    /// `statusItem` ivar out via best-effort Swift reflection, then feed it
-    /// to `attachStatusItem(_:)`.
-    ///
-    /// Idempotent: if the bridge eventually fires too, attachStatusItem is
-    /// called again with the same item and the controller just re-resolves.
-    @MainActor
-    private func scheduleBridgeAttachRetry() {
-        Task { @MainActor [weak self] in
-            logger.info("🌉 [Bridge] scheduleBridgeAttachRetry: starting poll loop")
-            let intervals: [Double] = [0.3, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0]
-            for delay in intervals {
-                guard let self else { return }
-                try? await Task.sleep(for: .seconds(delay))
-                if self.bridgeHasFired {
-                    logger.info("🌉 [Bridge] retry: bridge fired before \(delay)s, exiting")
-                    return
-                }
-                let barWindows = NSApp.windows.filter { $0.className.contains("NSStatusBarWindow") }
-                logger.info("🌉 [Bridge] retry +\(delay)s: NSApp.windows has \(barWindows.count) NSStatusBarWindow(s) to consider")
-                for window in barWindows {
-                    let viaMirror = Mirror(reflecting: window).descendant("statusItem") as? NSStatusItem
-                    if let item = viaMirror {
-                        logger.info("🌉 [Bridge] retry +\(delay)s: bridge didn't fire, attaching manually via reflection")
-                        self.attachStatusItem(item)
-                        return
-                    }
-                }
-            }
-            logger.warning("🌉 [Bridge] retry gave up after \(intervals.reduce(0, +))s; bridge never fired and we couldn't find NSStatusBarWindow")
         }
     }
 

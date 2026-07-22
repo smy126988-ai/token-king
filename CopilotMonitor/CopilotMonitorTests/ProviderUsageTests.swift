@@ -410,6 +410,48 @@ final class ProviderUsageTests: XCTestCase {
         XCTAssertEqual(secondResult.results[.claude]?.usage.remainingQuota, 33)
     }
 
+    func testProviderManagerFetchesOnlySelectedProviders() async {
+        let codex = CountingStubProvider(
+            identifier: .codex,
+            minimumFetchInterval: 0,
+            delayNanoseconds: 0,
+            result: makeQuotaResult(remaining: 25)
+        )
+        let claude = CountingStubProvider(
+            identifier: .claude,
+            minimumFetchInterval: 0,
+            delayNanoseconds: 0,
+            result: makeQuotaResult(remaining: 50)
+        )
+        let manager = ProviderManager(providers: [codex, claude])
+
+        let result = await manager.fetch(identifiers: [.codex])
+        let codexFetchCount = await codex.fetchCount()
+        let claudeFetchCount = await claude.fetchCount()
+
+        XCTAssertEqual(codexFetchCount, 1)
+        XCTAssertEqual(claudeFetchCount, 0)
+        XCTAssertEqual(Set(result.results.keys), [.codex])
+        XCTAssertTrue(result.errors.isEmpty)
+    }
+
+    func testProviderManagerDoesNoWorkForEmptySelection() async {
+        let provider = CountingStubProvider(
+            identifier: .codex,
+            minimumFetchInterval: 0,
+            delayNanoseconds: 0,
+            result: makeQuotaResult(remaining: 25)
+        )
+        let manager = ProviderManager(providers: [provider])
+
+        let result = await manager.fetch(identifiers: [])
+        let fetchCount = await provider.fetchCount()
+
+        XCTAssertEqual(fetchCount, 0)
+        XCTAssertTrue(result.results.isEmpty)
+        XCTAssertTrue(result.errors.isEmpty)
+    }
+
     func testProviderManagerKeepsRateLimitStatusDuringCooldownWithoutCache() async {
         let provider = RateLimitedStubProvider(identifier: .claude, minimumFetchInterval: 10 * 60)
         let manager = ProviderManager(providers: [provider])

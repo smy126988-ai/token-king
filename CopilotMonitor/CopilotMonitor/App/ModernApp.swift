@@ -14,21 +14,98 @@
 // not use that broken macro path — it routes through SwiftUI's own `main()`,
 // which wires up the delegate correctly.
 //
-// `isMenuEnabled` MUST be true so SwiftUI actually inserts the `MenuBarExtra`
-// into the menu bar; otherwise the bridge never receives a `NSStatusItem` to
-// forward to us.
+// `StatusItemBridge.isInserted` normally stays true so SwiftUI owns the
+// `MenuBarExtra`. It briefly reinserts the scene only when the bridge misses
+// its cold-launch callback.
 
 import SwiftUI
 import MenuBarExtraAccess
+import os.log
+
+private let statusItemBridgeLogger = Logger(
+    subsystem: "com.opencodeproviders",
+    category: "StatusItemBridge"
+)
+
+/// Owns the supported SwiftUI `MenuBarExtra` insertion lifecycle.
+/// Re-inserting the scene is the recovery path when the first package
+/// introspection runs before AppKit has created its status item.
+@MainActor
+final class StatusItemBridge: ObservableObject {
+    static let shared = StatusItemBridge()
+
+    @Published var isInserted = true
+
+    private(set) var hasAttached = false
+    private var recoveryTask: Task<Void, Never>?
+    private let recoveryDelays: [Duration]
+    private let attachmentGracePeriod: Duration
+
+    init(
+        recoveryDelays: [Duration] = [.milliseconds(400), .seconds(1), .seconds(2), .seconds(4), .seconds(6)],
+        attachmentGracePeriod: Duration = .milliseconds(500)
+    ) {
+        self.recoveryDelays = recoveryDelays
+        self.attachmentGracePeriod = attachmentGracePeriod
+    }
+
+    func markAttached() {
+        hasAttached = true
+        recoveryTask?.cancel()
+        recoveryTask = nil
+        statusItemBridgeLogger.notice("MenuBarExtra status item attached")
+    }
+
+    func beginRecovery() {
+        guard !hasAttached, recoveryTask == nil else { return }
+        statusItemBridgeLogger.info("Starting MenuBarExtra cold-launch recovery")
+
+        recoveryTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            for (attempt, delay) in self.recoveryDelays.enumerated() {
+                do {
+                    try await Task.sleep(for: delay)
+                } catch {
+                    return
+                }
+                guard !self.hasAttached else { return }
+
+                statusItemBridgeLogger.info("Reinserting MenuBarExtra scene, attempt \(attempt + 1)")
+                self.isInserted = false
+                do {
+                    try await Task.sleep(for: .milliseconds(80))
+                } catch {
+                    return
+                }
+                guard !self.hasAttached else { return }
+                self.isInserted = true
+            }
+
+            do {
+                try await Task.sleep(for: self.attachmentGracePeriod)
+            } catch {
+                return
+            }
+            guard !self.hasAttached else { return }
+            statusItemBridgeLogger.error("MenuBarExtra recovery exhausted without an attachment callback")
+            self.recoveryTask = nil
+        }
+    }
+
+    func cancelRecovery() {
+        recoveryTask?.cancel()
+        recoveryTask = nil
+    }
+}
 
 @main
 struct ModernApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var isMenuPresented = false
-    @State private var isMenuEnabled = true
+    @StateObject private var statusItemBridge = StatusItemBridge.shared
 
     var body: some Scene {
-        MenuBarExtra(isInserted: $isMenuEnabled) {
+        MenuBarExtra(isInserted: $statusItemBridge.isInserted) {
             // Placeholder content — MenuBarExtraAccess bridge replaces the menu
             // with the StatusBarController's NSMenu at runtime.
             Text("Loading...")
@@ -49,7 +126,7 @@ struct ModernApp: App {
         .menuBarExtraStyle(.menu)
         .menuBarExtraAccess(
             isPresented: $isMenuPresented,
-            isEnabled: $isMenuEnabled,
+            isEnabled: $statusItemBridge.isInserted,
             statusItem: { statusItem in
                 // Hand the SwiftUI-owned NSSceneStatusItem to AppDelegate
                 // which forwards to StatusBarController.attachTo(_:).

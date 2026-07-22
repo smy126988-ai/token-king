@@ -70,6 +70,12 @@ struct ClaudeCodeExtractor: TokenExtractorProtocol {
                 input: inputTokens, output: outputTokens,
                 cacheRead: cacheRead, cacheWrite: cacheWrite
             )
+            // Claude Code emits bookkeeping rows for compact/subagent
+            // boundaries with the sentinel model `<synthetic>` and an empty
+            // usage payload. They are not billable model turns and must not
+            // be attributed to the NanoGPT fallback or persisted as zero rows.
+            guard model != "<synthetic>", tokens.total > 0 else { continue }
+
             // Pass providerID="" so TokenNormalizer routes by model name.
             // Hard-coding "anthropic" caused subagent sessions that call
             // through Xiaomi (mimo-v2.5-pro) or other providers to be

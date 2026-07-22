@@ -101,8 +101,23 @@ actor ProviderManager {
     /// - Returns: FetchAllResult containing both successful results and error messages
     /// - Note: Returns partial results if some providers fail (graceful degradation)
     func fetchAll() async -> FetchAllResult {
-        logger.info("🔵 [ProviderManager] fetchAll() started - \(self.providers.count) providers")
-        self.debugLog("🔵 fetchAll() started - \(self.providers.count) providers")
+        await fetch(providers: providers, operationName: "fetchAll")
+    }
+
+    /// Fetches only the providers selected by the caller.
+    /// Disabled providers must not perform network or CLI work merely because
+    /// another provider is being refreshed from the menu bar.
+    func fetch(identifiers: Set<ProviderIdentifier>) async -> FetchAllResult {
+        let selectedProviders = providers.filter { identifiers.contains($0.identifier) }
+        return await fetch(providers: selectedProviders, operationName: "fetchSelected")
+    }
+
+    private func fetch(
+        providers selectedProviders: [ProviderProtocol],
+        operationName: String
+    ) async -> FetchAllResult {
+        logger.info("🔵 [ProviderManager] \(operationName)() started - \(selectedProviders.count) providers")
+        self.debugLog("🔵 \(operationName)() started - \(selectedProviders.count) providers")
 
         var results: [ProviderIdentifier: ProviderResult] = [:]
         var errors: [ProviderIdentifier: String] = [:]
@@ -110,7 +125,7 @@ actor ProviderManager {
         // Use TaskGroup for parallel fetching with timeout
         // Return type: (identifier, result, errorMessage)
         await withTaskGroup(of: (ProviderIdentifier, ProviderResult?, String?).self) { group in
-            for provider in self.providers {
+            for provider in selectedProviders {
                 logger.debug("🟡 [ProviderManager] Adding fetch task for \(provider.identifier.displayName)")
                 self.debugLog("🟡 Adding fetch task for \(provider.identifier.displayName)")
                 
@@ -144,8 +159,8 @@ actor ProviderManager {
             }
         }
 
-        logger.info("🟢 [ProviderManager] fetchAll() completed: \(results.count)/\(self.providers.count) providers succeeded, \(errors.count) errors")
-        self.debugLog("🟢 fetchAll() completed: \(results.count)/\(self.providers.count) providers succeeded, \(errors.count) errors")
+        logger.info("🟢 [ProviderManager] \(operationName)() completed: \(results.count)/\(selectedProviders.count) providers succeeded, \(errors.count) errors")
+        self.debugLog("🟢 \(operationName)() completed: \(results.count)/\(selectedProviders.count) providers succeeded, \(errors.count) errors")
         return FetchAllResult(results: results, errors: errors)
     }
     

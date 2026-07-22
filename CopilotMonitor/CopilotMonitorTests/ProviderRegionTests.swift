@@ -165,6 +165,7 @@ final class ProviderRegionTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testStatusBarQuotaOrderDoesNotRequireFullControllerInit() {
         // B11: reading providerQuotaOrder via `StatusBarController()` (default
         // .production init) used to trigger refresh timers, GitHub star prompt

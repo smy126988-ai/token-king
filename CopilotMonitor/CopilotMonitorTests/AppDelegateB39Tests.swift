@@ -1,11 +1,45 @@
 import XCTest
 import AppKit
+import Combine
 @testable import OpenCode_Bar
 
 /// B39 + B40 regression coverage for multi-display menu sync and secondary
 /// status-item icon attachment.
 @MainActor
 final class AppDelegateB39Tests: XCTestCase {
+    func testStatusItemBridgeStopsRecoveryAfterAttachment() async {
+        let bridge = StatusItemBridge(
+            recoveryDelays: [.milliseconds(1)],
+            attachmentGracePeriod: .milliseconds(1)
+        )
+
+        bridge.markAttached()
+        bridge.beginRecovery()
+        try? await Task.sleep(for: .milliseconds(5))
+
+        XCTAssertTrue(bridge.hasAttached)
+        XCTAssertTrue(bridge.isInserted)
+    }
+
+    func testStatusItemBridgeReinsertsSceneWhenAttachmentIsMissing() async {
+        let bridge = StatusItemBridge(
+            recoveryDelays: [.milliseconds(1)],
+            attachmentGracePeriod: .milliseconds(1)
+        )
+        var insertionStates: [Bool] = []
+        let observation = bridge.$isInserted
+            .dropFirst()
+            .sink { insertionStates.append($0) }
+
+        bridge.beginRecovery()
+        try? await Task.sleep(for: .milliseconds(120))
+
+        XCTAssertFalse(bridge.hasAttached)
+        XCTAssertTrue(bridge.isInserted)
+        XCTAssertEqual(insertionStates, [false, true])
+        _ = observation
+    }
+
     func testWidgetRefreshURLMatchesRegisteredRoute() throws {
         let url = try XCTUnwrap(URL(string: "tokenking://refresh"))
         XCTAssertTrue(AppDelegate.isWidgetRefreshURL(url))
@@ -58,7 +92,7 @@ final class AppDelegateB39Tests: XCTestCase {
     /// Reflection-based check: a window whose class name contains
     /// "NSStatusBarWindow" and exposes a `statusItem` should be inspected by
     /// `syncMenuToAllStatusWindows`. The primary item is found and skipped,
-    /// proving the Mirror/KVC path works without crashing.
+    /// proving the safe-reflection path works without crashing.
     func testSyncMenuToAllStatusWindowsFindsPrimaryStatusItemViaReflection() {
         let delegate = AppDelegate()
         let controller = StatusBarController(options: .testing())
@@ -87,8 +121,31 @@ final class AppDelegateB39Tests: XCTestCase {
         // window should not contribute to `attached`.
         XCTAssertLessThan(summary.attached, summary.barWindows)
     }
+
+    func testSafeStatusItemFindsNestedReplicantShape() {
+        let delegate = AppDelegate()
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        primaryItem = item
+        let window = B39NestedNSStatusBarWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 1, height: 1),
+            styleMask: [],
+            backing: .buffered,
+            defer: false
+        )
+        window.storage.statusItem = item
+
+        XCTAssertTrue(delegate._safeStatusItem(from: window) === item)
+    }
 }
 
 private final class B39FakeNSStatusBarWindow: NSWindow {
+    var statusItem: NSStatusItem?
+}
+
+private final class B39NestedNSStatusBarWindow: NSWindow {
+    let storage = B39StatusItemStorage()
+}
+
+private final class B39StatusItemStorage {
     var statusItem: NSStatusItem?
 }
